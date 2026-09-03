@@ -1,9 +1,6 @@
 # =============================================================================
-# Frontend - Sistema de Gestion de Inventarios INICTEL-UNI
-#
 # Dos etapas: Node compila la aplicacion Angular y nginx sirve el resultado. La
 # imagen final no lleva Node ni node_modules, solo los archivos estaticos
-# (RNF-44).
 # =============================================================================
 
 # ----------------------------------------------------------------- Compilacion
@@ -22,8 +19,6 @@ RUN npm run build
 # -------------------------------------------------------------------- Servicio
 FROM nginx:1.27-alpine AS servicio
 
-# La configuracion por defecto sirve una pagina de bienvenida que no pinta nada
-# en produccion.
 RUN rm -f /etc/nginx/conf.d/default.conf
 
 COPY nginx.conf                /etc/nginx/conf.d/inventario.conf
