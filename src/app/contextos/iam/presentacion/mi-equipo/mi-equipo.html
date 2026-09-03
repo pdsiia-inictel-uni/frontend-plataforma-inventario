@@ -44,6 +44,10 @@
               <th>Operador</th>
               <th>DNI</th>
               <th>Usuario</th>
+              <!-- RN-38: los equipos que lleva cada uno son lo que decide si
+                   puede dejar su puesto, así que se ven aquí y no en otra
+                   pantalla. -->
+              <th>Equipos a su cargo</th>
               <th>Cuenta</th>
               <th class="celda-acciones">Acciones</th>
             </tr>
@@ -59,8 +63,23 @@
                 </td>
                 <td class="texto-mono">{{ operador.dni }}</td>
                 <td class="texto-mono">{{ operador.username }}</td>
+                <td data-etiqueta="Equipos a su cargo">
+                  @if (equiposDe(operador) > 0) {
+                    <!-- RF-84: lleva al listado ya filtrado por esta persona, que
+                         es donde se reparten los equipos (RF-83). -->
+                    <button
+                      type="button"
+                      class="btn-enlace"
+                      [title]="'Ver los equipos de ' + operador.nombreCompleto"
+                      (click)="verEquiposDe(operador)">
+                      {{ equiposDe(operador) }}
+                    </button>
+                  } @else {
+                    <span class="texto-secundario">Ninguno</span>
+                  }
+                </td>
                 <td>
-                  <!-- RF-22b: activa, suspendida o de baja (RNF-30). -->
+                  <!-- RF-22b: activa o de baja (RNF-30). -->
                   <span [class]="claseDelEstado(operador.estado)">{{ operador.estadoEtiqueta }}</span>
                   @if (operador.bloqueado) {
                     <span class="insignia insignia-vencido">Bloqueada</span>
@@ -90,18 +109,17 @@
                         <app-icono nombre="desbloquear" tamano="sm" />
                       </button>
                     }
-                    <!-- RF-22b, RF-29: el Responsable aparta y despide a sus operadores.
-                         Suspender guarda el puesto; dar de baja lo libera. -->
+                    <!-- RF-22b, RF-29: el Responsable da de baja a sus operadores
+                         y los reincorpora. RN-38: mientras el operador tenga
+                         equipos a su nombre el boton queda desactivado, y su
+                         titulo dice cual es la salida, que esta en manos de
+                         quien esta mirando la pantalla (RNF-23). -->
                     @if (operador.estado !== 'BAJA') {
                       <button
                         type="button"
                         class="btn btn-secundario btn-sm"
-                        (click)="pedirSuspension(operador)">
-                        {{ operador.estado === 'SUSPENDIDA' ? 'Reactivar' : 'Suspender' }}
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-secundario btn-sm"
+                        [disabled]="equiposDe(operador) > 0"
+                        [title]="motivoBloqueoBaja(operador)"
                         (click)="pedirCambioEstado(operador, 'BAJA')">
                         Dar de baja
                       </button>

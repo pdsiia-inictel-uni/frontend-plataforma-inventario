@@ -21,7 +21,36 @@ export interface EquipoResumen {
   costo: number;
   /** RN-19: devuelto con dano, a la espera de que el Responsable decida. */
   revisionPendiente: boolean;
+  /**
+   * RF-83: Operador que tiene el equipo a su cargo.
+   *
+   * <p>Ausente cuando lo lleva el Responsable de la coordinación, que es como
+   * nace todo bien y donde vuelve cuando se le retira a un operador.</p>
+   */
+  responsableEquipoId?: number;
+  /**
+   * RF-84: nombre de quien responde por el equipo hoy. Nunca queda vacío: si no
+   * hay operador asignado es el Responsable vigente, que es lo que significa no
+   * tener asignación (RN-37).
+   */
+  responsableEquipo?: string;
   fechaRegistro: string;
+}
+
+/**
+ * Una opción del listado por responsable de equipo (RF-84).
+ *
+ * <p>Es el reparto del inventario dicho en una línea: quién lleva equipos en
+ * esta coordinación y cuántos. Con el recuento delante, quien abre el
+ * desplegable ve el reparto de un vistazo en vez de elegir un nombre a ciegas
+ * y acabar en una lista vacía (RNF-23).</p>
+ */
+export interface ResponsableEquipo {
+  /** Ausente en la fila del Responsable: sus bienes son los no asignados. */
+  usuarioId?: number;
+  nombreCompleto: string;
+  esResponsableCoordinacion: boolean;
+  cantidad: number;
 }
 
 /** Ficha completa del bien (RF-34). */
@@ -102,6 +131,19 @@ export interface FiltroInventario {
   condicion?: CondicionEquipo | null;
   /** RF-47: la pestana "Todos" ignora el filtro de condicion. */
   todas?: boolean;
+  /**
+   * RF-84: deja solo los equipos que esa persona tiene a su nombre.
+   *
+   * <p>Es el listado por responsable de equipo: el operador consulta los suyos
+   * con su propio identificador y el responsable revisa los de cada uno de los
+   * suyos (RF-83).</p>
+   */
+  responsableEquipoId?: number | null;
+  /**
+   * RF-84: deja solo los que no están asignados a ningún operador, que son los
+   * que lleva el propio Responsable de la coordinación (RN-37).
+   */
+  sinResponsable?: boolean;
 }
 
 /**

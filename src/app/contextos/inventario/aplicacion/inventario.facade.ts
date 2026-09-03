@@ -3,7 +3,13 @@ import { Observable } from 'rxjs';
 
 import { CriterioPagina, Pagina } from '../../../compartido/dominio/pagina.model';
 import { Categoria } from '../dominio/categoria.model';
-import { Equipo, EquipoPeticion, EquipoResumen, FiltroInventario } from '../dominio/equipo.model';
+import {
+  Equipo,
+  EquipoPeticion,
+  EquipoResumen,
+  FiltroInventario,
+  ResponsableEquipo,
+} from '../dominio/equipo.model';
 import { Movimiento } from '../dominio/movimiento.model';
 import { CategoriasPuerto, EquiposPuerto } from '../dominio/puertos';
 
@@ -17,6 +23,17 @@ export class InventarioFacade {
 
   buscar(filtro: FiltroInventario, criterio: CriterioPagina): Observable<Pagina<EquipoResumen>> {
     return this.equipos.listar(filtro, criterio);
+  }
+
+  /**
+   * RF-84: quién lleva equipos en la coordinación y cuántos lleva cada uno.
+   *
+   * <p>Es lo que hace posible el listado por responsable de equipo: las
+   * opciones llegan ya contadas, de modo que quien abre el desplegable ve el
+   * reparto antes de elegir (RNF-23).</p>
+   */
+  responsablesDeEquipo(coordinacionId?: number | null): Observable<ResponsableEquipo[]> {
+    return this.equipos.responsablesDeEquipo(coordinacionId);
   }
 
   obtener(id: number): Observable<Equipo> {

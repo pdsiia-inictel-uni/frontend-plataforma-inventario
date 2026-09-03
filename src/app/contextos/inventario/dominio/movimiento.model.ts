@@ -30,8 +30,15 @@ export interface Movimiento {
   usuario: string;
   rolUsuario?: Rol;
   rolEtiqueta?: string;
-  /** Frase ya redactada por el backend: "Prestado por Ana Diaz (Responsable)". */
-  resumen: string;
+  /**
+   * Quién protagoniza el hecho, ya redactado por el servidor.
+   *
+   * <p>En el alta llega rotulado —"Registrado por: Ana Díaz (Operador)"—
+   * porque la ficha del bien ya no muestra quién lo registró y el historial es
+   * donde se consulta. Los demás hechos llegan como "Ana Díaz (Operador)": su
+   * verbo ya está en el título del hito.</p>
+   */
+  autoria: string;
   fechaHora: string;
 }
 

@@ -8,6 +8,7 @@ import { UsuariosPuerto } from '../dominio/puertos';
 import {
   AsignacionPeticion,
   AsignacionRealizada,
+  EquiposACargo,
   EstadoCuenta,
   FiltroUsuarios,
   PasswordTemporal,
@@ -96,6 +97,11 @@ export class UsuariosHttpAdapter extends UsuariosPuerto {
     return this.http
       .delete<Usuario>(`${this.url}/${id}/asignaciones/${coordinacionId}`)
       .pipe(map(normalizarUsuario));
+  }
+
+  /** RN-38: los equipos que impiden dar de baja a esta persona. */
+  override equiposACargo(id: number): Observable<EquiposACargo> {
+    return this.http.get<EquiposACargo>(`${this.url}/${id}/equipos-a-cargo`);
   }
 
   override cambiarEstado(id: number, estado: EstadoCuenta): Observable<Usuario> {

@@ -1,7 +1,14 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 
 import { SesionStore } from '../../aplicacion/sesion.store';
-import { Usuario, claseEstadoCuenta, claseRol, coordinacionDe } from '../../dominio/usuario.model';
+import { UsuariosFacade } from '../../aplicacion/usuarios.facade';
+import {
+  EquiposACargo,
+  Usuario,
+  claseEstadoCuenta,
+  claseRol,
+  coordinacionDe,
+} from '../../dominio/usuario.model';
 
 /**
  * Ficha completa de una persona (RF-28f).
@@ -24,19 +31,66 @@ import { Usuario, claseEstadoCuenta, claseRol, coordinacionDe } from '../../domi
 })
 export class DetallePersona {
   private readonly sesion = inject(SesionStore);
+  private readonly usuarios = inject(UsuariosFacade);
 
-  @Input({ required: true }) persona!: Usuario;
+  /**
+   * RN-38: los equipos que retienen a esta persona en su puesto.
+   *
+   * <p>Se consultan al abrir la ficha, no al pulsar "Dar de baja": la ventana
+   * tiene que poder decir que la baja no procede <b>antes</b> de que nadie lo
+   * intente, y decir además cuáles son los equipos, que es lo que hay que
+   * reasignar para desbloquearla (RNF-23, RNF-26).</p>
+   */
+  protected readonly aCargo = signal<EquiposACargo | null>(null);
+
+  @Input({ required: true }) set persona(valor: Usuario) {
+    this.personaActual = valor;
+    this.aCargo.set(null);
+    // Quien ya está de baja no tiene nada que retenerlo: la pregunta no aplica.
+    if (valor.estado === 'BAJA') {
+      return;
+    }
+    this.usuarios.equiposACargo(valor.id).subscribe({
+      next: (respuesta) => this.aCargo.set(respuesta),
+      // Sin respuesta la ficha no bloquea nada: el servidor sigue siendo quien
+      // decide, y rechazará la baja si corresponde (RNF-10).
+      error: () => this.aCargo.set(null),
+    });
+  }
+
+  get persona(): Usuario {
+    return this.personaActual;
+  }
+
+  private personaActual!: Usuario;
 
   @Output() editar = new EventEmitter<Usuario>();
   @Output() asignar = new EventEmitter<Usuario>();
   @Output() restablecerPassword = new EventEmitter<Usuario>();
   @Output() desbloquear = new EventEmitter<Usuario>();
-  /** RF-22b: apartar temporalmente a quien va a volver, o traerlo de vuelta. */
-  @Output() suspender = new EventEmitter<Usuario>();
   /** RF-22b: la salida de la institucion, que ademas libera el puesto (RN-34). */
   @Output() darDeBaja = new EventEmitter<Usuario>();
   @Output() reincorporar = new EventEmitter<Usuario>();
   @Output() cerrado = new EventEmitter<void>();
+
+  /** RN-38: mientras conserve algún equipo, la baja se rechazaría. */
+  protected get retenidoPorSusEquipos(): boolean {
+    return (this.aCargo()?.cantidad ?? 0) > 0;
+  }
+
+  /** El aviso que acompaña al botón desactivado, con la salida escrita. */
+  protected get motivoBloqueoBaja(): string {
+    const cantidad = this.aCargo()?.cantidad ?? 0;
+    if (cantidad === 0) {
+      return '';
+    }
+    const equipos = cantidad === 1 ? 'un equipo' : `${cantidad} equipos`;
+    return (
+      `No se puede dar de baja: tiene ${equipos} a su cargo. El responsable de su coordinación ` +
+      'debe entregárselos a otro operador de la misma coordinación o quedárselos, y entonces la ' +
+      'baja quedará disponible.'
+    );
+  }
 
   /** RNF-30: el rol se distingue por color Y por texto. */
   protected get claseDelRol(): string {

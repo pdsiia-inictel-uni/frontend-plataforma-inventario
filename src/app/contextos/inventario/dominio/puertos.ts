@@ -2,12 +2,26 @@ import { Observable } from 'rxjs';
 
 import { CriterioPagina, Pagina } from '../../../compartido/dominio/pagina.model';
 import { Categoria, CategoriaPeticion } from './categoria.model';
-import { Equipo, EquipoPeticion, EquipoResumen, FiltroInventario } from './equipo.model';
+import {
+  Equipo,
+  EquipoPeticion,
+  EquipoResumen,
+  FiltroInventario,
+  ResponsableEquipo,
+} from './equipo.model';
 import { Movimiento } from './movimiento.model';
 
 /** Puertos del contexto de inventario. */
 export abstract class EquiposPuerto {
   abstract listar(filtro: FiltroInventario, criterio: CriterioPagina): Observable<Pagina<EquipoResumen>>;
+  /**
+   * RF-84: quién lleva equipos en la coordinación y cuántos lleva cada uno.
+   *
+   * <p>Es el índice del listado por responsable de equipo: da las opciones del
+   * desplegable ya contadas. El Administrador debe indicar la coordinación; a
+   * los demás se la deduce el servidor de su token (RF-49).</p>
+   */
+  abstract responsablesDeEquipo(coordinacionId?: number | null): Observable<ResponsableEquipo[]>;
   abstract obtener(id: number): Observable<Equipo>;
   /** RF-56: linea de tiempo completa del bien, del alta al ultimo movimiento. */
   abstract historial(id: number): Observable<Movimiento[]>;

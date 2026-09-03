@@ -110,14 +110,12 @@
                 }
               </div>
             </div>
-            <div class="dato">
-              <div class="clave">Responsable a Cargo</div>
-              <div class="valor">{{ bien.responsable || 'Sin responsable' }}</div>
-            </div>
-            <div class="dato">
-              <div class="clave">Registrado por</div>
-              <div class="valor">{{ bien.registradoPor || '—' }}</div>
-            </div>
+            <!-- La ficha ya no repite *Responsable a cargo* —el responsable
+                 vigente al dar de alta el bien— ni *Registrado por*: el primero
+                 es una foto del pasado que se confundía con el responsable del
+                 equipo de arriba, que es quien lo tiene hoy (RF-83); el segundo
+                 se lee en el historial, donde el hecho aparece fechado y
+                 rotulado "Registrado por:" (RF-56). -->
             <div class="dato">
               <div class="clave">Fecha de registro</div>
               <div class="valor">{{ bien.fechaRegistro | date: 'dd/MM/yyyy HH:mm' }}</div>
@@ -223,13 +221,13 @@
                 </span>
                 <div class="hito-cuerpo">
                   <div class="hito-titulo">{{ movimiento.tipoEtiqueta }}</div>
+                  <!-- La autoría llega redactada del servidor; en el alta trae
+                       el rótulo "Registrado por:", que es donde ese dato se
+                       consulta desde que salió de la ficha (RF-56). -->
                   <div class="hito-fecha">
                     {{ movimiento.fechaHora | date: 'dd/MM/yyyy' }} a las
                     {{ movimiento.fechaHora | date: 'HH:mm' }}
-                    &middot; {{ movimiento.usuario }}
-                    @if (movimiento.rolEtiqueta) {
-                      <span>({{ movimiento.rolEtiqueta }})</span>
-                    }
+                    &middot; {{ movimiento.autoria }}
                   </div>
                   @if (movimiento.condicionAnterior && movimiento.condicionNueva) {
                     <div class="hito-transicion">

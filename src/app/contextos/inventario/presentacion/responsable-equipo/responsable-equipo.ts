@@ -16,9 +16,9 @@ import { Equipo } from '../../dominio/equipo.model';
  * decide es siempre el Responsable: es quien reparte el trabajo y quien
  * responde por el inventario entero (RN-37).</p>
  *
- * <p>La lista ofrece solo operadores <b>activos</b>: a alguien suspendido o
- * dado de baja no se le entrega un equipo, y ofrecerlo sería ofrecer una
- * acción que el servidor rechazaría (RNF-23).</p>
+ * <p>La lista ofrece solo operadores <b>activos</b>: a quien está dado de baja
+ * no se le entrega un equipo, y ofrecerlo sería ofrecer una acción que el
+ * servidor rechazaría (RNF-23).</p>
  *
  * <p><b>Devolverlo al Responsable no es dejarlo huérfano.</b> Es lo que hay
  * que hacer antes de que un operador con equipos a su nombre pueda dejar su
@@ -58,7 +58,7 @@ export class ResponsableEquipo implements OnInit {
       this.cargando.set(false);
       return;
     }
-    // soloActivos: a quien está suspendido o de baja no se le entrega nada.
+    // soloActivos: a quien está dado de baja no se le entrega nada.
     this.usuarios.integrantesDe(coordinacionId, true).subscribe({
       next: (lista) => {
         this.operadores.set(lista.filter((persona) => persona.rol === 'OPERADOR'));

@@ -1786,3 +1786,25 @@ fieldset.campo > legend {
   gap: 1rem;
   flex-wrap: wrap;
 }
+
+/* ------------------------------------ RN-38: equipos que retienen un puesto */
+
+/* La lista que acompaña al aviso de "no se puede dar de baja": son los equipos
+   que hay que reasignar, y se leen de un vistazo dentro del propio aviso. */
+.lista-equipos-retenidos { list-style: none; margin: .5rem 0 0; padding: 0; }
+.lista-equipos-retenidos li { padding: .2rem 0; }
+.lista-equipos-retenidos li + li { border-top: 1px solid rgba(0, 0, 0, .07); }
+
+/* Un boton que se lee como un enlace: navega, no ejecuta. Se usa para las
+   cifras que llevan al listado que las explica (RF-84). */
+.btn-enlace {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--marca-700);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.btn-enlace:hover { color: var(--marca-800); }

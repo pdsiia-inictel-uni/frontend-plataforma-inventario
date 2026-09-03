@@ -6,12 +6,13 @@ export type Rol = 'ADMIN' | 'RESPONSABLE' | 'OPERADOR';
 /**
  * Situacion de la cuenta de una persona (RF-22b).
  *
- * <p>Tres estados y no un interruptor, porque irse de vacaciones y dejar la
- * institucion no son la misma cosa: la <b>suspension</b> es temporal y
- * conserva el puesto; la <b>baja</b> es la salida definitiva y lo libera
- * (RN-34).</p>
+ * <p>Dos estados: la persona trabaja aquí y entra, o dejó la institución y con
+ * ella su puesto (RN-34). La <b>suspensión temporal</b> existió hasta la v3.10
+ * y se retiró: una ausencia de días —vacaciones, un permiso— no es una decisión
+ * sobre el acceso al sistema, y tener dos formas distintas de no entrar obligaba
+ * a cada pantalla a explicar cuál era cuál.</p>
  */
-export type EstadoCuenta = 'ACTIVA' | 'SUSPENDIDA' | 'BAJA';
+export type EstadoCuenta = 'ACTIVA' | 'BAJA';
 
 /** Coordinacion en la que una persona tiene puesto (RF-28d). */
 export interface CoordinacionAsignada {
@@ -101,6 +102,31 @@ export interface PasswordTemporal {
   mensaje: string;
 }
 
+/**
+ * Los equipos que retienen a una persona en su puesto (RN-38).
+ *
+ * <p>La ficha lo consulta al abrirse para poder <b>advertirlo antes</b>:
+ * mientras la persona conserve alguno, dar de baja su cuenta se rechaza, y es
+ * mejor decirlo con la lista delante que dejar que lo descubra pulsando el
+ * botón (RNF-23, RNF-26).</p>
+ */
+export interface EquiposACargo {
+  usuarioId: number;
+  nombreCompleto: string;
+  cantidad: number;
+  /** false mientras conserve alguno: la baja se rechazaría. */
+  puedeDarseDeBaja: boolean;
+  equipos: EquipoACargo[];
+}
+
+/** Lo justo para reconocer un equipo en el aviso: cuál es y dónde está. */
+export interface EquipoACargo {
+  id: number;
+  nombre: string;
+  codigoInventario: string;
+  laboratorio?: string;
+}
+
 /** Criterios de busqueda de personas (RF-28). */
 export interface FiltroUsuarios {
   q?: string;
@@ -162,27 +188,15 @@ export function claseRol(rol: Rol | null): string {
 
 export const ESTADOS_CUENTA: OpcionSelect<EstadoCuenta>[] = [
   { valor: 'ACTIVA', etiqueta: 'Activas' },
-  { valor: 'SUSPENDIDA', etiqueta: 'Suspendidas' },
   { valor: 'BAJA', etiqueta: 'De baja' },
 ];
 
 /**
  * Distintivo del estado de la cuenta: color Y texto, nunca solo color
  * (RNF-30, RNF-29).
- *
- * <p>La suspendida se distingue de la de baja tambien en el color, porque son
- * dos situaciones distintas y llevan a acciones distintas: a una se la espera
- * de vuelta y a la otra no.</p>
  */
 export function claseEstadoCuenta(estado: EstadoCuenta): string {
-  switch (estado) {
-    case 'ACTIVA':
-      return 'insignia insignia-activo';
-    case 'SUSPENDIDA':
-      return 'insignia insignia-vencido';
-    default:
-      return 'insignia insignia-inactivo';
-  }
+  return estado === 'ACTIVA' ? 'insignia insignia-activo' : 'insignia insignia-inactivo';
 }
 
 /** RF-07: la cuenta activa es la unica que entra al sistema. */

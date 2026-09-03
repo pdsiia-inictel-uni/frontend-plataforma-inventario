@@ -6,6 +6,7 @@ import { UsuariosPuerto } from '../dominio/puertos';
 import {
   AsignacionPeticion,
   AsignacionRealizada,
+  EquiposACargo,
   EstadoCuenta,
   FiltroUsuarios,
   PasswordTemporal,
@@ -87,12 +88,24 @@ export class UsuariosFacade {
   /**
    * RF-22b, RN-09: los usuarios nunca se eliminan, solo cambian de estado.
    *
-   * <p>Suspender es temporal y conserva el puesto; dar de baja es la salida de
-   * la institucion y lo libera. Volver a ACTIVA reactiva a quien estaba
-   * suspendido y reincorpora —sin puesto— a quien estaba de baja.</p>
+   * <p>Dar de baja es la salida de la institución, y libera el puesto. Volver a
+   * ACTIVA reincorpora —sin puesto— a quien estaba de baja: el que tenía se
+   * cubrió cuando se fue, y devolvérselo es una decisión aparte (RF-28d).</p>
    */
   cambiarEstado(id: number, estado: EstadoCuenta): Observable<Usuario> {
     return this.usuarios.cambiarEstado(id, estado);
+  }
+
+  /**
+   * RN-38: los equipos que impiden dar de baja a esta persona.
+   *
+   * <p>Quien tiene bienes a su nombre no deja su puesto: antes, el Responsable
+   * de su coordinación tiene que entregárselos a otro operador o quedárselos.
+   * La ficha lo consulta para decirlo <b>antes</b> de que nadie pulse el botón
+   * (RNF-23, RNF-26).</p>
+   */
+  equiposACargo(id: number): Observable<EquiposACargo> {
+    return this.usuarios.equiposACargo(id);
   }
 
   /** RF-26b: quienes pueden hacerse cargo de una coordinacion (RN-35). */

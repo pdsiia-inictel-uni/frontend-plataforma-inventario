@@ -10,6 +10,15 @@
     </p>
   </div>
   <div class="acciones-cabecera">
+    <!-- RF-84: el atajo que responde a "¿qué tengo yo a mi cargo?". Es la
+         pregunta que trae aquí a un operador, y merece un botón y no solo una
+         opción escondida en un desplegable (RNF-22). -->
+    @if (miIdentificador) {
+      <button type="button" class="btn btn-secundario" (click)="verMisEquipos()">
+        <app-icono nombre="ver" tamano="sm" />
+        <span>Mis equipos ({{ misEquipos }})</span>
+      </button>
+    }
     @if (esAdmin()) {
       <!-- RF-31: el catalogo de categorias se administra desde aqui, que es
            donde se usa y donde se echa en falta al registrar un equipo. -->
@@ -115,6 +124,35 @@
       </select>
     </div>
 
+    <!-- RF-84: el listado por responsable de equipo. Cada opción viene con su
+         recuento, de modo que se ve el reparto antes de elegir y nadie acaba en
+         una lista vacía por haber elegido a ciegas (RNF-23). -->
+    <div class="campo">
+      <label for="inv-responsable">Responsable de equipo</label>
+      <select
+        id="inv-responsable"
+        [(ngModel)]="responsableEquipoElegido"
+        (ngModelChange)="aplicarFiltros()">
+        <option [ngValue]="null">Todos</option>
+        @if (miIdentificador) {
+          <option [ngValue]="miIdentificador">Mis equipos ({{ misEquipos }})</option>
+        }
+        @for (persona of otrosResponsables; track persona.usuarioId ?? 0) {
+          @if (persona.esResponsableCoordinacion) {
+            <!-- RN-37: los que no están asignados a ningún operador los lleva el
+                 Responsable, que es lo que significa no tener asignación. -->
+            <option [ngValue]="'responsable'">
+              {{ persona.nombreCompleto }} — responsable ({{ persona.cantidad }})
+            </option>
+          } @else {
+            <option [ngValue]="persona.usuarioId">
+              {{ persona.nombreCompleto }} ({{ persona.cantidad }})
+            </option>
+          }
+        }
+      </select>
+    </div>
+
     <div class="filtros-acciones">
       <button type="button" class="btn btn-secundario" (click)="aplicarFiltros()">
         <app-icono nombre="buscar" tamano="sm" />
@@ -135,16 +173,8 @@
   } @else if (pagina().contenido.length === 0) {
     <app-estado-vacio
       icono="inventario"
-      [titulo]="
-        hayFiltros
-          ? 'Ningun equipo coincide con la busqueda'
-          : 'Aun no hay equipos en esta vista'
-      "
-      [mensaje]="
-        hayFiltros
-          ? 'Pruebe a limpiar los filtros o a cambiar de pestana.'
-          : 'La pestana ' + pestanaActiva().etiqueta + ' no tiene equipos en este momento.'
-      ">
+      [titulo]="tituloVacio"
+      [mensaje]="mensajeVacio">
       @if (esOperativo() && !hayFiltros) {
         <button type="button" class="btn btn-primario" (click)="registrarBien()">
           <app-icono nombre="agregar" tamano="sm" />
@@ -164,6 +194,9 @@
             <th>Categoría</th>
             <th>Laboratorio</th>
             <th class="ordenable" (click)="ordenarPorColumna('fechaAdquisicion')">Adquisición</th>
+            <!-- RF-83, RF-84: de quién es cada equipo. Con esta columna el
+                 listado deja de ser un catálogo y pasa a ser un reparto. -->
+            <th>A cargo de</th>
             <th>Condición</th>
             <th class="celda-acciones">Acciones</th>
           </tr>
@@ -185,6 +218,14 @@
               <td data-etiqueta="Categoría">{{ equipo.categoria || '—' }}</td>
               <td data-etiqueta="Laboratorio">{{ equipo.laboratorio || 'Sin ubicar' }}</td>
               <td class="celda-numero" data-etiqueta="Adquisición">{{ equipo.fechaAdquisicion | date: 'dd/MM/yyyy' }}</td>
+              <td data-etiqueta="A cargo de">
+                {{ equipo.responsableEquipo || '—' }}
+                @if (!equipo.responsableEquipoId) {
+                  <!-- RN-37: sin operador asignado no es "sin responsable": lo
+                       lleva el Responsable de la coordinación. -->
+                  <div class="texto-secundario texto-pequeno">Responsable de la coordinación</div>
+                }
+              </td>
               <td data-etiqueta="Condición">
                 <app-condicion [condicion]="equipo.condicion" />
                 @if (equipo.revisionPendiente) {

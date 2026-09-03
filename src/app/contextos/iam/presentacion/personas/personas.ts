@@ -425,20 +425,15 @@ export class Personas {
   // --------------------------------------------------------------- Acciones
 
   /**
-   * RF-22b: suspender es apartar a quien va a volver; dar de baja es despedir.
+   * RF-22b: dar de baja es la salida de la institución; reincorporar, la vuelta.
    *
-   * <p>Las dos abren la misma ventana de confirmacion, que se explica sola
-   * segun el destino: la pregunta que hay que responder no es "¿seguro?", sino
-   * "¿esta persona vuelve o no vuelve?" (RNF-26).</p>
+   * <p>Las dos abren la misma ventana de confirmación, que se explica sola
+   * según el destino: la pregunta que hay que responder no es "¿seguro?", sino
+   * qué le pasa a su puesto (RNF-26).</p>
    */
   protected pedirCambioEstado(usuario: Usuario, destino: EstadoCuenta): void {
     this.detalle.set(null);
     this.confirmacion.set({ usuario, destino });
-  }
-
-  /** El mismo boton aparta y trae de vuelta, segun donde este la persona. */
-  protected pedirSuspension(usuario: Usuario): void {
-    this.pedirCambioEstado(usuario, usuario.estado === 'SUSPENDIDA' ? 'ACTIVA' : 'SUSPENDIDA');
   }
 
   protected confirmarCambioEstado(): void {
@@ -462,38 +457,19 @@ export class Personas {
   }
 
   private confirmacionHecha(usuario: Usuario, destino: EstadoCuenta): string {
-    switch (destino) {
-      case 'SUSPENDIDA':
-        return `${usuario.nombreCompleto} queda suspendido y conserva su puesto.`;
-      case 'BAJA':
-        return `${usuario.nombreCompleto} queda dado de baja de la institucion y sin puesto.`;
-      default:
-        return `${usuario.nombreCompleto} vuelve a poder ingresar al sistema.`;
-    }
+    return destino === 'BAJA'
+      ? `${usuario.nombreCompleto} queda dado de baja de la institución y sin puesto.`
+      : `${usuario.nombreCompleto} vuelve a poder ingresar al sistema.`;
   }
 
   protected get tituloConfirmacion(): string {
-    switch (this.confirmacion()?.destino) {
-      case 'SUSPENDIDA':
-        return 'Suspender la cuenta';
-      case 'BAJA':
-        return 'Dar de baja de la institución';
-      default:
-        return this.confirmacion()?.usuario.estado === 'BAJA'
-          ? 'Reincorporar a la institución'
-          : 'Reactivar la cuenta';
-    }
+    return this.confirmacion()?.destino === 'BAJA'
+      ? 'Dar de baja de la institución'
+      : 'Reincorporar a la institución';
   }
 
   protected get textoConfirmacion(): string {
-    switch (this.confirmacion()?.destino) {
-      case 'SUSPENDIDA':
-        return 'Suspender';
-      case 'BAJA':
-        return 'Dar de baja';
-      default:
-        return this.confirmacion()?.usuario.estado === 'BAJA' ? 'Reincorporar' : 'Reactivar';
-    }
+    return this.confirmacion()?.destino === 'BAJA' ? 'Dar de baja' : 'Reincorporar';
   }
 
   protected get confirmacionEsPeligrosa(): boolean {
@@ -506,14 +482,9 @@ export class Personas {
       return '';
     }
     const nombre = peticion.usuario.nombreCompleto;
-    switch (peticion.destino) {
-      case 'SUSPENDIDA':
-        return `${nombre} dejara de poder ingresar mientras dure la suspension.`;
-      case 'BAJA':
-        return `${nombre} dejara de pertenecer a la institucion.`;
-      default:
-        return `${nombre} volvera a poder ingresar al sistema.`;
-    }
+    return peticion.destino === 'BAJA'
+      ? `${nombre} dejará de pertenecer a la institución.`
+      : `${nombre} volverá a poder ingresar al sistema.`;
   }
 
   protected get detalleConfirmacion(): string {
@@ -521,23 +492,12 @@ export class Personas {
     if (!peticion) {
       return '';
     }
-    switch (peticion.destino) {
-      case 'SUSPENDIDA':
-        return (
-          'Es una ausencia temporal —vacaciones, un permiso, una licencia—: conserva su puesto y ' +
-          'lo recupera tal cual al reactivarla.'
-        );
-      case 'BAJA':
-        return (
-          'Ademas de no poder entrar, deja su puesto: si era responsable, su coordinación quedará ' +
+    return peticion.destino === 'BAJA'
+      ? 'Además de no poder entrar, deja su puesto: si era responsable, su coordinación quedará ' +
           'parada hasta que se nombre a otro. Sus datos y su historial en los equipos y préstamos ' +
           'se conservan, y puede reincorporarla si vuelve a trabajar aquí.'
-        );
-      default:
-        return peticion.usuario.estado === 'BAJA'
-          ? 'Vuelve con su cuenta, pero sin puesto: el que tenía se cubrio cuando se fue. Asignele uno para que pueda trabajar.'
-          : 'Recupera el puesto que tenía antes de la suspension.';
-    }
+      : 'Vuelve con su cuenta, pero sin puesto: el que tenía se cubrió cuando se fue. Asígnele uno ' +
+          'para que pueda trabajar.';
   }
 
   // ------------------------------------------- RF-06, RF-08: credenciales

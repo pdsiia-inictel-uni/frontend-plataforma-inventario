@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { NotificacionStore } from '../../../../compartido/aplicacion/notificacion.store';
 import { RefrescoAutomatico } from '../../../../compartido/aplicacion/refresco-automatico';
@@ -6,6 +7,7 @@ import {
   erroresDeCampo,
   mensajeError,
 } from '../../../../compartido/infraestructura/http/error.interceptor';
+import { InventarioFacade } from '../../../inventario/aplicacion/inventario.facade';
 import { SesionStore } from '../../aplicacion/sesion.store';
 import { UsuariosFacade } from '../../aplicacion/usuarios.facade';
 import {
@@ -37,12 +39,23 @@ import {
 })
 export class MiEquipo {
   private readonly usuarios = inject(UsuariosFacade);
+  private readonly inventario = inject(InventarioFacade);
   private readonly sesion = inject(SesionStore);
   private readonly notificaciones = inject(NotificacionStore);
   private readonly refresco = inject(RefrescoAutomatico);
+  private readonly router = inject(Router);
 
   protected readonly coordinacion = this.sesion.coordinacion;
   protected readonly integrantes = signal<Usuario[]>([]);
+  /**
+   * RN-38: cuántos equipos lleva cada operador, por identificador.
+   *
+   * <p>Se pide entero y de una vez —el reparto de la coordinación es una sola
+   * consulta (RF-84)— en lugar de preguntarlo operador por operador: la
+   * pantalla necesita el dato de todos a la vez para saber a quién puede dar de
+   * baja y a quién no.</p>
+   */
+  protected readonly equiposPorOperador = signal<Map<number, number>>(new Map());
   protected readonly cargando = signal(true);
 
   protected readonly formularioAbierto = signal(false);
@@ -121,6 +134,50 @@ export class MiEquipo {
         this.cargando.set(false);
       },
     });
+
+    // RN-38: quién lleva equipos, para decir de quién se puede prescindir y de
+    // quién no. Va aparte porque es otro contexto y su fallo no debe dejar la
+    // pantalla sin la lista de personas, que es lo que se viene a ver.
+    this.inventario.responsablesDeEquipo(coordinacionId).subscribe({
+      next: (reparto) => {
+        const cuenta = new Map<number, number>();
+        for (const fila of reparto) {
+          if (fila.usuarioId) {
+            cuenta.set(fila.usuarioId, fila.cantidad);
+          }
+        }
+        this.equiposPorOperador.set(cuenta);
+      },
+      error: () => this.equiposPorOperador.set(new Map()),
+    });
+  }
+
+  /** RN-38: equipos en servicio a nombre de ese operador. */
+  protected equiposDe(operador: Usuario): number {
+    return this.equiposPorOperador().get(operador.id) ?? 0;
+  }
+
+  /** RF-84: abre el inventario ya acotado a lo que lleva ese operador. */
+  protected verEquiposDe(operador: Usuario): void {
+    void this.router.navigate(['/inventario'], { queryParams: { responsable: operador.id } });
+  }
+
+  /**
+   * Por qué el botón de baja está desactivado, y qué hacer al respecto.
+   *
+   * <p>La salida está en manos de quien lee este aviso: es el Responsable quien
+   * reparte los equipos de su coordinación (RF-83).</p>
+   */
+  protected motivoBloqueoBaja(operador: Usuario): string {
+    const cantidad = this.equiposDe(operador);
+    if (cantidad === 0) {
+      return 'Dar de baja de la institución';
+    }
+    const equipos = cantidad === 1 ? 'un equipo' : `${cantidad} equipos`;
+    return (
+      `No se puede dar de baja: tiene ${equipos} a su cargo. Entrégueselos a otro operador de la ` +
+      'coordinación o quédeselos usted desde la ficha de cada equipo, y la baja quedará disponible.'
+    );
   }
 
   protected get coordinacionId(): number | null {
@@ -188,20 +245,14 @@ export class MiEquipo {
   }
 
   /**
-   * RF-22b, RF-29: el Responsable suspende y da de baja a sus Operadores.
+   * RF-22b, RF-29: el Responsable da de baja a sus Operadores y los reincorpora.
    *
-   * <p>A los suyos y a nadie mas, y solo a los Operadores: sobre si mismo y
-   * sobre cualquier otro rol decide el Administrador. Suspender es apartar a
-   * quien vuelve —una licencia, unas vacaciones— y conserva su puesto; dar de
-   * baja es la salida de la institucion, y deja la plaza libre (RN-34).</p>
+   * <p>A los suyos y a nadie más, y solo a los Operadores: sobre sí mismo y
+   * sobre cualquier otro rol decide el Administrador. Dar de baja es la salida
+   * de la institución, y deja la plaza libre (RN-34).</p>
    */
   protected pedirCambioEstado(usuario: Usuario, destino: EstadoCuenta): void {
     this.confirmacion.set({ usuario, destino });
-  }
-
-  /** El mismo boton aparta y trae de vuelta, segun donde este la persona. */
-  protected pedirSuspension(usuario: Usuario): void {
-    this.pedirCambioEstado(usuario, usuario.estado === 'SUSPENDIDA' ? 'ACTIVA' : 'SUSPENDIDA');
   }
 
   protected confirmarCambioEstado(): void {
@@ -213,10 +264,8 @@ export class MiEquipo {
       next: (actualizado) => {
         this.notificaciones.exito(
           peticion.destino === 'BAJA'
-            ? `${actualizado.nombreCompleto} queda dado de baja de la institucion.`
-            : peticion.destino === 'SUSPENDIDA'
-              ? `${actualizado.nombreCompleto} queda suspendido y conserva su puesto.`
-              : `${actualizado.nombreCompleto} vuelve a poder ingresar.`,
+            ? `${actualizado.nombreCompleto} queda dado de baja de la institución.`
+            : `${actualizado.nombreCompleto} vuelve a poder ingresar.`,
         );
         this.confirmacion.set(null);
         this.cargar();
@@ -229,27 +278,13 @@ export class MiEquipo {
   }
 
   protected get tituloConfirmacion(): string {
-    switch (this.confirmacion()?.destino) {
-      case 'SUSPENDIDA':
-        return 'Suspender la cuenta';
-      case 'BAJA':
-        return 'Dar de baja de la institución';
-      default:
-        return this.confirmacion()?.usuario.estado === 'BAJA'
-          ? 'Reincorporar a la institución'
-          : 'Reactivar la cuenta';
-    }
+    return this.confirmacion()?.destino === 'BAJA'
+      ? 'Dar de baja de la institución'
+      : 'Reincorporar a la institución';
   }
 
   protected get textoConfirmacion(): string {
-    switch (this.confirmacion()?.destino) {
-      case 'SUSPENDIDA':
-        return 'Suspender';
-      case 'BAJA':
-        return 'Dar de baja';
-      default:
-        return this.confirmacion()?.usuario.estado === 'BAJA' ? 'Reincorporar' : 'Reactivar';
-    }
+    return this.confirmacion()?.destino === 'BAJA' ? 'Dar de baja' : 'Reincorporar';
   }
 
   protected get confirmacionEsPeligrosa(): boolean {
@@ -262,25 +297,17 @@ export class MiEquipo {
       return '';
     }
     const nombre = peticion.usuario.nombreCompleto;
-    switch (peticion.destino) {
-      case 'SUSPENDIDA':
-        return `${nombre} dejara de poder ingresar mientras dure la suspension.`;
-      case 'BAJA':
-        return `${nombre} dejara de pertenecer a la institucion.`;
-      default:
-        return `${nombre} volvera a poder ingresar al sistema.`;
-    }
+    return peticion.destino === 'BAJA'
+      ? `${nombre} dejará de pertenecer a la institución.`
+      : `${nombre} volverá a poder ingresar al sistema.`;
   }
 
   protected get detalleConfirmacion(): string {
-    switch (this.confirmacion()?.destino) {
-      case 'SUSPENDIDA':
-        return 'Es una ausencia temporal: sigue siendo operador de su coordinación y recupera el acceso al reactivarla.';
-      case 'BAJA':
-        return 'Dejará de ser operador de su coordinación. Sus datos y su historial en los equipos y préstamos se conservan.';
-      default:
-        return 'La persona y sus datos se conservan; recupera el acceso al sistema.';
-    }
+    return this.confirmacion()?.destino === 'BAJA'
+      ? 'Dejará de ser operador de su coordinación. Sus datos y su historial en los equipos y ' +
+          'préstamos se conservan.'
+      : 'Vuelve con su cuenta, pero sin puesto: tendrá que asignárselo de nuevo para que trabaje ' +
+          'en la coordinación.';
   }
 
   /** RF-22b, RNF-30: el estado de la cuenta, por color Y por texto. */

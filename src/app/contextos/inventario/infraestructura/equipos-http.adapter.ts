@@ -4,7 +4,13 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { CriterioPagina, Pagina } from '../../../compartido/dominio/pagina.model';
-import { Equipo, EquipoPeticion, EquipoResumen, FiltroInventario } from '../dominio/equipo.model';
+import {
+  Equipo,
+  EquipoPeticion,
+  EquipoResumen,
+  FiltroInventario,
+  ResponsableEquipo,
+} from '../dominio/equipo.model';
 import { Movimiento } from '../dominio/movimiento.model';
 import { EquiposPuerto } from '../dominio/puertos';
 
@@ -22,6 +28,15 @@ export class EquiposHttpAdapter extends EquiposPuerto {
       .set('descendente', String(criterio.descendente ?? false));
 
     return this.http.get<Pagina<EquipoResumen>>(this.url, { params });
+  }
+
+  /** RF-84: el reparto del inventario, para poblar el listado por responsable. */
+  override responsablesDeEquipo(coordinacionId?: number | null): Observable<ResponsableEquipo[]> {
+    let params = new HttpParams();
+    if (coordinacionId) {
+      params = params.set('coordinacionId', String(coordinacionId));
+    }
+    return this.http.get<ResponsableEquipo[]>(`${this.url}/responsables`, { params });
   }
 
   override obtener(id: number): Observable<Equipo> {
@@ -94,6 +109,14 @@ export class EquiposHttpAdapter extends EquiposPuerto {
     }
     if (filtro.todas) {
       params = params.set('todas', 'true');
+    }
+    // RF-84: los dos son la misma pregunta —"¿de quién son estos equipos?"—
+    // hecha de dos maneras: por un operador concreto, o por los que no están
+    // asignados a ninguno y lleva el Responsable (RN-37).
+    if (filtro.responsableEquipoId) {
+      params = params.set('responsableEquipoId', String(filtro.responsableEquipoId));
+    } else if (filtro.sinResponsable) {
+      params = params.set('sinResponsable', 'true');
     }
     return params;
   }
