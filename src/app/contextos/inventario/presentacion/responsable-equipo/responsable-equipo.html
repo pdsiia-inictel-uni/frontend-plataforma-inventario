@@ -1,0 +1,75 @@
+<div class="modal-fondo" (click)="cancelado.emit()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-cabecera">
+      <h3>Responsable del equipo</h3>
+      <button type="button" class="btn-icono" (click)="cancelado.emit()" aria-label="Cerrar">
+        <app-icono nombre="cerrar" tamano="sm" />
+      </button>
+    </div>
+
+    <div class="modal-cuerpo">
+      <p class="mb-1">
+        <strong>{{ equipo.nombre }}</strong> ({{ equipo.codigoInventario }}) está hoy a cargo de
+        <strong>{{ nombreActual }}</strong>@if (loLlevaElResponsable) {, que es usted como
+        responsable de la coordinación}.
+      </p>
+
+      @if (cargando()) {
+        <div class="cargando"><span class="girador"></span> Cargando los operadores...</div>
+      } @else {
+        <!-- La primera opción es el propio Responsable: es donde nace todo bien
+             y donde vuelve cuando se le retira a un operador (RN-37). -->
+        <label class="opcion-conformidad" [class.elegida]="elegido === null">
+          <input type="radio" name="responsableEquipo" [value]="null" [(ngModel)]="elegido" />
+          <span>
+            <strong>A mi cargo, como responsable de la coordinación</strong>
+            <span class="texto-secundario texto-pequeno">
+              El equipo no queda sin responsable: responde por él quien responde por la
+              coordinación.
+            </span>
+          </span>
+        </label>
+
+        @if (sinOperadores) {
+          <p class="texto-secundario mb-0">
+            Su coordinación aún no tiene operadores activos a quienes entregarles un equipo. Puede
+            registrarlos en <strong>Mi equipo humano</strong>.
+          </p>
+        } @else {
+          @for (operador of operadores(); track operador.id) {
+            <label class="opcion-conformidad" [class.elegida]="elegido === operador.id">
+              <input
+                type="radio"
+                name="responsableEquipo"
+                [value]="operador.id"
+                [(ngModel)]="elegido" />
+              <span>
+                <strong>{{ operador.nombreCompleto }}</strong>
+                <span class="texto-secundario texto-pequeno">
+                  {{ operador.cargo || 'Operador' }} &middot; {{ operador.correo }}
+                </span>
+              </span>
+            </label>
+          }
+        }
+
+        <!-- RN-38: la consecuencia que nadie espera hasta que la encuentra. -->
+        <p class="texto-secundario texto-pequeno mt-1 mb-0">
+          Mientras un operador tenga equipos a su cargo no se le podrá dar de baja ni cambiar de
+          coordinación: antes hay que entregarlos a otro operador o dejarlos a nombre de usted.
+        </p>
+      }
+    </div>
+
+    <div class="modal-pie">
+      <button type="button" class="btn btn-secundario" (click)="cancelado.emit()">Cancelar</button>
+      <button
+        type="button"
+        class="btn btn-primario"
+        [disabled]="!puedeGuardar"
+        (click)="guardar()">
+        {{ textoConfirmar }}
+      </button>
+    </div>
+  </div>
+</div>

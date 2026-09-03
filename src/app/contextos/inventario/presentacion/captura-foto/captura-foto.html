@@ -1,0 +1,94 @@
+<div class="captura-foto">
+  @if (flujo()) {
+    <!-- Camara abierta: el visor en vivo y el disparador. -->
+    <video #visor class="visor-camara" autoplay playsinline muted></video>
+    <div class="acciones-foto">
+      <button type="button" class="btn btn-primario" (click)="capturar()">
+        <app-icono nombre="camara" tamano="sm" />
+        <span>Capturar</span>
+      </button>
+      <button type="button" class="btn btn-secundario" (click)="cerrarCamara()">
+        <app-icono nombre="cerrar" tamano="sm" />
+        <span>Cerrar cámara</span>
+      </button>
+    </div>
+    <p class="ayuda-campo texto-centrado">
+      Encuadre el equipo y su etiqueta de código. La foto se guarda al registrar el equipo.
+    </p>
+  } @else if (vistaPrevia()) {
+    <!-- Fotografia elegida: se muestra tal como quedara en la ficha. -->
+    <img [src]="vistaPrevia()" alt="Fotografía elegida para el equipo" class="foto-bien" />
+    <div class="acciones-foto">
+      <button type="button" class="btn btn-secundario" (click)="quitar()">
+        <app-icono nombre="quitar" tamano="sm" />
+        <span>Quitar fotografía</span>
+      </button>
+      @if (camaraEnVivo()) {
+        <button type="button" class="btn btn-secundario" [disabled]="abriendo()" (click)="abrirCamara()">
+          <app-icono nombre="camara" tamano="sm" />
+          <span>{{ abriendo() ? 'Abriendo...' : 'Repetir la foto' }}</span>
+        </button>
+      } @else {
+        <label class="btn btn-secundario" for="cf-camara">
+          <app-icono nombre="camara" tamano="sm" />
+          <span>Repetir la foto</span>
+        </label>
+      }
+    </div>
+  } @else {
+    <!-- Sin fotografia: las dos vias, con el mismo peso visual. -->
+    <div class="sin-foto">
+      <app-icono nombre="foto" tamano="lg" />
+      <p class="texto-secundario texto-pequeno mb-0">
+        Todavia no ha elegido ninguna fotografía. Es opcional.
+      </p>
+    </div>
+    <div class="acciones-foto">
+      @if (camaraEnVivo()) {
+        <button type="button" class="btn btn-primario" [disabled]="abriendo()" (click)="abrirCamara()">
+          <app-icono nombre="camara" tamano="sm" />
+          <span>{{ abriendo() ? 'Abriendo camara...' : 'Tomar foto ahora' }}</span>
+        </button>
+      } @else {
+        <label class="btn btn-primario" for="cf-camara">
+          <app-icono nombre="camara" tamano="sm" />
+          <span>Tomar foto ahora</span>
+        </label>
+      }
+      <label class="btn btn-secundario" for="cf-archivo">
+        <app-icono nombre="foto" tamano="sm" />
+        <span>Elegir una imagen guardada</span>
+      </label>
+    </div>
+  }
+
+  @if (error()) {
+    <span class="error-campo texto-centrado">{{ error() }}</span>
+  }
+
+  <!--
+    Entradas de archivo, siempre presentes y operadas desde su etiqueta.
+
+    La primera lleva el atributo capture: en tablet y movil abre directamente
+    la camara del dispositivo, y es la salida cuando getUserMedia no esta
+    disponible o el usuario denego el permiso.
+  -->
+  <input
+    id="cf-camara"
+    class="campo-oculto"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    capture="environment"
+    (change)="alElegirArchivo($event)" />
+  <input
+    id="cf-archivo"
+    class="campo-oculto"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    (change)="alElegirArchivo($event)" />
+
+  <p class="ayuda-campo texto-centrado mb-0">
+    Imagen JPG, PNG o WEBP de hasta 5 MB. Puede anadirla o cambiarla más adelante desde la ficha
+    del equipo.
+  </p>
+</div>

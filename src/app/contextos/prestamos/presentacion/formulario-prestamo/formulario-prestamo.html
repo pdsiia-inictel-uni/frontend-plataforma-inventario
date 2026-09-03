@@ -1,0 +1,170 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>Registrar préstamo</h1>
+    <p class="descripcion">Entregue un equipo disponible y deje constancia de quien se lo lleva.</p>
+  </div>
+  <div class="acciones-cabecera">
+    <button type="button" class="btn btn-secundario" (click)="cancelar()">
+      <app-icono nombre="atras" tamano="sm" />
+      <span>Cancelar</span>
+    </button>
+  </div>
+</div>
+
+<div class="rejilla-2 con-espacio alinear-arriba">
+  <!-- ------------------------------------------------- Equipo a entregar -->
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>1. Elija el equipo</h2>
+      <span class="texto-secundario texto-pequeno">
+        {{ disponibles().length }} {{ disponibles().length === 1 ? 'disponible' : 'disponibles' }}
+      </span>
+    </div>
+
+    <div class="filtros">
+      <div class="campo">
+        <label for="pn-buscar">Buscar equipo</label>
+        <div class="fila-campo">
+          <input
+            id="pn-buscar"
+            type="search"
+            [(ngModel)]="busqueda"
+            (keyup.enter)="cargarDisponibles()"
+            placeholder="Nombre, marca o código" />
+          <button type="button" class="btn btn-secundario" (click)="cargarDisponibles()">
+            <app-icono nombre="buscar" tamano="sm" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta-cuerpo">
+      @if (cargando()) {
+        <div class="cargando"><span class="girador"></span> Cargando equipos...</div>
+      } @else if (disponibles().length === 0) {
+        <app-estado-vacio
+          icono="inventario"
+          titulo="No hay equipos disponibles"
+          mensaje="Solo pueden prestarse los equipos en condicion Operativo. Los que estan prestados,
+                   en mantenimiento o dados de baja no aparecen aqui." />
+      } @else {
+        <ul class="lista-seleccion">
+          @for (equipo of disponibles(); track equipo.id) {
+            <li>
+              <button
+                type="button"
+                class="opcion-equipo"
+                [class.elegida]="equipoId === equipo.id"
+                [attr.aria-pressed]="equipoId === equipo.id"
+                (click)="elegir(equipo)">
+                <span class="opcion-datos">
+                  <strong>{{ equipo.nombre }}</strong>
+                  <span class="texto-secundario texto-pequeno">
+                    {{ equipo.marca }} {{ equipo.modelo }} &middot; Inv. {{ equipo.codigoInventario }}
+                  </span>
+                </span>
+                <!-- RNF-29: en prestamos, "Operativo" se dice "Disponible". -->
+                <app-condicion [condicion]="equipo.condicion" [enPrestamos]="true" />
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------ Datos de la entrega -->
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera"><h2>2. Datos de la entrega</h2></div>
+
+    <form (ngSubmit)="registrar()">
+      <div class="tarjeta-cuerpo">
+        @if (equipoElegido; as elegido) {
+        } @else {
+        }
+
+        <div class="campo" [class.invalido]="errores()['nombrePersona']">
+          <label for="pn-persona">Nombre completo de quien lo lleva<span class="obligatorio">*</span></label>
+          <input
+            id="pn-persona"
+            type="text"
+            name="nombrePersona"
+            [(ngModel)]="nombrePersona"
+            maxlength="200"
+            autocomplete="off" />
+          @if (errores()['nombrePersona']) {
+            <span class="error-campo">{{ errores()['nombrePersona'] }}</span>
+          }
+        </div>
+
+        <div class="campo" [class.invalido]="errores()['dniPersona'] || (dniPersona && !dniValido)">
+          <label for="pn-dni">DNI<span class="obligatorio">*</span></label>
+          <input
+            id="pn-dni"
+            type="text"
+            name="dniPersona"
+            [(ngModel)]="dniPersona"
+            inputmode="numeric"
+            maxlength="8"
+            autocomplete="off" />
+          @if (errores()['dniPersona']) {
+            <span class="error-campo">{{ errores()['dniPersona'] }}</span>
+          } @else if (dniPersona && !dniValido) {
+            <span class="error-campo">El DNI debe tener exactamente 8 digitos numericos.</span>
+          } @else {
+            <span class="ayuda-campo">Permite consultar después todo lo que esa persona se llevo.</span>
+          }
+        </div>
+
+        <div class="campo" [class.invalido]="errores()['destino']">
+          <label for="pn-destino">Destino o area de uso</label>
+          <input
+            id="pn-destino"
+            type="text"
+            name="destino"
+            [(ngModel)]="destino"
+            maxlength="200"
+            placeholder="Salida de campo, aula 201..." />
+          <span class="ayuda-campo">Opcional.</span>
+        </div>
+
+        <div class="campo" [class.invalido]="errores()['fechaEstimadaDevolucion'] || !fechaValida">
+          <label for="pn-fecha">Fecha estimada de devolución</label>
+          <input
+            id="pn-fecha"
+            type="date"
+            name="fechaEstimadaDevolucion"
+            [(ngModel)]="fechaEstimadaDevolucion"
+            [min]="hoy" />
+          @if (errores()['fechaEstimadaDevolucion']) {
+            <span class="error-campo">{{ errores()['fechaEstimadaDevolucion'] }}</span>
+          } @else if (!fechaValida) {
+            <span class="error-campo">La fecha comprometida no puede ser anterior a hoy.</span>
+          } @else {
+            <span class="ayuda-campo">
+              Opcional. Si la indica, el sistema le avisara cuando el préstamo se venza.
+            </span>
+          }
+        </div>
+
+        <div class="campo mb-0" [class.invalido]="errores()['observacionesSalida']">
+          <label for="pn-observaciones">Observaciones de salida</label>
+          <textarea
+            id="pn-observaciones"
+            name="observacionesSalida"
+            [(ngModel)]="observacionesSalida"
+            rows="3"
+            maxlength="1000"
+            placeholder="Se entrega con cargador y maletin"></textarea>
+        </div>
+      </div>
+
+      <div class="tarjeta-pie">
+        <button type="button" class="btn btn-secundario" (click)="cancelar()">Cancelar</button>
+        <button type="submit" class="btn btn-primario" [disabled]="!valido || guardando()">
+          {{ guardando() ? 'Registrando...' : 'Registrar prestamo' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

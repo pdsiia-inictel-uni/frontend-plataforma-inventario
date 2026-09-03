@@ -1,0 +1,125 @@
+<div class="modal-fondo" (click)="cerrado.emit()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-cabecera">
+      <h3>{{ persona.nombreCompleto }}</h3>
+      <button type="button" class="btn-icono" (click)="cerrado.emit()" aria-label="Cerrar">
+        <app-icono nombre="cerrar" tamano="sm" />
+      </button>
+    </div>
+
+    <div class="modal-cuerpo">
+      <div class="fila-acciones mb-1">
+        <span [class]="claseDelRol">{{ persona.rolEtiqueta }}</span>
+        <!-- RF-22b: tres estados, cada uno con su color y su palabra (RNF-30). -->
+        <span [class]="claseDelEstado">{{ persona.estadoEtiqueta }}</span>
+        @if (persona.bloqueado) {
+          <span class="insignia insignia-vencido">Bloqueada por intentos fallidos</span>
+        }
+        @if (persona.debeCambiarPassword && !persona.sinAsignar) {
+          <span class="insignia insignia-neutra">Cambio de contraseña pendiente</span>
+        }
+      </div>
+
+      <ul class="lista-atributos">
+        <li>
+          <span class="clave">DNI</span>
+          <span class="valor texto-mono">{{ persona.dni }}</span>
+        </li>
+        <li>
+          <span class="clave">Cargo</span>
+          <span class="valor">{{ persona.cargo || 'Sin cargo registrado' }}</span>
+        </li>
+        <li>
+          <span class="clave">Correo institucional</span>
+          <span class="valor">{{ persona.correo }}</span>
+        </li>
+        <li>
+          <span class="clave">Nombre de usuario</span>
+          <span class="valor texto-mono">{{ persona.username }}</span>
+        </li>
+        <li>
+          <!-- RN-05: una sola, y ninguna para el Administrador. -->
+          <span class="clave">Coordinación</span>
+          <span class="valor">
+            @if (persona.rol === 'ADMIN') {
+              Toda la institución
+            } @else if (coordinacion) {
+              {{ coordinacion }}
+            } @else {
+              Todavia ninguna
+            }
+          </span>
+        </li>
+        <li>
+          <span class="clave">Último acceso</span>
+          <span class="valor">
+            {{ persona.ultimoAcceso ? (persona.ultimoAcceso | date: 'dd/MM/yyyy HH:mm') : 'Nunca ha ingresado' }}
+          </span>
+        </li>
+        <li>
+          <span class="clave">Registrada el</span>
+          <span class="valor">{{ persona.fechaCreacion | date: 'dd/MM/yyyy' }}</span>
+        </li>
+      </ul>
+
+    </div>
+
+    <div class="modal-pie">
+      <button type="button" class="btn btn-secundario" (click)="editar.emit(persona)">
+        <app-icono nombre="editar" tamano="sm" />
+        <span>Editar datos</span>
+      </button>
+
+      @if (!persona.sinAsignar) {
+        <!-- RF-06: quien no tiene puesto todavia no tiene contrasena que
+             restablecer; nace al asignarlo. -->
+        <button
+          type="button"
+          class="btn btn-secundario"
+          (click)="restablecerPassword.emit(persona)">
+          <app-icono nombre="candado" tamano="sm" />
+          <span>Restablecer contraseña</span>
+        </button>
+      }
+
+      @if (persona.bloqueado) {
+        <button type="button" class="btn btn-secundario" (click)="desbloquear.emit(persona)">
+          <app-icono nombre="desbloquear" tamano="sm" />
+          <span>Desbloquear</span>
+        </button>
+      }
+
+      <!-- RF-22b: dos acciones distintas, porque son dos situaciones distintas.
+           Suspender aparta a quien va a volver —vacaciones, un permiso— y le
+           guarda el puesto; dar de baja despide a quien deja la institucion, y
+           el puesto queda libre. Sobre uno mismo no se ejerce ninguna (RF-25). -->
+      @if (!esUnoMismo) {
+        @if (persona.estado !== 'BAJA') {
+          <button type="button" class="btn btn-secundario" (click)="suspender.emit(persona)">
+            {{ persona.estado === 'SUSPENDIDA' ? 'Reactivar cuenta' : 'Suspender cuenta' }}
+          </button>
+          <button type="button" class="btn btn-secundario" (click)="darDeBaja.emit(persona)">
+            <app-icono nombre="quitar" tamano="sm" />
+            <span>Dar de baja</span>
+          </button>
+        } @else {
+          <button type="button" class="btn btn-secundario" (click)="reincorporar.emit(persona)">
+            Reincorporar
+          </button>
+        }
+      }
+
+      <!-- RN-33: nadie se cambia el puesto a si mismo. -->
+      @if (!esUnoMismo) {
+        <button
+          type="button"
+          class="btn btn-primario"
+          [disabled]="persona.estado !== 'ACTIVA'"
+          (click)="asignar.emit(persona)">
+          <app-icono nombre="relevo" tamano="sm" />
+          <span>Asignar puesto</span>
+        </button>
+      }
+    </div>
+  </div>
+</div>

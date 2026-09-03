@@ -1,0 +1,131 @@
+<div class="app-shell" [class.menu-oculto]="menuOculto()">
+  @if (menuAbierto()) {
+    <div class="velo-menu" (click)="alternarMenu()"></div>
+  }
+
+  <aside id="menu-lateral" class="menu-lateral" [class.abierto]="menuAbierto()">
+    <!-- El logotipo institucional es el mismo de la pantalla de acceso: quien
+         entra reconoce de inmediato que sigue en el sistema de su casa. -->
+    <div class="menu-marca">
+      <img class="logo-institucional" src="assets/inicteluni.png" [alt]="entorno.institucion" />
+      <span class="sub">{{ entorno.nombreSistema }}</span>
+    </div>
+
+    <nav class="menu-nav" aria-label="Menu principal">
+      @for (grupo of grupos(); track grupo.nombre) {
+        <div class="menu-grupo">{{ grupo.nombre }}</div>
+        @for (enlace of grupo.enlaces; track enlace.ruta + enlace.etiqueta) {
+          <a
+            class="menu-enlace"
+            [routerLink]="enlace.ruta"
+            routerLinkActive="activo"
+            [routerLinkActiveOptions]="{ exact: enlace.ruta === '/panel' }">
+            <span class="ico"><app-icono [nombre]="enlace.icono" tamano="sm" /></span>
+            <span>{{ enlace.etiqueta }}</span>
+          </a>
+        }
+      }
+    </nav>
+
+    <div class="menu-pie">v{{ entorno.version }}</div>
+  </aside>
+
+  <div class="contenido">
+    <header class="barra-superior">
+      <div class="fila-acciones">
+        <button
+          type="button"
+          class="btn btn-secundario btn-solo-icono boton-menu"
+          (click)="alternarMenu()"
+          aria-label="Abrir menu">
+          <app-icono nombre="menu" tamano="sm" />
+        </button>
+
+        <!-- Oculta y muestra el menu lateral para dejar la pantalla entera al
+             contenido. La flecha apunta a donde va el menu: hacia el borde
+             izquierdo al replegarlo, de vuelta al centro al mostrarlo. La
+             eleccion se recuerda entre sesiones (Principal). -->
+        <button
+          type="button"
+          class="btn btn-secundario btn-solo-icono boton-visibilidad"
+          (click)="alternarVisibilidadMenu()"
+          aria-controls="menu-lateral"
+          [attr.aria-expanded]="!menuOculto()"
+          [attr.aria-label]="menuOculto() ? 'Mostrar el menu' : 'Ocultar el menu'"
+          [title]="menuOculto() ? 'Mostrar el menu' : 'Ocultar el menu y ver a pantalla completa'">
+          <app-icono [nombre]="menuOculto() ? 'desplegar' : 'plegar'" tamano="sm" />
+        </button>
+        <div>
+          <h1 class="titulo-pagina">{{ tituloPagina() }}</h1>
+          <!-- ERS 8.1: el usuario nunca debe dudar de donde esta parado. Cada
+               persona pertenece a una sola coordinacion (RN-05), asi que el
+               ambito se enuncia; no se elige. -->
+          <div class="ambito-trabajo">{{ ambito() }}</div>
+        </div>
+      </div>
+
+      <div class="barra-usuario">
+        <div class="datos">
+          <div class="nombre">{{ usuario()?.nombreCompleto }}</div>
+          <div class="rol">{{ usuario()?.rolEtiqueta }}</div>
+        </div>
+        <div class="avatar" [title]="usuario()?.correo ?? ''">{{ iniciales }}</div>
+        <button type="button" class="btn btn-secundario btn-sm" (click)="cerrarSesion()">
+          <app-icono nombre="salir" tamano="sm" />
+          <span>Salir</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="pagina">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<!-- RF-01b: saludo de bienvenida, una sola vez por ingreso. Dice donde acaba
+     de entrar quien entra: su coordinacion y su direccion (ERS 8.1). -->
+@if (bienvenida()) {
+  <div class="modal-fondo" (click)="cerrarBienvenida()">
+    <div class="modal modal-angosto" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>Bienvenido, {{ nombreUsuario() }}</h3>
+      </div>
+
+      <div class="modal-cuerpo">
+        <p class="mb-1">Ha ingresado como <strong>{{ rolUsuario() }}</strong>.</p>
+
+        @if (esAdmin()) {
+          <ul class="lista-atributos">
+            <li>
+              <span class="clave">Ambito</span>
+              <span class="valor">Toda la institución: {{ entorno.institucion }}</span>
+            </li>
+          </ul>
+          <p class="texto-secundario texto-pequeno mt-1 mb-0">
+            Ve el inventario de todas las coordinaciones en modo consulta.
+          </p>
+        } @else if (sinPuesto()) {
+        } @else {
+          <ul class="lista-atributos">
+            <li>
+              <span class="clave">Dirección</span>
+              <span class="valor">{{ direccionUsuario() ?? 'No disponible' }}</span>
+            </li>
+            <li>
+              <span class="clave">Coordinación</span>
+              <span class="valor">{{ coordinacionUsuario() }}</span>
+            </li>
+          </ul>
+          <p class="texto-secundario texto-pequeno mt-1 mb-0">
+            Todo lo que registre y consulte pertenece a esta coordinación.
+          </p>
+        }
+      </div>
+
+      <div class="modal-pie">
+        <button type="button" class="btn btn-primario" (click)="cerrarBienvenida()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

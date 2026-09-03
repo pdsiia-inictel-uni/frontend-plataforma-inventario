@@ -1,0 +1,382 @@
+@if (cargando()) {
+  <div class="cargando"><span class="girador"></span> Cargando la ficha...</div>
+} @else if (equipo(); as bien) {
+  <div class="pagina-cabecera">
+    <div>
+      <h1>{{ bien.nombre }}</h1>
+      <p class="descripcion">
+        {{ bien.marca }} {{ bien.modelo }} &middot; {{ bien.coordinacion }}
+      </p>
+      <div class="fila-acciones mt-1">
+        <app-condicion [condicion]="bien.condicion" />
+        @if (bien.revisionPendiente) {
+          <app-revision-pendiente />
+        }
+      </div>
+    </div>
+    <!-- Todas las acciones sobre el bien viven aqui, cada una con su nombre
+         escrito: es la pantalla donde el usuario ya tiene delante el equipo
+         del que decide, y donde cabe explicar la consecuencia. -->
+    <div class="acciones-cabecera">
+      <button type="button" class="btn btn-secundario" (click)="volver()">
+        <app-icono nombre="atras" tamano="sm" />
+        <span>Volver al inventario</span>
+      </button>
+      @if (puedeEmitirFormato) {
+        <!-- RF-78: el formato de uso que el laboratorio hace firmar. Genera un
+             PDF y nada mas: ni registra el prestamo ni cambia la condicion del
+             bien, y la propia ventana lo recuerda (RN-36, RF-79). -->
+        <button type="button" class="btn btn-secundario" (click)="abrirFormatoDeUso()">
+          <app-icono nombre="descargar" tamano="sm" />
+          <span>Registrar salida</span>
+        </button>
+      }
+      @if (puedeMantenimiento) {
+        <button type="button" class="btn btn-secundario" (click)="pedirAccion('mantenimiento')">
+          <app-icono nombre="mantenimiento" tamano="sm" />
+          <span>Enviar a mantenimiento</span>
+        </button>
+      }
+      @if (puedeRetornoOperativo) {
+        <button type="button" class="btn btn-secundario" (click)="pedirAccion('operativo')">
+          <app-icono nombre="correcto" tamano="sm" />
+          <span>Devolver a operativo</span>
+        </button>
+      }
+      @if (puedeBaja) {
+        <button type="button" class="btn btn-secundario" (click)="pedirAccion('baja')">
+          <app-icono nombre="baja" tamano="sm" />
+          <span>Dar de baja</span>
+        </button>
+      }
+      @if (puedeReincorporar) {
+        <button type="button" class="btn btn-secundario" (click)="pedirAccion('reincorporar')">
+          <app-icono nombre="restaurar" tamano="sm" />
+          <span>Reincorporar al inventario</span>
+        </button>
+      }
+      @if (puedeEditar) {
+        <!-- RNF-27: la accion principal, la unica dominante y siempre al final. -->
+        <button type="button" class="btn btn-primario" (click)="editar()">
+          <app-icono nombre="editar" tamano="sm" />
+          <span>Editar</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="rejilla-2 con-espacio alinear-arriba">
+    <div>
+      <div class="tarjeta mb-1">
+        <div class="tarjeta-cabecera">
+          <h2>Datos del equipo</h2>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <div class="lista-datos">
+            <div class="dato"><div class="clave">Marca</div><div class="valor">{{ bien.marca }}</div></div>
+            <div class="dato"><div class="clave">Modelo</div><div class="valor">{{ bien.modelo }}</div></div>
+            <div class="dato"><div class="clave">Categoría</div><div class="valor">{{ bien.categoria || '—' }}</div></div>
+            <div class="dato"><div class="clave">Número de serie</div><div class="valor texto-mono">{{ bien.numeroSerie }}</div></div>
+            <div class="dato"><div class="clave">Código de inventario</div><div class="valor texto-mono">{{ bien.codigoInventario }}</div></div>
+            <div class="dato"><div class="clave">Código patrimonial</div><div class="valor texto-mono">{{ bien.codigoPatrimonial }}</div></div>
+            <div class="dato"><div class="clave">Fecha de adquisición</div><div class="valor">{{ bien.fechaAdquisicion | date: 'dd/MM/yyyy' }}</div></div>
+            <div class="dato">
+              <div class="clave">Costo</div>
+              <div class="valor">S/ {{ bien.costo | number: '1.2-2' }}</div>
+            </div>
+            <div class="dato">
+              <div class="clave">Laboratorio</div>
+              <div class="valor">{{ bien.laboratorio || 'Sin ubicar' }}</div>
+            </div>
+            <div class="dato"><div class="clave">Coordinación</div><div class="valor">{{ bien.coordinacion }}</div></div>
+            <!-- RF-83: quien tiene hoy el equipo a su cargo. Es lo primero que
+                 se busca cuando hay que ir a por un equipo, asi que lleva su
+                 accion al lado en vez de esconderla en la cabecera. -->
+            <div class="dato col-completa">
+              <div class="clave">Responsable del equipo</div>
+              <div class="valor fila-acciones">
+                <span>{{ bien.responsableEquipo || 'Sin responsable asignado' }}</span>
+                @if (!bien.responsableEquipoId) {
+                  <span class="insignia insignia-neutra">Responsable de la coordinación</span>
+                }
+                @if (puedeCambiarResponsable) {
+                  <button
+                    type="button"
+                    class="btn btn-secundario btn-sm"
+                    (click)="abrirResponsableDeEquipo()">
+                    <app-icono nombre="operadores" tamano="sm" />
+                    <span>Cambiar</span>
+                  </button>
+                }
+              </div>
+            </div>
+            <div class="dato">
+              <div class="clave">Responsable a Cargo</div>
+              <div class="valor">{{ bien.responsable || 'Sin responsable' }}</div>
+            </div>
+            <div class="dato">
+              <div class="clave">Registrado por</div>
+              <div class="valor">{{ bien.registradoPor || '—' }}</div>
+            </div>
+            <div class="dato">
+              <div class="clave">Fecha de registro</div>
+              <div class="valor">{{ bien.fechaRegistro | date: 'dd/MM/yyyy HH:mm' }}</div>
+            </div>
+            @if (bien.observaciones) {
+              <div class="dato col-completa">
+                <div class="clave">Observaciones</div>
+                <div class="valor">{{ bien.observaciones }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <app-foto-bien [equipo]="bien" />
+
+      @if (historialPrestamos().length > 0) {
+        <div class="tarjeta mt-1">
+          <div class="tarjeta-cabecera">
+            <h2>Préstamos de este equipo</h2>
+            <span class="texto-secundario texto-pequeno">
+              {{ historialPrestamos().length }}
+              {{ historialPrestamos().length === 1 ? 'préstamo' : 'préstamos' }}
+            </span>
+          </div>
+          <div class="tabla-contenedor">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>Persona</th>
+                  <th>Salida</th>
+                  <th>Devolución</th>
+                  <th>Situacion</th>
+                  <th class="celda-acciones">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (prestamo of historialPrestamos(); track prestamo.id) {
+                  <tr [class.fila-vencida]="prestamo.vencido">
+                    <td>
+                      <div>{{ prestamo.nombrePersona }}</div>
+                      <div class="texto-secundario texto-pequeno texto-mono">{{ prestamo.dniPersona }}</div>
+                    </td>
+                    <td>{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td>
+                      {{ prestamo.fechaDevolucion
+                        ? (prestamo.fechaDevolucion | date: 'dd/MM/yyyy HH:mm')
+                        : 'Pendiente' }}
+                    </td>
+                    <td>
+                      <span
+                        class="insignia"
+                        [class.insignia-prestado]="prestamo.estado === 'ACTIVO' && !prestamo.vencido"
+                        [class.insignia-vencido]="prestamo.vencido"
+                        [class.insignia-disponible]="prestamo.estado === 'DEVUELTO'">
+                        {{ prestamo.estadoEtiqueta }}
+                      </span>
+                      @if (prestamo.reportaDano) {
+                        <span class="insignia insignia-revision">Con observaciones</span>
+                      }
+                    </td>
+                    <!-- RF-66b: las observaciones de entrega y de devolucion, y
+                         quien firmo cada una, no caben en la fila y son
+                         justamente lo que se consulta cuando algo no cuadra. -->
+                    <td class="celda-acciones">
+                      <button
+                        type="button"
+                        class="btn btn-secundario btn-sm"
+                        (click)="verPrestamo(prestamo)">
+                        <app-icono nombre="ver" tamano="sm" />
+                        <span>Ver detalle</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- RF-56: linea de tiempo del bien, del alta al ultimo movimiento.
+         Sin los prestamos ni las devoluciones —que tienen su propia tabla, con
+         mas datos— y sin las ediciones de la ficha, que no son algo que le
+         pasara al equipo (v3.9). -->
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Historial del equipo</h2>
+        <span class="texto-secundario texto-pequeno">
+          {{ hitos().length }} {{ hitos().length === 1 ? 'movimiento' : 'movimientos' }}
+        </span>
+      </div>
+      <div class="tarjeta-cuerpo">
+        @if (hitos().length === 0) {
+          <p class="texto-secundario mb-0">Aun no hay movimientos registrados.</p>
+        } @else {
+          <ol class="linea-tiempo">
+            @for (movimiento of hitos(); track movimiento.id) {
+              <li class="hito" [class]="'hito ' + claseDe(movimiento.tipo)">
+                <span class="hito-marca">
+                  <app-icono [nombre]="$any(iconoDe(movimiento.tipo))" tamano="sm" />
+                </span>
+                <div class="hito-cuerpo">
+                  <div class="hito-titulo">{{ movimiento.tipoEtiqueta }}</div>
+                  <div class="hito-fecha">
+                    {{ movimiento.fechaHora | date: 'dd/MM/yyyy' }} a las
+                    {{ movimiento.fechaHora | date: 'HH:mm' }}
+                    &middot; {{ movimiento.usuario }}
+                    @if (movimiento.rolEtiqueta) {
+                      <span>({{ movimiento.rolEtiqueta }})</span>
+                    }
+                  </div>
+                  @if (movimiento.condicionAnterior && movimiento.condicionNueva) {
+                    <div class="hito-transicion">
+                      {{ movimiento.condicionAnterior }} &rarr; {{ movimiento.condicionNueva }}
+                    </div>
+                  }
+                  @if (movimiento.detalle) {
+                    <div class="hito-detalle">{{ movimiento.detalle }}</div>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@if (formatoAbierto()) {
+  @if (equipo(); as bien) {
+    <app-formato-uso [equipo]="bien" (cerrado)="cerrarFormatoDeUso()" />
+  }
+}
+
+@if (responsableAbierto()) {
+  @if (equipo(); as bien) {
+    <app-responsable-equipo
+      [equipo]="bien"
+      (asignado)="alCambiarResponsable($event)"
+      (cancelado)="cerrarResponsableDeEquipo()" />
+  }
+}
+
+@if (prestamoDetalle(); as prestamo) {
+  <!-- RF-66b: la salida entera. Arriba, quien entrego y a quien; abajo, quien
+       recibio la devolucion y en que estado. Las observaciones de las dos
+       puntas son la unica constancia de como salio y como volvio (RN-18). -->
+  <div class="modal-fondo" (click)="cerrarPrestamo()">
+    <div class="modal modal-ancho" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>Detalle del préstamo</h3>
+        <button type="button" class="btn-icono" (click)="cerrarPrestamo()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" tamano="sm" />
+        </button>
+      </div>
+
+      <div class="modal-cuerpo">
+        <div class="fila-acciones mb-1">
+          <span
+            class="insignia"
+            [class.insignia-prestado]="prestamo.estado === 'ACTIVO' && !prestamo.vencido"
+            [class.insignia-vencido]="prestamo.vencido"
+            [class.insignia-disponible]="prestamo.estado === 'DEVUELTO'">
+            {{ prestamo.estadoEtiqueta }}
+          </span>
+          @if (prestamo.vencido) {
+            <span class="insignia insignia-vencido">
+              {{ prestamo.diasAtraso === 1 ? '1 día de atraso' : prestamo.diasAtraso + ' días de atraso' }}
+            </span>
+          }
+          @if (prestamo.reportaDano) {
+            <span class="insignia insignia-revision">Devuelto con observaciones</span>
+          }
+        </div>
+
+        <h4 class="titulo-seccion">Entrega</h4>
+        <div class="lista-datos">
+          <div class="dato">
+            <div class="clave">Prestado por</div>
+            <div class="valor">{{ prestamo.usuarioPrestaNombre || '—' }}</div>
+          </div>
+          <div class="dato">
+            <div class="clave">Prestado a</div>
+            <div class="valor">
+              {{ prestamo.nombrePersona }}
+              <span class="texto-secundario texto-pequeno texto-mono">({{ prestamo.dniPersona }})</span>
+            </div>
+          </div>
+          <div class="dato">
+            <div class="clave">Fecha de salida</div>
+            <div class="valor">{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</div>
+          </div>
+          <div class="dato">
+            <div class="clave">Devolución comprometida</div>
+            <div class="valor">
+              {{ prestamo.fechaEstimadaDevolucion
+                ? (prestamo.fechaEstimadaDevolucion | date: 'dd/MM/yyyy')
+                : 'Sin fecha comprometida' }}
+            </div>
+          </div>
+          <div class="dato">
+            <div class="clave">Destino</div>
+            <div class="valor">{{ prestamo.destino || 'Sin destino registrado' }}</div>
+          </div>
+          <div class="dato col-completa">
+            <div class="clave">Observaciones de entrega</div>
+            <div class="valor">{{ prestamo.observacionesSalida || 'Sin observaciones' }}</div>
+          </div>
+        </div>
+
+        <h4 class="titulo-seccion mt-1">Devolución</h4>
+        @if (!prestamo.fechaDevolucion) {
+          <p class="texto-secundario mb-0">
+            El equipo sigue fuera: la devolución todavía no se ha registrado.
+          </p>
+        } @else {
+          <div class="lista-datos">
+            <div class="dato">
+              <div class="clave">Recibido por</div>
+              <div class="valor">{{ prestamo.usuarioRecibeNombre || '—' }}</div>
+            </div>
+            <div class="dato">
+              <div class="clave">Fecha de devolución</div>
+              <div class="valor">{{ prestamo.fechaDevolucion | date: 'dd/MM/yyyy HH:mm' }}</div>
+            </div>
+            <div class="dato">
+              <div class="clave">Estado en que volvió</div>
+              <div class="valor">
+                {{ prestamo.conforme ? 'Conforme' : 'No conforme' }}
+              </div>
+            </div>
+            <div class="dato col-completa">
+              <div class="clave">Observaciones de devolución</div>
+              <div class="valor">{{ prestamo.observacionesRetorno || 'Sin observaciones' }}</div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-pie">
+        <button type="button" class="btn btn-primario" (click)="cerrarPrestamo()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (accionPendiente()) {
+  <app-confirmacion
+    [titulo]="tituloAccion"
+    [mensaje]="mensajeAccion"
+    detalle="Esta accion queda registrada a su nombre en el historial del equipo."
+    [peligrosa]="accionEsPeligrosa"
+    [procesando]="procesando()"
+    [requiereMotivo]="true"
+    etiquetaMotivo="Motivo"
+    textoConfirmar="Confirmar"
+    (confirmar)="confirmarAccion($event)"
+    (cancelar)="accionPendiente.set(null)" />
+}

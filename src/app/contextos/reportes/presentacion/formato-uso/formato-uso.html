@@ -1,0 +1,302 @@
+<div class="modal-fondo">
+  <div class="modal modal-ancho">
+    <div class="modal-cabecera">
+      <h3>Registrar salida &middot; Formato de uso del equipo</h3>
+      <button type="button" class="btn-icono" (click)="cerrar()" aria-label="Cerrar">
+        <app-icono nombre="cerrar" tamano="sm" />
+      </button>
+    </div>
+
+    @if (!previa()) {
+      <!-- Paso 1: lo que el sistema no sabe. Nada es obligatorio: el formato se
+           imprime y se acaba de rellenar a mano, delante del equipo. -->
+      <form (ngSubmit)="verVistaPrevia()">
+        <div class="modal-cuerpo">
+          <div class="aviso aviso-alerta mb-1">
+            Este documento <strong>no registra el préstamo</strong> ni cambia la condición del
+            equipo: es el formato que se imprime y se firma. La salida se registra aparte, en
+            Préstamos.
+          </div>
+
+          <h4 class="titulo-seccion">1. Responsable del equipamiento</h4>
+          <p class="texto-secundario texto-pequeno">
+            El responsable del equipamiento es el <strong>Coordinador</strong>. Los demás datos
+            se completan aquí.
+          </p>
+          <div class="rejilla">
+            <div class="campo">
+              <label for="fu-encargado">Investigador encargado</label>
+              <input
+                id="fu-encargado"
+                type="text"
+                name="investigadorEncargado"
+                [(ngModel)]="investigadorEncargado"
+                maxlength="150"
+                autocomplete="off" />
+            </div>
+            <div class="campo">
+              <label for="fu-correo-encargado">Correo</label>
+              <input
+                id="fu-correo-encargado"
+                type="email"
+                name="correoEncargado"
+                [(ngModel)]="correoEncargado"
+                maxlength="150"
+                autocomplete="off" />
+            </div>
+            <div class="campo">
+              <label for="fu-celular">Celular</label>
+              <input
+                id="fu-celular"
+                type="tel"
+                name="celularEncargado"
+                [(ngModel)]="celularEncargado"
+                maxlength="30"
+                autocomplete="off" />
+            </div>
+          </div>
+
+          <h4 class="titulo-seccion">2. Identificación del equipo</h4>
+          <!-- Estos datos no se preguntan: los tiene el sistema, y volver a
+               pedirlos es pedir que se copien mal. El estado es el que el bien
+               tiene ahora mismo, no el que se suponga. -->
+          <div class="datos-automaticos mb-1">
+            <div class="lista-datos">
+              <div class="dato">
+                <div class="clave">Descripción</div>
+                <div class="valor">{{ equipo.nombre }}</div>
+              </div>
+              <div class="dato">
+                <div class="clave">Código patrimonial</div>
+                <div class="valor texto-mono">{{ equipo.codigoPatrimonial }}</div>
+              </div>
+              <div class="dato">
+                <div class="clave">Marca y modelo</div>
+                <div class="valor">{{ equipo.marca }} {{ equipo.modelo }}</div>
+              </div>
+              <div class="dato">
+                <div class="clave">Número de serie</div>
+                <div class="valor texto-mono">{{ equipo.numeroSerie }}</div>
+              </div>
+              <div class="dato">
+                <div class="clave">Valor de compra</div>
+                <div class="valor">S/ {{ equipo.costo | number: '1.2-2' }}</div>
+              </div>
+              <div class="dato">
+                <div class="clave">Fecha de adquisición</div>
+                <div class="valor">{{ equipo.fechaAdquisicion | date: 'dd/MM/yyyy' }}</div>
+              </div>
+              <div class="dato">
+                <div class="clave">Área o línea de investigación</div>
+                <div class="valor">{{ equipo.coordinacion }}</div>
+              </div>
+              <div class="dato">
+                <div class="clave">Estado del equipo</div>
+                <div class="valor"><app-condicion [condicion]="equipo.condicion" /></div>
+              </div>
+            </div>
+          </div>
+
+          <h4 class="titulo-seccion">3. Datos del usuario</h4>
+          <div class="rejilla">
+            <div class="campo">
+              <label for="fu-investigador">Nombre del investigador</label>
+              <input
+                id="fu-investigador"
+                type="text"
+                name="nombreInvestigador"
+                [(ngModel)]="nombreInvestigador"
+                maxlength="150"
+                autocomplete="off" />
+            </div>
+            <div class="campo">
+              <label for="fu-correo-investigador">Correo institucional</label>
+              <input
+                id="fu-correo-investigador"
+                type="email"
+                name="correoInvestigador"
+                [(ngModel)]="correoInvestigador"
+                maxlength="150"
+                autocomplete="off" />
+            </div>
+            <div class="campo">
+              <label for="fu-telefono">Teléfono de contacto</label>
+              <input
+                id="fu-telefono"
+                type="tel"
+                name="telefonoInvestigador"
+                [(ngModel)]="telefonoInvestigador"
+                maxlength="30"
+                autocomplete="off" />
+            </div>
+          </div>
+
+          <h4 class="titulo-seccion">4. Proyecto asociado y actividad</h4>
+          <div class="campo">
+            <label for="fu-proyecto">Proyecto de investigación (PAO – Prociencia u otro)</label>
+            <textarea
+              id="fu-proyecto"
+              name="proyecto"
+              rows="3"
+              maxlength="1000"
+              [(ngModel)]="proyecto"></textarea>
+          </div>
+
+          <h4 class="titulo-seccion">5. Registro de uso del equipo</h4>
+          <p class="texto-secundario texto-pequeno">
+            El uso empieza al generar este documento: la fecha y la hora de inicio las pone el
+            sistema. Indique hasta cuándo lo va a tener.
+          </p>
+          <div class="rejilla">
+            <div class="campo">
+              <label for="fu-fecha-fin">Fecha de fin del uso</label>
+              <input
+                id="fu-fecha-fin"
+                type="date"
+                name="fechaFinUso"
+                [(ngModel)]="fechaFinUso" />
+            </div>
+            <div class="campo">
+              <label for="fu-hora-fin">Hora</label>
+              <input id="fu-hora-fin" type="time" name="horaFinUso" [(ngModel)]="horaFinUso" />
+            </div>
+          </div>
+          <div class="campo">
+            <label for="fu-actividad">Actividad realizada</label>
+            <textarea
+              id="fu-actividad"
+              name="actividadRealizada"
+              rows="3"
+              maxlength="1000"
+              [(ngModel)]="actividadRealizada"></textarea>
+          </div>
+
+          <h4 class="titulo-seccion">6. ¿El equipo fue entregado en condiciones operativas?</h4>
+          <div class="opciones-si-no">
+            <label class="opcion-conformidad" [class.elegida]="entregadoOperativo === true">
+              <input
+                type="radio"
+                name="entregadoOperativo"
+                [value]="true"
+                [(ngModel)]="entregadoOperativo" />
+              <span><strong>Sí</strong></span>
+            </label>
+            <label class="opcion-conformidad" [class.elegida]="entregadoOperativo === false">
+              <input
+                type="radio"
+                name="entregadoOperativo"
+                [value]="false"
+                [(ngModel)]="entregadoOperativo" />
+              <span><strong>No</strong></span>
+            </label>
+          </div>
+
+          <h4 class="titulo-seccion mt-1">7. ¿El equipo fue devuelto en condiciones operativas?</h4>
+          <p class="texto-secundario texto-pequeno">
+            Se responde cuando el equipo vuelve. Si aún no ha vuelto, déjelo sin marcar: las dos
+            casillas salen en blanco para marcarlas a mano.
+          </p>
+          <div class="opciones-si-no">
+            <label class="opcion-conformidad" [class.elegida]="devueltoOperativo === true">
+              <input
+                type="radio"
+                name="devueltoOperativo"
+                [value]="true"
+                [(ngModel)]="devueltoOperativo" />
+              <span><strong>Sí</strong></span>
+            </label>
+            <label class="opcion-conformidad" [class.elegida]="devueltoOperativo === false">
+              <input
+                type="radio"
+                name="devueltoOperativo"
+                [value]="false"
+                [(ngModel)]="devueltoOperativo" />
+              <span><strong>No</strong></span>
+            </label>
+          </div>
+
+          <h4 class="titulo-seccion mt-1">8. Incidentes, fallas o daños</h4>
+          <p class="texto-secundario texto-pequeno">
+            Si aplica. Indique la fecha, la hora y el nombre de la persona a quien se reportó.
+          </p>
+          <div class="campo">
+            <label for="fu-incidente">Descripción del incidente o falla</label>
+            <textarea
+              id="fu-incidente"
+              name="incidente"
+              rows="3"
+              maxlength="1000"
+              [(ngModel)]="incidente"></textarea>
+          </div>
+          <div class="campo">
+            <label for="fu-correctiva">Acción correctiva realizada</label>
+            <textarea
+              id="fu-correctiva"
+              name="accionCorrectiva"
+              rows="3"
+              maxlength="1000"
+              [(ngModel)]="accionCorrectiva"></textarea>
+          </div>
+
+          <h4 class="titulo-seccion">10. Observaciones generales</h4>
+          <div class="campo mb-0">
+            <label for="fu-observaciones">Observaciones</label>
+            <textarea
+              id="fu-observaciones"
+              name="observaciones"
+              rows="3"
+              maxlength="1000"
+              [(ngModel)]="observaciones"></textarea>
+          </div>
+
+          <p class="texto-secundario texto-pequeno mt-1 mb-0">
+            El punto 9, las firmas, sale en blanco para firmarse sobre el papel impreso.
+          </p>
+        </div>
+
+        <div class="modal-pie">
+          <button type="button" class="btn btn-secundario" (click)="cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn-primario" [disabled]="generando()">
+            {{ generando() ? 'Generando...' : 'Ver vista previa' }}
+          </button>
+        </div>
+      </form>
+    } @else {
+      <!-- Paso 2: el documento entero, antes de descargarlo. Un papel que se
+           firma no se descarga a ciegas (RF-79). -->
+      <div class="modal-cuerpo">
+        <div class="aviso aviso-alerta mb-1">
+          <strong>Recuerde registrar el préstamo del equipo.</strong>
+          Este formato no lo registra: {{ equipo.nombre }} sigue figurando como
+          {{ equipo.condicionEtiqueta | lowercase }} en el inventario y la salida no consta en
+          ninguna parte hasta que registre el préstamo.
+        </div>
+
+        @if (previa(); as fuente) {
+          <iframe
+            class="previa-documento"
+            [src]="fuente"
+            title="Vista previa del formato de registro de uso"></iframe>
+        }
+      </div>
+
+      <div class="modal-pie">
+        <button type="button" class="btn btn-secundario" (click)="volverAEditar()">
+          <app-icono nombre="atras" tamano="sm" />
+          <span>Volver a editar</span>
+        </button>
+        @if (descargado()) {
+          <button type="button" class="btn btn-secundario" (click)="irARegistrarPrestamo()">
+            <app-icono nombre="prestamos" tamano="sm" />
+            <span>Registrar el préstamo</span>
+          </button>
+        }
+        <button type="button" class="btn btn-secundario" (click)="cerrar()">Cerrar</button>
+        <button type="button" class="btn btn-primario" (click)="descargar()">
+          <app-icono nombre="descargar" tamano="sm" />
+          <span>Descargar PDF</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

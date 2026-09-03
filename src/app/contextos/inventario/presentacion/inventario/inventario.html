@@ -1,0 +1,220 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>Inventario</h1>
+    <p class="descripcion">
+      @if (esAdmin()) {
+        Consulta de los equipos de cada coordinación. El Administrador no registra ni modifica bienes.
+      } @else {
+        Equipos a cargo de su coordinación.
+      }
+    </p>
+  </div>
+  <div class="acciones-cabecera">
+    @if (esAdmin()) {
+      <!-- RF-31: el catalogo de categorias se administra desde aqui, que es
+           donde se usa y donde se echa en falta al registrar un equipo. -->
+      <button type="button" class="btn btn-secundario" (click)="gestionarCategorias()">
+        <app-icono nombre="categorias" tamano="sm" />
+        <span>Gestionar categorías</span>
+      </button>
+    }
+    <button
+      type="button"
+      class="btn btn-secundario"
+      [disabled]="exportando()"
+      (click)="exportar('xlsx')">
+      <app-icono nombre="descargar" tamano="sm" />
+      <span>Excel</span>
+    </button>
+    <button
+      type="button"
+      class="btn btn-secundario"
+      [disabled]="exportando()"
+      (click)="exportar('csv')">
+      <app-icono nombre="descargar" tamano="sm" />
+      <span>CSV</span>
+    </button>
+    <button
+      type="button"
+      class="btn btn-secundario"
+      [disabled]="exportando()"
+      (click)="exportar('pdf')">
+      <app-icono nombre="descargar" tamano="sm" />
+      <span>PDF</span>
+    </button>
+    @if (esOperativo()) {
+      <!-- RNF-27: la accion principal, siempre en la misma posicion. -->
+      <button type="button" class="btn btn-primario" (click)="registrarBien()">
+        <app-icono nombre="agregar" tamano="sm" />
+        <span>Nuevo equipo</span>
+      </button>
+    }
+  </div>
+</div>
+
+<div class="tarjeta">
+  <!-- RF-47: pestanas de condicion; "Todos" es la primera y viene activa al
+       entrar, de modo que la pantalla no empieza escondiendo nada (v3.9). -->
+  <div class="pestanas" role="tablist">
+    @for (pestana of pestanas; track pestana.clave) {
+      <button
+        type="button"
+        class="pestana"
+        role="tab"
+        [class.activa]="pestanaActiva().clave === pestana.clave"
+        [attr.aria-selected]="pestanaActiva().clave === pestana.clave"
+        (click)="elegirPestana(pestana)">
+        {{ pestana.etiqueta }}
+      </button>
+    }
+  </div>
+
+  <div class="filtros">
+    @if (esAdmin()) {
+      <div class="campo">
+        <label for="inv-coordinacion">Coordinación<span class="obligatorio">*</span></label>
+        <select
+          id="inv-coordinacion"
+          [(ngModel)]="coordinacionElegida"
+          (ngModelChange)="cambiarCoordinacion()">
+          <option [ngValue]="null">Seleccione una coordinación</option>
+          @for (c of coordinaciones(); track c.id) {
+            <option [ngValue]="c.id">{{ c.nombre }} - {{ c.direccionNombre }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <div class="campo">
+      <label for="inv-buscar">Buscar</label>
+      <input
+        id="inv-buscar"
+        type="search"
+        [(ngModel)]="texto"
+        (keyup.enter)="aplicarFiltros()"
+        placeholder="Nombre, marca, modelo, serie o código" />
+    </div>
+
+    <div class="campo">
+      <label for="inv-categoria">Categoría</label>
+      <select id="inv-categoria" [(ngModel)]="categoriaId" (ngModelChange)="aplicarFiltros()">
+        <option [ngValue]="null">Todas</option>
+        @for (categoria of categorias(); track categoria.id) {
+          <option [ngValue]="categoria.id">{{ categoria.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="inv-laboratorio">Laboratorio</label>
+      <select id="inv-laboratorio" [(ngModel)]="laboratorioId" (ngModelChange)="aplicarFiltros()">
+        <option [ngValue]="null">Todos</option>
+        @for (lab of laboratorios(); track lab.id) {
+          <option [ngValue]="lab.id">{{ lab.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filtros-acciones">
+      <button type="button" class="btn btn-secundario" (click)="aplicarFiltros()">
+        <app-icono nombre="buscar" tamano="sm" />
+        <span>Buscar</span>
+      </button>
+      <button type="button" class="btn btn-secundario" (click)="limpiarFiltros()">Limpiar</button>
+    </div>
+  </div>
+
+  @if (faltaElegirCoordinacion()) {
+    <app-estado-vacio
+      icono="estructura"
+      titulo="Elija una coordinación"
+      mensaje="Cada coordinacion administra su propio inventario. Seleccione arriba cual desea
+               consultar." />
+  } @else if (cargando()) {
+    <div class="cargando"><span class="girador"></span> Cargando el inventario...</div>
+  } @else if (pagina().contenido.length === 0) {
+    <app-estado-vacio
+      icono="inventario"
+      [titulo]="
+        hayFiltros
+          ? 'Ningun equipo coincide con la busqueda'
+          : 'Aun no hay equipos en esta vista'
+      "
+      [mensaje]="
+        hayFiltros
+          ? 'Pruebe a limpiar los filtros o a cambiar de pestana.'
+          : 'La pestana ' + pestanaActiva().etiqueta + ' no tiene equipos en este momento.'
+      ">
+      @if (esOperativo() && !hayFiltros) {
+        <button type="button" class="btn btn-primario" (click)="registrarBien()">
+          <app-icono nombre="agregar" tamano="sm" />
+          <span>Registrar el primer equipo</span>
+        </button>
+      }
+    </app-estado-vacio>
+  } @else {
+    <!-- tabla-tarjetas: bajo 900px cada fila se muestra como tarjeta y cada
+         celda toma su rotulo de data-etiqueta (ver styles.css). -->
+    <div class="tabla-contenedor tabla-tarjetas">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th class="ordenable" (click)="ordenarPorColumna('nombre')">Equipo</th>
+            <th class="ordenable" (click)="ordenarPorColumna('codigoInventario')">Códigos</th>
+            <th>Categoría</th>
+            <th>Laboratorio</th>
+            <th class="ordenable" (click)="ordenarPorColumna('fechaAdquisicion')">Adquisición</th>
+            <th>Condición</th>
+            <th class="celda-acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (equipo of pagina().contenido; track equipo.id) {
+            <tr [class.fila-baja]="equipo.condicion === 'BAJA'">
+              <td class="celda-principal">
+                <div><strong>{{ equipo.nombre }}</strong></div>
+                <div class="texto-secundario texto-pequeno">
+                  {{ equipo.marca }} {{ equipo.modelo }}
+                </div>
+              </td>
+              <td class="texto-mono texto-pequeno celda-codigos" data-etiqueta="Códigos">
+                <div><span class="clave">Inv.</span> {{ equipo.codigoInventario }}</div>
+                <div class="texto-secundario">Pat. {{ equipo.codigoPatrimonial }}</div>
+                <div class="texto-secundario">Serie {{ equipo.numeroSerie }}</div>
+              </td>
+              <td data-etiqueta="Categoría">{{ equipo.categoria || '—' }}</td>
+              <td data-etiqueta="Laboratorio">{{ equipo.laboratorio || 'Sin ubicar' }}</td>
+              <td class="celda-numero" data-etiqueta="Adquisición">{{ equipo.fechaAdquisicion | date: 'dd/MM/yyyy' }}</td>
+              <td data-etiqueta="Condición">
+                <app-condicion [condicion]="equipo.condicion" />
+                @if (equipo.revisionPendiente) {
+                  <app-revision-pendiente />
+                }
+              </td>
+              <!-- El listado solo lleva a la ficha. Editar, mantenimiento y baja
+                   viven alli, con su nombre escrito: una fila de iconos sin
+                   rotulo obliga a adivinar, y quien menos experiencia tiene es
+                   justo quien mas usa esta pantalla (RNF-22, RNF-29). -->
+              <td class="celda-acciones">
+                <div class="fila-acciones">
+                  <button type="button" class="btn btn-secundario btn-sm" (click)="verFicha(equipo)">
+                    <app-icono nombre="ver" tamano="sm" />
+                    <span>Ver detalle</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-paginador
+      [pagina]="pagina().pagina"
+      [tamano]="pagina().tamano"
+      [totalElementos]="pagina().totalElementos"
+      [totalPaginas]="pagina().totalPaginas"
+      (paginaCambiada)="irAPagina($event)"
+      (tamanoCambiado)="cambiarTamano($event)" />
+  }
+</div>

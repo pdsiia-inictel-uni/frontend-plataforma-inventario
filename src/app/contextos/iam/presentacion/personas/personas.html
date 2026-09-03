@@ -1,0 +1,276 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>Recurso Humano</h1>
+  </div>
+  <div class="acciones-cabecera">
+    <button type="button" class="btn btn-primario" (click)="nuevaPersona()">
+      <app-icono nombre="agregar" tamano="sm" />
+      <span>Nueva persona</span>
+    </button>
+  </div>
+</div>
+
+
+<!-- El panel "Coordinaciones sin responsable" ya no vive aqui: la coordinacion
+     parada se ve donde se administra, en su cuadro rojo de Direcciones, que es
+     ademas desde donde se llega hasta aqui con el encargo planteado (RF-15b,
+     RF-28b). Repetir la alerta en esta pantalla era decir dos veces lo mismo
+     en dos sitios que se contradicen en cuanto uno de los dos se queda viejo. -->
+
+<div class="tarjeta">
+  <div class="filtros">
+    <div class="campo">
+      <label for="per-buscar">Buscar</label>
+      <input
+        id="per-buscar"
+        type="search"
+        [(ngModel)]="texto"
+        (keyup.enter)="aplicarFiltros()"
+        placeholder="Nombre, DNI, usuario o correo" />
+    </div>
+
+    <!-- RF-28: la lista es una sola; el rol es un filtro, no otra pantalla. -->
+    <div class="campo">
+      <label for="per-rol">Rol</label>
+      <select id="per-rol" [(ngModel)]="rolFiltro" (ngModelChange)="aplicarFiltros()">
+        <option [ngValue]="null">Todos los roles</option>
+        @for (r of roles; track r.valor) {
+          <option [ngValue]="r.valor">{{ r.etiqueta }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- RF-28e: la cola de trabajo del Administrador, a un clic. -->
+    <div class="campo">
+      <label for="per-puesto">Puesto</label>
+      <select id="per-puesto" [(ngModel)]="sinAsignarFiltro" (ngModelChange)="aplicarFiltros()">
+        <option [ngValue]="null">Todos</option>
+        <option [ngValue]="true">Sin asignar</option>
+        <option [ngValue]="false">Con puesto</option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="per-coordinacion">Coordinación</label>
+      <select id="per-coordinacion" [(ngModel)]="coordinacionId" (ngModelChange)="aplicarFiltros()">
+        <option [ngValue]="null">Todas</option>
+        @for (c of coordinaciones(); track c.id) {
+          <option [ngValue]="c.id">{{ c.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="per-estado">Estado de la cuenta</label>
+      <select id="per-estado" [(ngModel)]="estadoFiltro" (ngModelChange)="aplicarFiltros()">
+        <option [ngValue]="null">Todos</option>
+        @for (e of estadosCuenta; track e.valor) {
+          <option [ngValue]="e.valor">{{ e.etiqueta }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filtros-acciones">
+      <button type="button" class="btn btn-secundario" (click)="aplicarFiltros()">
+        <app-icono nombre="buscar" tamano="sm" />
+        <span>Buscar</span>
+      </button>
+      <button type="button" class="btn btn-secundario" (click)="limpiarFiltros()">Limpiar</button>
+    </div>
+  </div>
+
+  @if (cargando()) {
+    <div class="cargando"><span class="girador"></span> Cargando...</div>
+  } @else if (pagina().contenido.length === 0) {
+    <app-estado-vacio
+      icono="responsables"
+      [titulo]="'No hay ' + pluralDelFiltro + ' que mostrar'"
+      [mensaje]="
+        hayFiltros
+          ? 'Ningun registro coincide con los filtros aplicados. Pruebe a limpiarlos.'
+          : 'Aqui viven las cuentas del sistema. Registre a la primera persona: podra darle su puesto justo despues.'
+      ">
+      <button type="button" class="btn btn-primario" (click)="nuevaPersona()">
+        <app-icono nombre="agregar" tamano="sm" />
+        <span>Nueva persona</span>
+      </button>
+    </app-estado-vacio>
+  } @else {
+    <div class="tabla-contenedor">
+      <table class="tabla">
+        <!-- RF-28f: la tabla dice quien hay. El DNI, el correo y la
+             coordinacion estan en la ficha de cada fila, que es donde se
+             consultan cuando ya se ha encontrado a la persona. -->
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Rol</th>
+            <th>Usuario</th>
+            <th>Cuenta</th>
+            <th class="celda-acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (persona of pagina().contenido; track persona.id) {
+            <tr [class.fila-sin-asignar]="persona.sinAsignar">
+              <td>
+                <div><strong>{{ persona.nombreCompleto }}</strong></div>
+                <div class="texto-secundario texto-pequeno">
+                  {{ persona.cargo || 'Sin cargo registrado' }}
+                </div>
+              </td>
+              <td>
+                <!-- RF-16b: "Sin asignar" es un estado normal, no un hueco. -->
+                <span [class]="claseDelRol(persona.rol)">{{ persona.rolEtiqueta }}</span>
+              </td>
+              <td class="texto-mono">{{ persona.username }}</td>
+              <td>
+                <!-- RF-22b: activa, suspendida o de baja; color Y texto (RNF-30). -->
+                <span [class]="claseDelEstado(persona.estado)">{{ persona.estadoEtiqueta }}</span>
+                @if (persona.bloqueado) {
+                  <span class="insignia insignia-vencido">Bloqueada</span>
+                }
+                @if (persona.debeCambiarPassword && !persona.sinAsignar) {
+                  <span class="insignia insignia-neutra">Cambio pendiente</span>
+                }
+              </td>
+              <td class="celda-acciones">
+                <div class="fila-acciones">
+                  <!-- RF-28f: la ficha completa, y con ella la edicion de los
+                       datos y las acciones sobre sus credenciales. -->
+                  <button
+                    type="button"
+                    class="btn btn-secundario btn-sm"
+                    (click)="verDetalle(persona)">
+                    <app-icono nombre="ver" tamano="sm" />
+                    <span>Ver detalle</span>
+                  </button>
+                  <!-- RF-28d: el puesto se da y se retira desde aqui. Solo lo
+                       recibe quien no tiene ninguno, asi que "Asignar aqui" —y
+                       el peso de accion principal— es de quien esta sin asignar
+                       (RN-33); en las demas filas el boton lleva al puesto que
+                       ya tienen y a su baja. La fila de uno mismo no lo ofrece.
+                       Si el puesto de responsable esta ocupado, la asignacion
+                       se rechaza: antes hay que darle de baja en Direcciones
+                       (RN-06). -->
+                  <button
+                    type="button"
+                    class="btn btn-sm"
+                    [class.btn-primario]="persona.sinAsignar"
+                    [class.btn-secundario]="!persona.sinAsignar"
+                    [disabled]="persona.estado !== 'ACTIVA' || esUnoMismo(persona)"
+                    (click)="asignarPuesto(persona)">
+                    <app-icono nombre="relevo" tamano="sm" />
+                    <span>{{ encargo() && persona.sinAsignar ? 'Asignar aqui' : 'Asignar' }}</span>
+                  </button>
+                  <!-- Activar y desactivar viven en la ficha, con el resto de
+                       lo que se hace sobre la cuenta de una persona: repetir
+                       aqui la accion era ofrecer dos caminos al mismo sitio
+                       (RF-28f). -->
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-paginador
+      [pagina]="pagina().pagina"
+      [tamano]="pagina().tamano"
+      [totalElementos]="pagina().totalElementos"
+      [totalPaginas]="pagina().totalPaginas"
+      (paginaCambiada)="irAPagina($event)"
+      (tamanoCambiado)="cambiarTamano($event)" />
+  }
+</div>
+
+@if (detalle(); as persona) {
+  <!-- RF-28f: quien es esta persona, y todo lo que se hace sobre sus datos. -->
+  <app-detalle-persona
+    [persona]="persona"
+    (editar)="editar($event)"
+    (asignar)="asignarPuesto($event)"
+    (restablecerPassword)="pedirRestablecerPassword($event)"
+    (desbloquear)="pedirDesbloqueo($event)"
+    (suspender)="pedirSuspension($event)"
+    (darDeBaja)="pedirCambioEstado($event, 'BAJA')"
+    (reincorporar)="pedirCambioEstado($event, 'ACTIVA')"
+    (cerrado)="cerrarDetalle()" />
+}
+
+@if (formularioAbierto()) {
+  <app-formulario-usuario
+    [usuario]="enEdicion()"
+    (guardado)="alGuardar($event)"
+    (cancelado)="cerrarFormulario()" />
+}
+
+@if (asignando(); as persona) {
+  <app-asignar-puesto
+    [persona]="persona"
+    [coordinaciones]="coordinaciones()"
+    [cargandoCoordinaciones]="coordinacionesCargando()"
+    [rolSugerido]="rolSugerido"
+    [coordinacionSugerida]="coordinacionSugerida"
+    (asignado)="alAsignar($event)"
+    (cancelado)="asignando.set(null)" />
+}
+
+@if (confirmacion()) {
+  <!-- RF-22b: la misma ventana para los tres destinos; lo que cambia es lo
+       que dice, que es lo unico que el usuario necesita distinguir. -->
+  <app-confirmacion
+    [titulo]="tituloConfirmacion"
+    [mensaje]="mensajeConfirmacion"
+    [detalle]="detalleConfirmacion"
+    [textoConfirmar]="textoConfirmacion"
+    [peligrosa]="confirmacionEsPeligrosa"
+    (confirmar)="confirmarCambioEstado()"
+    (cancelar)="confirmacion.set(null)" />
+}
+
+@if (confirmandoPassword()) {
+  <!-- RNF-26: la contrasena vigente deja de servir en el acto. -->
+  <app-confirmacion
+    titulo="Restablecer contraseña"
+    [mensaje]="mensajePassword"
+    detalle="La contrasena actual dejara de funcionar y la persona debera cambiar la nueva en su siguiente ingreso. Se muestra una sola vez."
+    textoConfirmar="Restablecer"
+    [procesando]="procesando()"
+    (confirmar)="restablecerPassword()"
+    (cancelar)="confirmandoPassword.set(null)" />
+}
+
+@if (confirmandoDesbloqueo()) {
+  <app-confirmacion
+    titulo="Desbloquear cuenta"
+    [mensaje]="mensajeDesbloqueo"
+    detalle="El bloqueo por intentos fallidos se libera y el contador vuelve a cero."
+    textoConfirmar="Desbloquear"
+    [procesando]="procesando()"
+    (confirmar)="desbloquear()"
+    (cancelar)="confirmandoDesbloqueo.set(null)" />
+}
+
+@if (credencial(); as cred) {
+  <div class="modal-fondo" (click)="credencial.set(null)">
+    <div class="modal modal-angosto" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>Contraseña restablecida</h3>
+      </div>
+      <div class="modal-cuerpo">
+        <p class="mb-1">{{ cred.mensaje }}</p>
+        <div class="texto-centrado">
+          <span class="credencial">{{ cred.passwordTemporal }}</span>
+        </div>
+        <p class="texto-secundario texto-pequeno mt-1 mb-0">
+          Anotela ahora: por seguridad no vuelve a mostrarse.
+        </p>
+      </div>
+      <div class="modal-pie">
+        <button type="button" class="btn btn-primario" (click)="credencial.set(null)">Entendido</button>
+      </div>
+    </div>
+  </div>
+}

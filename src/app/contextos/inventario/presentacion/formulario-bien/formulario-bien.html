@@ -1,0 +1,307 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>{{ esEdicion() ? 'Editar equipo' : 'Registrar equipo' }}</h1>
+    <p class="descripcion">
+      @if (esEdicion()) {
+        Los códigos y la condición del equipo se conservan en su historial.
+      } @else {
+        Complete los datos del bien. Al terminar quedara en condición Operativo.
+      }
+    </p>
+  </div>
+  <div class="acciones-cabecera">
+    <button type="button" class="btn btn-secundario" (click)="cancelar()">
+      <app-icono nombre="atras" tamano="sm" />
+      <span>Cancelar</span>
+    </button>
+  </div>
+</div>
+
+
+@if (cargando()) {
+  <div class="cargando"><span class="girador"></span> Cargando el equipo...</div>
+} @else {
+  <app-pasos [titulos]="titulos" [actual]="paso()" />
+
+  <div class="tarjeta mt-1">
+    <!-- ------------------------- Paso 1: identificacion y codigos (RNF-28)
+
+         Las dos cosas responden a la misma pregunta —cual es este equipo y
+         como se le nombra— y se rellenan con el aparato delante y su etiqueta
+         a la vista, asi que pedirlas en dos pantallas obligaba a un ida y
+         vuelta que no decidia nada.                                          -->
+    @if (paso() === 0) {
+      <div class="tarjeta-cabecera"><h2>Identificación del equipo</h2></div>
+      <div class="tarjeta-cuerpo">
+        <div class="rejilla">
+          <div class="campo col-completa" [class.invalido]="errores()['nombre']">
+            <label for="bi-nombre">Nombre del equipo<span class="obligatorio">*</span></label>
+            <input
+              id="bi-nombre"
+              type="text"
+              [(ngModel)]="nombre"
+              maxlength="150"
+              placeholder="Laptop Dell Latitude"
+              autocomplete="off" />
+            @if (errores()['nombre']) {
+              <span class="error-campo">{{ errores()['nombre'] }}</span>
+            } @else {
+              <span class="ayuda-campo">Como se conoce al equipo en el laboratorio.</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['marca']">
+            <label for="bi-marca">Marca<span class="obligatorio">*</span></label>
+            <input id="bi-marca" type="text" [(ngModel)]="marca" maxlength="100" autocomplete="off" />
+            @if (errores()['marca']) {
+              <span class="error-campo">{{ errores()['marca'] }}</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['modelo']">
+            <label for="bi-modelo">Modelo<span class="obligatorio">*</span></label>
+            <input id="bi-modelo" type="text" [(ngModel)]="modelo" maxlength="100" autocomplete="off" />
+            @if (errores()['modelo']) {
+              <span class="error-campo">{{ errores()['modelo'] }}</span>
+            }
+          </div>
+
+          <div class="campo col-completa" [class.invalido]="errores()['categoriaId']">
+            <label for="bi-categoria">Categoría<span class="obligatorio">*</span></label>
+            <select id="bi-categoria" [(ngModel)]="categoriaId">
+              <option [ngValue]="null">Seleccione la categoría</option>
+              @for (categoria of categorias(); track categoria.id) {
+                <option [ngValue]="categoria.id">{{ categoria.nombre }}</option>
+              }
+            </select>
+            @if (errores()['categoriaId']) {
+              <span class="error-campo">{{ errores()['categoriaId'] }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="tarjeta-cabecera"><h3>Códigos de identificación</h3></div>
+      <div class="tarjeta-cuerpo">
+        <div class="rejilla">
+          <div class="campo" [class.invalido]="errores()['numeroSerie']">
+            <label for="bi-serie">Número de serie<span class="obligatorio">*</span></label>
+            <div class="fila-campo">
+              <input
+                id="bi-serie"
+                type="text"
+                [(ngModel)]="numeroSerie"
+                maxlength="100"
+                autocomplete="off" />
+              <button type="button" class="btn btn-secundario" (click)="usarSinSerie()">S/N</button>
+            </div>
+            @if (errores()['numeroSerie']) {
+              <span class="error-campo">{{ errores()['numeroSerie'] }}</span>
+            } @else if (sinSerie) {
+              <span class="ayuda-campo">Marcado como sin número de serie.</span>
+            } @else {
+              <span class="ayuda-campo">Único en toda la institución.</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['codigoInventario']">
+            <label for="bi-inventario">Código de inventario<span class="obligatorio">*</span></label>
+            <input
+              id="bi-inventario"
+              type="text"
+              [(ngModel)]="codigoInventario"
+              maxlength="60"
+              autocomplete="off" />
+            @if (errores()['codigoInventario']) {
+              <span class="error-campo">{{ errores()['codigoInventario'] }}</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['codigoPatrimonial']">
+            <label for="bi-patrimonial">Código patrimonial<span class="obligatorio">*</span></label>
+            <input
+              id="bi-patrimonial"
+              type="text"
+              [(ngModel)]="codigoPatrimonial"
+              maxlength="60"
+              autocomplete="off" />
+            @if (errores()['codigoPatrimonial']) {
+              <span class="error-campo">{{ errores()['codigoPatrimonial'] }}</span>
+            } @else {
+              <span class="ayuda-campo">El que asigna la oficina de patrimonio del Estado.</span>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ------------- Paso 2: adquisicion, ubicacion y fotografia (RNF-28)
+
+         Tres grupos cortos —dos campos, dos campos y una foto opcional— que
+         juntos no llenan una pantalla. Separarlos costaba tres avances para
+         escribir cuatro datos.                                               -->
+    @if (paso() === 1) {
+      <div class="tarjeta-cabecera"><h2>Datos de adquisición</h2></div>
+      <div class="tarjeta-cuerpo">
+        <div class="rejilla">
+          <div class="campo" [class.invalido]="errores()['fechaAdquisicion']">
+            <!-- RF-34: la fecha entera, no el año. Es la que el formato de
+                 registro de uso imprime como fecha de la orden de compra
+                 (RF-78), y de un año no se saca una fecha. -->
+            <label for="bi-fecha-adq">Fecha de adquisición<span class="obligatorio">*</span></label>
+            <input
+              id="bi-fecha-adq"
+              type="date"
+              [(ngModel)]="fechaAdquisicion"
+              [min]="fechaMinima"
+              [max]="fechaMaxima" />
+            @if (errores()['fechaAdquisicion']) {
+              <span class="error-campo">{{ errores()['fechaAdquisicion'] }}</span>
+            } @else if (fechaAdquisicion && !fechaValida) {
+              <span class="error-campo">
+                Indique una fecha entre el {{ fechaMinima | date: 'dd/MM/yyyy' }} y hoy. No puede ser
+                una fecha futura.
+              </span>
+            } @else {
+              <span class="ayuda-campo">La de la orden de compra con que la institución lo adquirió.</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['costo']">
+            <label for="bi-costo">Costo en soles<span class="obligatorio">*</span></label>
+            <!-- El importe se agrupa solo mientras se escribe y completa los
+                 centimos al salir del campo (directiva Importe). -->
+            <div class="campo-moneda">
+              <span class="simbolo-moneda" aria-hidden="true">S/</span>
+              <input
+                id="bi-costo"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="0.00"
+                [(appImporte)]="costo" />
+            </div>
+            @if (errores()['costo']) {
+              <span class="error-campo">{{ errores()['costo'] }}</span>
+            } @else if (costo !== null && !costoValido) {
+              <span class="error-campo">El costo no puede ser negativo.</span>
+            } @else {
+              <span class="ayuda-campo">
+                Valor de compra. Escriba el punto para los centimos: 18789.5 queda como 18,789.50.
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="tarjeta-cabecera"><h3>Ubicación y observaciones</h3></div>
+      <div class="tarjeta-cuerpo">
+        <div class="campo" [class.invalido]="errores()['laboratorioId']">
+          <label for="bi-laboratorio">Laboratorio</label>
+          <select id="bi-laboratorio" [(ngModel)]="laboratorioId">
+            <option [ngValue]="null">Sin ubicar</option>
+            @for (lab of laboratorios(); track lab.id) {
+              <option [ngValue]="lab.id">
+                {{ lab.nombre }}@if (lab.ubicacion) { <span> - {{ lab.ubicacion }}</span> }
+              </option>
+            }
+          </select>
+          @if (errores()['laboratorioId']) {
+            <span class="error-campo">{{ errores()['laboratorioId'] }}</span>
+          } @else {
+            <span class="ayuda-campo">
+              Opcional, pero recomendado: solo aparecen los laboratorios de su coordinación y es lo
+              que permite encontrar el equipo después.
+            </span>
+          }
+        </div>
+
+        <div class="campo mb-0" [class.invalido]="errores()['observaciones']">
+          <label for="bi-observaciones">Observaciones</label>
+          <textarea
+            id="bi-observaciones"
+            [(ngModel)]="observaciones"
+            rows="3"
+            maxlength="1000"
+            placeholder="Accesorios que incluye, detalles del estado fisico..."></textarea>
+        </div>
+      </div>
+
+      <!-- RF-51b, RF-51c: la fotografia es opcional y la pone quien puede
+           cambiar el bien, que desde la v3.10 es solo el Responsable. Vive
+           aqui —en el alta y en la edicion— y ya no en la ficha, donde la
+           cambiaba cualquiera de los dos roles sin pasar por ninguna
+           confirmacion. -->
+      @if (puedeFotografiar) {
+        <div class="tarjeta-cabecera"><h3>Fotografía del equipo</h3></div>
+        <div class="tarjeta-cuerpo">
+          @if (esEdicion() && original()?.fotoUrl && !foto()) {
+            <p class="texto-secundario texto-pequeno">
+              Este equipo ya tiene una fotografía. Tome una nueva o elija un archivo solo si quiere
+              sustituirla; si no toca nada, se conserva la que tiene.
+            </p>
+          }
+          <app-captura-foto [inicial]="foto()" (elegida)="alElegirFoto($event)" />
+        </div>
+      }
+    }
+
+    <!-- -------------------------------------------------- Paso 6: resumen -->
+    @if (paso() === indiceResumen) {
+      <div class="tarjeta-cabecera"><h2>Revise antes de guardar</h2></div>
+      <div class="tarjeta-cuerpo">
+        <div class="lista-datos">
+          <div class="dato"><div class="clave">Equipo</div><div class="valor">{{ nombre }}</div></div>
+          <div class="dato"><div class="clave">Marca y modelo</div><div class="valor">{{ marca }} {{ modelo }}</div></div>
+          <div class="dato"><div class="clave">Categoría</div><div class="valor">{{ nombreCategoria }}</div></div>
+          <div class="dato"><div class="clave">Número de serie</div><div class="valor texto-mono">{{ numeroSerie }}</div></div>
+          <div class="dato"><div class="clave">Código de inventario</div><div class="valor texto-mono">{{ codigoInventario }}</div></div>
+          <div class="dato"><div class="clave">Código patrimonial</div><div class="valor texto-mono">{{ codigoPatrimonial }}</div></div>
+          <div class="dato"><div class="clave">Fecha de adquisición</div><div class="valor">{{ fechaAdquisicion | date: 'dd/MM/yyyy' }}</div></div>
+          <div class="dato">
+            <div class="clave">Costo</div>
+            <div class="valor">S/ {{ costo | number: '1.2-2' }}</div>
+          </div>
+          <div class="dato"><div class="clave">Laboratorio</div><div class="valor">{{ nombreLaboratorio }}</div></div>
+          @if (puedeFotografiar) {
+            <div class="dato"><div class="clave">Fotografía</div><div class="valor">{{ nombreFoto }}</div></div>
+          }
+          @if (observaciones.trim()) {
+            <div class="dato col-completa">
+              <div class="clave">Observaciones</div>
+              <div class="valor">{{ observaciones }}</div>
+            </div>
+          }
+        </div>
+
+      </div>
+    }
+
+    <div class="tarjeta-pie">
+      @if (paso() > 0) {
+        <button type="button" class="btn btn-secundario" (click)="anterior()">
+          <app-icono nombre="atras" tamano="sm" />
+          <span>Atras</span>
+        </button>
+      }
+      @if (paso() < titulos.length - 1) {
+        <button
+          type="button"
+          class="btn btn-primario"
+          [disabled]="!pasoValido(paso())"
+          (click)="siguiente()">
+          <span>Continuar</span>
+          <app-icono nombre="adelante" tamano="sm" />
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="btn btn-primario"
+          [disabled]="!todoValido || guardando()"
+          (click)="guardar()">
+          {{ guardando() ? 'Guardando...' : esEdicion() ? 'Guardar cambios' : 'Registrar equipo' }}
+        </button>
+      }
+    </div>
+  </div>
+}

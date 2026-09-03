@@ -1,11 +1,53 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Frontend</title>
+  <title>Inventario | INICTEL-UNI</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <meta name="description" content="Sistema de Gestion de Inventarios de INICTEL-UNI">
+
+  <!--
+    Content-Security-Policy estricta (RNF-07).
+
+    En produccion la cabecera equivalente la emite el backend (SeguridadConfig);
+    esta etiqueta protege ademas el servidor de desarrollo de Angular, que no
+    pasa por Spring. La politica no relaja ninguna directiva: la aplicacion no
+    usa manejadores en atributos, scripts embebidos ni estilos en linea, y una
+    prueba automatica falla si reaparecen (csp.spec.ts).
+
+    - img-src blob:  las fotografias se descargan con JWT y se muestran como blob.
+    - frame-src blob: la vista previa del formato de registro de uso enseña en un
+                     marco el PDF que el servidor acaba de devolver (RF-70).
+    - connect-src    solo el propio origen; en desarrollo /api va por el proxy.
+
+    Dos directivas de la politica completa no aparecen aqui a proposito, porque
+    el navegador las ignora cuando llegan por <meta> y solo generarian ruido:
+    frame-ancestors y upgrade-insecure-requests. Ambas viajan en la cabecera
+    que emite el backend, junto con X-Frame-Options DENY (RNF-09).
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self'; worker-src 'self' blob:; frame-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="same-origin">
+
+  <!--
+    Icono del navegador.
+
+    Se sirve desde la raiz y con rutas absolutas: una ruta relativa como
+    "assets/logo.png" se resuelve contra la direccion en curso, de modo que en
+    /inventario/nuevo el navegador la iba a buscar donde no estaba y la
+    pestana se quedaba con el icono generico.
+
+    Los archivos se generan a partir del logotipo institucional recortado a su
+    simbolo: la palabra "INICTEL-UNI" del logotipo completo es un borron
+    ilegible a 16 px. El simbolo va sobre un cuadrado blanco porque es azul
+    sobre fondo transparente y se perdia en las pestanas de tema oscuro.
+
+    favicon.ico lleva dentro los tres tamanos que pide el escritorio (16, 32 y
+    48); ademas se declara para que el navegador no tenga que adivinar.
+  -->
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" href="/icono-512.png" sizes="512x512">
+  <link rel="apple-touch-icon" href="/icono-180.png">
 </head>
 <body>
   <app-root></app-root>

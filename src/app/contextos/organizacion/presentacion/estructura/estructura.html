@@ -1,0 +1,584 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>{{ entorno.institucion }}</h1>
+    <!-- RF-10: las direcciones son las dos de la institucion y vienen dadas.
+         El trabajo del Administrador empieza en sus coordinaciones. -->
+    <p class="descripcion">
+      Las dos direcciones de la institución, con sus coordinaciones y laboratorios. Cada
+      coordinación administra su propio inventario.
+    </p>
+  </div>
+</div>
+
+@if (estructura(); as arbol) {
+}
+
+@if (cargando()) {
+  <div class="cargando"><span class="girador"></span> Cargando la estructura...</div>
+} @else if (vacia) {
+  <!-- Las direcciones se precargan con el sistema, asi que esta pantalla solo
+       queda vacia si la base de datos aun no termino de instalarse. -->
+  <app-estado-vacio
+    icono="estructura"
+    titulo="No se encontro ninguna dirección"
+    mensaje="Las dos direcciones de la institucion se registran al instalar el sistema. Si esta
+             pantalla sigue vacia, avise al area de sistemas: la instalacion quedo incompleta y sin
+             direcciones no pueden crearse coordinaciones." />
+} @else {
+  <div class="arbol">
+    @for (rama of estructura()?.direcciones ?? []; track identificarRama($index, rama)) {
+      <section class="tarjeta rama-direccion">
+        <header class="tarjeta-cabecera">
+          <div>
+            <h2>
+              {{ rama.direccion.nombre }}
+              @if (rama.direccion.sigla) {
+                <span class="texto-secundario texto-pequeno">({{ rama.direccion.sigla }})</span>
+              }
+            </h2>
+            @if (rama.direccion.descripcion) {
+              <p class="descripcion mb-0">{{ rama.direccion.descripcion }}</p>
+            }
+          </div>
+          <div class="fila-acciones">
+            <button
+              type="button"
+              class="btn btn-secundario btn-sm"
+              (click)="editarDireccion(rama.direccion)">
+              <app-icono nombre="editar" tamano="sm" />
+              <span>Editar</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-primario btn-sm"
+              (click)="nuevaCoordinacion(rama.direccion.id)">
+              <app-icono nombre="agregar" tamano="sm" />
+              <span>Nueva coordinación</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="tarjeta-cuerpo">
+          @if (rama.coordinaciones.length === 0) {
+            <p class="texto-secundario mb-0">
+              Esta dirección aun no tiene coordinaciones. Cree la primera con el botón
+              <strong>Nueva coordinación</strong>.
+            </p>
+          } @else {
+            <!-- Rejilla de cuadros: cada coordinacion se lee entera de un
+                 vistazo y se abre para trabajar en ella (RF-15b). Es un boton
+                 de verdad, no un div con un click: asi se alcanza con el
+                 teclado como cualquier otra accion (RNF-32). -->
+            <div class="rejilla-coordinaciones">
+              @for (coordinacion of rama.coordinaciones; track coordinacion.id) {
+                <button
+                  type="button"
+                  class="tarjeta-coordinacion"
+                  [class.inactiva]="!coordinacion.activa"
+                  [class.sin-responsable]="!coordinacion.responsableId"
+                  (click)="abrirDetalle(coordinacion)">
+                  <span class="coord-cabecera">
+                    <span class="coord-nombre">{{ coordinacion.nombre }}</span>
+                    @if (!coordinacion.activa) {
+                      <span class="insignia insignia-inactivo">Desactivada</span>
+                    }
+                  </span>
+                  <!-- El dato que decide si la coordinacion puede trabajar. -->
+                  @if (coordinacion.responsableId) {
+                    <span class="coord-responsable">
+                      <app-icono nombre="responsables" tamano="sm" />
+                      <span class="coord-responsable-texto">
+                        <span class="clave">Responsable</span>
+                        <strong>{{ coordinacion.responsable }}</strong>
+                      </span>
+                    </span>
+                  } @else {
+                    <span class="coord-responsable alerta">
+                      <app-icono nombre="alerta" tamano="sm" />
+                      <span class="coord-responsable-texto">
+                        <strong>Sin responsable</strong>
+                        <span class="clave">Su inventario esta parado</span>
+                      </span>
+                    </span>
+                  }
+
+                  <span class="coord-cifras">
+                    <span class="cifra">
+                      <span class="numero">{{ coordinacion.bienesTotal }}</span>
+                      <span class="etiqueta">{{ coordinacion.bienesTotal === 1 ? 'equipo' : 'equipos' }}</span>
+                    </span>
+                    <span class="cifra">
+                      <span class="numero">{{ coordinacion.laboratorios }}</span>
+                      <span class="etiqueta">
+                        {{ coordinacion.laboratorios === 1 ? 'laboratorio' : 'laboratorios' }}
+                      </span>
+                    </span>
+                    <span class="cifra">
+                      <span class="numero">{{ coordinacion.operadores }}</span>
+                      <span class="etiqueta">
+                        {{ coordinacion.operadores === 1 ? 'operador' : 'operadores' }}
+                      </span>
+                    </span>
+                  </span>
+
+                  @if (coordinacion.bienesTotal > 0) {
+                    <span class="coord-condiciones">
+                      @if (coordinacion.bienesOperativos > 0) {
+                        <span class="insignia insignia-disponible">
+                          {{ coordinacion.bienesOperativos }} operativos
+                        </span>
+                      }
+                      @if (coordinacion.bienesPrestados > 0) {
+                        <span class="insignia insignia-prestado">
+                          {{ coordinacion.bienesPrestados }} prestados
+                        </span>
+                      }
+                      @if (coordinacion.bienesEnMantenimiento > 0) {
+                        <span class="insignia insignia-mantenimiento">
+                          {{ coordinacion.bienesEnMantenimiento }} en mantenimiento
+                        </span>
+                      }
+                      @if (coordinacion.bienesDadosDeBaja > 0) {
+                        <span class="insignia insignia-baja">
+                          {{ coordinacion.bienesDadosDeBaja }} dados de baja
+                        </span>
+                      }
+                    </span>
+                  }
+
+                  <!-- RNF-22: el cuadro dice que se puede hacer con el antes de
+                       mostrar nada mas. Sus acciones estan dentro (RF-15b). -->
+                  <span class="coord-pie">
+                    <app-icono nombre="ver" tamano="sm" />
+                    <span>Ver detalle y opciones</span>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+  </div>
+}
+
+<!-- ------------------------------------------- RF-15b: ficha de la coordinacion
+
+     Una ventana a la vez: mientras hay un formulario o una confirmacion
+     abiertos, la ficha se aparta y vuelve al cerrarlos, ya con los datos
+     recargados. Dos modales superpuestos dejan al usuario sin saber cual esta
+     atendiendo (RNF-22). -->
+@if (ventanaLibre() && detalle(); as coord) {
+  <div class="modal-fondo" (click)="cerrarDetalle()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>{{ coord.nombre }}</h3>
+        <button type="button" class="btn-icono" (click)="cerrarDetalle()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" tamano="sm" />
+        </button>
+      </div>
+
+      <div class="modal-cuerpo">
+        <p class="texto-secundario mb-1">
+          {{ coord.direccionNombre }}
+          @if (!coord.activa) {
+            &middot; <span class="insignia insignia-inactivo">Desactivada</span>
+          }
+        </p>
+
+        @if (coord.descripcion) {
+          <p class="mb-1">{{ coord.descripcion }}</p>
+        }
+
+        <!-- RN-07: lo primero, si puede trabajar o no. -->
+        @if (coord.responsableId) {
+          <div class="fila-acciones separada mb-1">
+            <span>
+              <span class="clave">Responsable</span>
+              <strong>{{ coord.responsable }}</strong>
+            </span>
+            <!-- RF-26b: el relevo es un solo acto y se decide aqui, mirando la
+                 coordinacion que cambia de manos. El saliente queda libre en la
+                 misma transaccion, asi que no hay ni un minuto sin responsable
+                 (RN-07, RN-35). -->
+            <button
+              type="button"
+              class="btn btn-secundario btn-sm"
+              (click)="abrirCambioDeResponsable(coord)">
+              <app-icono nombre="relevo" tamano="sm" />
+              <span>Cambiar responsable</span>
+            </button>
+          </div>
+        } @else {
+          <div class="fila-acciones mb-1">
+            <!-- La misma ventana que el relevo: lo que falta es elegir a la
+                 persona, y las que pueden serlo son las mismas (RF-26b). -->
+            <button type="button" class="btn btn-peligro" (click)="abrirCambioDeResponsable(coord)">
+              <app-icono nombre="relevo" tamano="sm" />
+              <span>Asignar responsable</span>
+            </button>
+          </div>
+        }
+
+        <ul class="lista-atributos">
+          <li>
+            <span class="clave">Equipos</span>
+            <span class="valor">
+              {{ plural(coord.bienesTotal, 'equipo', 'equipos') }}
+              @if (coord.bienesTotal > 0) {
+                @if (coord.bienesOperativos > 0) {
+                  <span class="insignia insignia-disponible">{{ coord.bienesOperativos }} operativos</span>
+                }
+                @if (coord.bienesPrestados > 0) {
+                  <span class="insignia insignia-prestado">{{ coord.bienesPrestados }} prestados</span>
+                }
+                @if (coord.bienesEnMantenimiento > 0) {
+                  <span class="insignia insignia-mantenimiento">
+                    {{ coord.bienesEnMantenimiento }} en mantenimiento
+                  </span>
+                }
+                @if (coord.bienesDadosDeBaja > 0) {
+                  <span class="insignia insignia-baja">{{ coord.bienesDadosDeBaja }} dados de baja</span>
+                }
+              }
+            </span>
+          </li>
+          <li>
+            <span class="clave">Operadores</span>
+            <span class="valor">{{ plural(coord.operadores, 'operador', 'operadores') }}</span>
+          </li>
+          <li>
+            <span class="clave">Laboratorios</span>
+            <span class="valor">
+              {{ plural(coord.laboratorios, 'laboratorio', 'laboratorios') }}
+              @if (laboratorios(); as labs) {
+                <span class="texto-secundario texto-pequeno">
+                  ({{ laboratoriosActivos }} {{ laboratoriosActivos === 1 ? 'activo' : 'activos' }})
+                </span>
+              }
+            </span>
+          </li>
+        </ul>
+
+        <!-- RN-26: los laboratorios de la coordinacion, aqui mismo. -->
+        <div class="fila-acciones separada mt-1 mb-1">
+          <h4 class="mb-0">Laboratorios</h4>
+          <button type="button" class="btn btn-primario btn-sm" (click)="nuevoLaboratorio(coord.id)">
+            <app-icono nombre="agregar" tamano="sm" />
+            <span>Nuevo laboratorio</span>
+          </button>
+        </div>
+        <p class="texto-secundario texto-pequeno mb-1">
+          Toda coordinación conserva al menos un laboratorio activo: sin ninguno no se pueden
+          registrar equipos.
+        </p>
+
+        @if (laboratorios(); as labs) {
+          @if (labs.length === 0) {
+            <p class="texto-secundario mb-0">Esta coordinación no tiene laboratorios registrados.</p>
+          } @else {
+            <ul class="lista-atributos">
+              @for (lab of labs; track lab.id) {
+                <li>
+                  <span class="clave">
+                    <app-icono nombre="ubicacion" tamano="sm" />
+                    {{ lab.nombre }}
+                    @if (lab.ubicacion) {
+                      <span class="texto-secundario"> - {{ lab.ubicacion }}</span>
+                    }
+                    @if (!lab.activo) {
+                      <span class="insignia insignia-inactivo">Desactivado</span>
+                    }
+                  </span>
+                  <span class="valor fila-acciones">
+                    <span class="texto-secundario texto-pequeno">
+                      {{ plural(lab.bienesUbicados, 'equipo', 'equipos') }}
+                    </span>
+                    <button
+                      type="button"
+                      class="btn-icono"
+                      title="Editar laboratorio"
+                      aria-label="Editar laboratorio"
+                      (click)="editarLaboratorio(lab)">
+                      <app-icono nombre="editar" tamano="sm" />
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-secundario btn-sm"
+                      (click)="pedirCambioEstadoLaboratorio(lab)">
+                      {{ lab.activo ? 'Desactivar' : 'Activar' }}
+                    </button>
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <div class="cargando"><span class="girador"></span> Cargando laboratorios...</div>
+        }
+      </div>
+
+      <div class="modal-pie">
+        <button type="button" class="btn btn-secundario" (click)="editarCoordinacion(coord)">
+          <app-icono nombre="editar" tamano="sm" />
+          <span>Editar datos</span>
+        </button>
+        <button type="button" class="btn btn-secundario" (click)="verInventario(coord)">
+          <app-icono nombre="inventario" tamano="sm" />
+          <span>Ver inventario</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-secundario"
+          (click)="pedirCambioEstadoCoordinacion(coord)">
+          {{ coord.activa ? 'Desactivar coordinacion' : 'Activar coordinacion' }}
+        </button>
+        <button type="button" class="btn btn-primario" (click)="cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ------------------------------------------------------------- Formularios -->
+@if (formulario(); as f) {
+  <div class="modal-fondo" (click)="cerrarFormulario()">
+    <div class="modal modal-angosto" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>{{ tituloFormulario }}</h3>
+        <button type="button" class="btn-icono" (click)="cerrarFormulario()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" tamano="sm" />
+        </button>
+      </div>
+
+      <form (ngSubmit)="guardar()">
+        <div class="modal-cuerpo">
+          <div class="campo" [class.invalido]="errores()['nombre']">
+            <label for="est-nombre">Nombre<span class="obligatorio">*</span></label>
+            <input
+              id="est-nombre"
+              type="text"
+              name="nombre"
+              [(ngModel)]="nombre"
+              required
+              maxlength="150"
+              autocomplete="off" />
+            @if (errores()['nombre']) {
+              <span class="error-campo">{{ errores()['nombre'] }}</span>
+            }
+          </div>
+
+          @if (f.tipo === 'laboratorio') {
+            <div class="campo" [class.invalido]="errores()['ubicacion']">
+              <label for="est-ubicacion">Ubicación fisica</label>
+              <input
+                id="est-ubicacion"
+                type="text"
+                name="ubicacion"
+                [(ngModel)]="ubicacion"
+                maxlength="200"
+                placeholder="Pabellon A - Aula 201" />
+              <span class="ayuda-campo">Opcional. Ayuda a encontrar el laboratorio dentro del campus.</span>
+            </div>
+          } @else {
+            @if (f.tipo === 'direccion') {
+              <!-- Solo las direcciones tienen sigla: DIDT y DCTT son como se
+                   las nombra en la institucion. Una coordinacion no la tiene
+                   (RF-11). -->
+              <div class="campo" [class.invalido]="errores()['sigla']">
+                <label for="est-sigla">Sigla</label>
+                <input id="est-sigla" type="text" name="sigla" [(ngModel)]="sigla" maxlength="20" />
+                <span class="ayuda-campo">Abreviatura oficial de la dirección.</span>
+              </div>
+            }
+            <div class="campo" [class.invalido]="errores()['descripcion']">
+              <label for="est-descripcion">Descripción</label>
+              <textarea
+                id="est-descripcion"
+                name="descripcion"
+                [(ngModel)]="descripcion"
+                rows="3"
+                maxlength="500"></textarea>
+            </div>
+          }
+
+          <!-- RN-26: la coordinacion nace con su primer laboratorio. -->
+          @if (f.tipo === 'coordinacion' && !f.coordinacion) {
+            <div class="separador"></div>
+            <h4 class="titulo-seccion-form">Su primer laboratorio</h4>
+            <p class="texto-secundario texto-pequeno">
+              Toda coordinación necesita al menos un laboratorio: es el lugar donde estaran sus
+              equipos. Podra agregar más después.
+            </p>
+
+            <div class="campo" [class.invalido]="errores()['laboratorioNombre']">
+              <label for="est-lab-nombre">Nombre del laboratorio<span class="obligatorio">*</span></label>
+              <input
+                id="est-lab-nombre"
+                type="text"
+                name="laboratorioNombre"
+                [(ngModel)]="laboratorioNombre"
+                required
+                maxlength="150"
+                placeholder="Laboratorio de Redes"
+                autocomplete="off" />
+              @if (errores()['laboratorioNombre']) {
+                <span class="error-campo">{{ errores()['laboratorioNombre'] }}</span>
+              }
+            </div>
+
+            <div class="campo" [class.invalido]="errores()['laboratorioUbicacion']">
+              <label for="est-lab-ubicacion">Ubicación fisica</label>
+              <input
+                id="est-lab-ubicacion"
+                type="text"
+                name="laboratorioUbicacion"
+                [(ngModel)]="laboratorioUbicacion"
+                maxlength="200"
+                placeholder="Pabellon A - Aula 201" />
+              <span class="ayuda-campo">Opcional.</span>
+            </div>
+
+          }
+        </div>
+
+        <div class="modal-pie">
+          <button type="button" class="btn btn-secundario" (click)="cerrarFormulario()">Cancelar</button>
+          <button type="submit" class="btn btn-primario" [disabled]="guardando() || !formularioCompleto">
+            {{ guardando() ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ------------------------------------ RF-26b: cambio de responsable -->
+@if (cambioDeResponsable(); as coord) {
+  <div class="modal-fondo" (click)="cerrarCambioDeResponsable()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>{{ coord.responsableId ? 'Cambiar responsable' : 'Asignar responsable' }}</h3>
+        <button type="button" class="btn-icono" (click)="cerrarCambioDeResponsable()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" tamano="sm" />
+        </button>
+      </div>
+
+      <div class="modal-cuerpo">
+        <p class="texto-secundario">
+          <strong>{{ coord.nombre }}</strong> &middot; {{ coord.direccionNombre }}
+        </p>
+
+
+        <h4 class="mt-1">Quien puede hacerse cargo</h4>
+        <p class="texto-secundario texto-pequeno">
+          Personas activas sin puesto, los operadores de esta misma coordinación —que ascienden sin
+          cambiar de sitio— y los administradores. Quien ya es responsable de otra coordinación no
+          aparece: nadie responde por dos inventarios (RN-35).
+        </p>
+
+        @if (cargandoCandidatos()) {
+          <div class="cargando"><span class="girador"></span> Buscando a quien puede...</div>
+        } @else if (candidatos().length === 0) {
+          <app-estado-vacio
+            icono="responsables"
+            titulo="No hay nadie que pueda tomar el puesto"
+            mensaje="Registre a una persona en Personas, o libere a alguien del puesto que ocupa.">
+            <a class="btn btn-primario" routerLink="/personas">Ir a Personas</a>
+          </app-estado-vacio>
+        } @else {
+          <ul class="lista-pendientes">
+            @for (persona of candidatos(); track persona.id) {
+              <li>
+                <span class="pendiente-datos">
+                  <strong>{{ persona.nombreCompleto }}</strong>
+                  <span class="texto-secundario texto-pequeno">
+                    {{ persona.rolEtiqueta }} &middot; {{ persona.cargo || 'Sin cargo registrado' }}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-primario btn-sm"
+                  [disabled]="procesando()"
+                  (click)="pedirCambioDeResponsable(persona)">
+                  <app-icono nombre="relevo" tamano="sm" />
+                  <span>Nombrar</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <div class="modal-pie">
+        <button type="button" class="btn btn-secundario" (click)="cerrarCambioDeResponsable()">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ------------------------------------------- RNF-26: confirmaciones flotantes -->
+@if (confirmandoResponsable()) {
+  <!-- RF-26b: quien entra, quien sale y que le pasa al que sale. -->
+  <app-confirmacion
+    titulo="Confirmar el cambio de responsable"
+    [mensaje]="mensajeCambioResponsable"
+    [detalle]="detalleCambioResponsable"
+    textoConfirmar="Nombrar responsable"
+    [procesando]="procesando()"
+    (confirmar)="cambiarResponsable()"
+    (cancelar)="confirmandoResponsable.set(null)" />
+}
+
+@if (credencial(); as hecho) {
+  <!-- RF-06: quien estrena puesto estrena contrasena, y se muestra una vez. -->
+  <div class="modal-fondo" (click)="credencial.set(null)">
+    <div class="modal modal-angosto" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>Responsable nombrado</h3>
+      </div>
+      <div class="modal-cuerpo">
+        <p class="mb-1">
+          <strong>{{ hecho.usuario.username }}</strong> ya puede ingresar al sistema con esta
+          contraseña:
+        </p>
+        <div class="texto-centrado">
+          <span class="credencial">{{ hecho.passwordTemporal }}</span>
+        </div>
+        <p class="texto-secundario texto-pequeno mt-1 mb-0">
+          Anotela ahora: por seguridad no vuelve a mostrarse. Debera cambiarla en su primer ingreso.
+        </p>
+      </div>
+      <div class="modal-pie">
+        <button type="button" class="btn btn-primario" (click)="credencial.set(null)">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (cambioDeCoordinacion(); as coordinacion) {
+  <app-confirmacion
+    [titulo]="coordinacion.activa ? 'Desactivar coordinacion' : 'Activar coordinacion'"
+    [mensaje]="mensajeCoordinacion"
+    [detalle]="detalleCoordinacion"
+    [textoConfirmar]="coordinacion.activa ? 'Desactivar' : 'Activar'"
+    [peligrosa]="coordinacion.activa"
+    [procesando]="procesando()"
+    (confirmar)="confirmarCambioEstadoCoordinacion()"
+    (cancelar)="cambioDeCoordinacion.set(null)" />
+}
+
+@if (cambioDeLaboratorio(); as laboratorio) {
+  <app-confirmacion
+    [titulo]="laboratorio.activo ? 'Desactivar laboratorio' : 'Activar laboratorio'"
+    [mensaje]="mensajeLaboratorio"
+    [detalle]="detalleLaboratorio"
+    [textoConfirmar]="laboratorio.activo ? 'Desactivar' : 'Activar'"
+    [peligrosa]="laboratorio.activo"
+    [procesando]="procesando()"
+    (confirmar)="confirmarCambioEstadoLaboratorio()"
+    (cancelar)="cambioDeLaboratorio.set(null)" />
+}

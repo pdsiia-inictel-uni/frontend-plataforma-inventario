@@ -1,0 +1,10 @@
+# node_modules se reinstala dentro de la imagen con npm ci: copiarlo desde
+# Windows ademas de lento traeria binarios compilados para otro sistema.
+node_modules/
+dist/
+.angular/
+*.log
+.idea/
+.vscode/
+.git/
+styles.css.anterior

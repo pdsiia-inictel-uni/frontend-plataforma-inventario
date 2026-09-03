@@ -1,0 +1,141 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>Mi cuenta</h1>
+    <p class="descripcion">Datos personales y credenciales de acceso al sistema.</p>
+  </div>
+</div>
+
+@if (usuario(); as u) {
+  <div class="tarjeta mb-1">
+    <div class="tarjeta-cabecera">
+      <h2>Datos personales</h2>
+      <span
+        class="insignia"
+        [class.insignia-admin]="u.rol === 'ADMIN'"
+        [class.insignia-responsable]="u.rol === 'RESPONSABLE'"
+        [class.insignia-operador]="u.rol === 'OPERADOR'">
+        {{ u.rolEtiqueta }}
+      </span>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="lista-datos">
+        <div class="dato"><div class="clave">Nombre completo</div><div class="valor">{{ u.nombreCompleto }}</div></div>
+        <div class="dato"><div class="clave">DNI</div><div class="valor texto-mono">{{ u.dni }}</div></div>
+        <div class="dato"><div class="clave">Cargo</div><div class="valor">{{ u.cargo || '—' }}</div></div>
+        <div class='dato'>
+          <!-- RN-05: cada persona pertenece a una sola coordinacion, y el
+               Administrador a ninguna: su ambito es toda la institucion. -->
+          <div class='clave'>Coordinación</div>
+          <div class='valor'>
+            @if (u.rol === 'ADMIN') {
+              Toda la institución
+            } @else if (u.coordinaciones.length > 0) {
+              {{ nombreDeSuCoordinacion }}
+            } @else {
+              Todavia ninguna
+            }
+          </div>
+        </div>
+        <div class="dato">
+          <div class="clave">Último acceso</div>
+          <div class="valor">{{ u.ultimoAcceso ? (u.ultimoAcceso | date: 'dd/MM/yyyy HH:mm') : '—' }}</div>
+        </div>
+        <div class="dato">
+          <div class="clave">Cuenta creada</div>
+          <div class="valor">{{ u.fechaCreacion | date: 'dd/MM/yyyy' }}</div>
+        </div>
+      </div>
+      <p class="texto-secundario texto-pequeno mt-1 mb-0">
+        Los datos personales solo puede modificarlos un Administrador.
+      </p>
+    </div>
+  </div>
+}
+
+<div class="rejilla-2 con-espacio alinear-arriba">
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera"><h2>Usuario y correo</h2></div>
+    <form [formGroup]="formCuenta" (ngSubmit)="guardarCuenta()" novalidate>
+      <div class="tarjeta-cuerpo">
+        <div class="campo" [class.invalido]="invalidoCuenta('username')">
+          <label for="pf-username">Nombre de usuario</label>
+          <input id="pf-username" type="text" formControlName="username" autocomplete="username" />
+          @if (invalidoCuenta('username')) {
+            <span class="error-campo">{{ mensajeCuenta('username') }}</span>
+          }
+        </div>
+
+        <div class="campo" [class.invalido]="invalidoCuenta('correo')">
+          <label for="pf-correo">Correo institucional</label>
+          <input id="pf-correo" type="email" formControlName="correo" autocomplete="email" />
+          @if (invalidoCuenta('correo')) {
+            <span class="error-campo">{{ mensajeCuenta('correo') }}</span>
+          }
+        </div>
+
+        <div class="campo mb-0" [class.invalido]="invalidoCuenta('passwordActual')">
+          <label for="pf-actual">Contraseña actual</label>
+          <input id="pf-actual" type="password" formControlName="passwordActual" autocomplete="current-password" />
+          @if (invalidoCuenta('passwordActual')) {
+            <span class="error-campo">{{ mensajeCuenta('passwordActual') }}</span>
+          } @else {
+            <span class="ayuda-campo">Por seguridad, confirme su contraseña para guardar los cambios.</span>
+          }
+        </div>
+      </div>
+      <div class="tarjeta-pie">
+        <button type="submit" class="btn btn-primario" [disabled]="guardandoCuenta()">
+          {{ guardandoCuenta() ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2 class="titulo-con-icono">
+        <app-icono nombre="candado" tamano="sm" />
+        <span>Cambiar contraseña</span>
+      </h2>
+    </div>
+    <form [formGroup]="formPassword" (ngSubmit)="guardarPassword()" novalidate>
+      <div class="tarjeta-cuerpo">
+        <div class="campo" [class.invalido]="invalidoPassword('passwordActual')">
+          <label for="pw-actual">Contraseña actual</label>
+          <input id="pw-actual" type="password" formControlName="passwordActual" autocomplete="current-password" />
+          @if (invalidoPassword('passwordActual')) {
+            <span class="error-campo">{{ mensajePassword('passwordActual') }}</span>
+          }
+        </div>
+
+        <div class="campo" [class.invalido]="invalidoPassword('passwordNueva')">
+          <label for="pw-nueva">Nueva contraseña</label>
+          <input id="pw-nueva" type="password" formControlName="passwordNueva" autocomplete="new-password" />
+          @if (invalidoPassword('passwordNueva')) {
+            <span class="error-campo">{{ mensajePassword('passwordNueva') }}</span>
+          } @else {
+            <span class="ayuda-campo">
+              Mínimo 8 caracteres, combinando letras, numeros y al menos un caracter especial.
+            </span>
+          }
+        </div>
+
+        <div class="campo mb-0" [class.invalido]="invalidoPassword('confirmacion') || noCoinciden">
+          <label for="pw-confirmacion">Repita la nueva contraseña</label>
+          <input id="pw-confirmacion" type="password" formControlName="confirmacion" autocomplete="new-password" />
+          @if (noCoinciden) {
+            <span class="error-campo">Las contraseñas no coinciden.</span>
+          } @else if (invalidoPassword('confirmacion')) {
+            <span class="error-campo">{{ mensajePassword('confirmacion') }}</span>
+          }
+        </div>
+      </div>
+      <div class="tarjeta-pie">
+        <button type="submit" class="btn btn-primario" [disabled]="guardandoPassword()">
+          <app-icono nombre="candado" tamano="sm" />
+          <span>{{ guardandoPassword() ? 'Guardando...' : 'Cambiar contrasena' }}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

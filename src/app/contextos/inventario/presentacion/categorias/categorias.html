@@ -1,0 +1,136 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>Categorías</h1>
+    <p class="descripcion">
+      Catalogo institucional de tipos de bien. Es comun a todas las coordinaciones.
+    </p>
+  </div>
+  <div class="acciones-cabecera">
+    <!-- Se llega desde el inventario y no desde el menu: el camino de vuelta
+         tiene que estar a la vista. -->
+    <button type="button" class="btn btn-secundario" routerLink="/inventario">
+      <app-icono nombre="atras" tamano="sm" />
+      <span>Volver al inventario</span>
+    </button>
+    <button type="button" class="btn btn-primario" (click)="nueva()">
+      <app-icono nombre="agregar" tamano="sm" />
+      <span>Nueva categoría</span>
+    </button>
+  </div>
+</div>
+
+<div class="tarjeta">
+  @if (cargando()) {
+    <div class="cargando"><span class="girador"></span> Cargando el catalogo...</div>
+  } @else if (lista().length === 0) {
+    <app-estado-vacio
+      icono="categorias"
+      titulo="El catalogo esta vacio"
+      mensaje="Las categorias clasifican los equipos del inventario. Cree la primera para poder
+               registrar bienes.">
+      <button type="button" class="btn btn-primario" (click)="nueva()">
+        <app-icono nombre="agregar" tamano="sm" />
+        <span>Crear la primera categoría</span>
+      </button>
+    </app-estado-vacio>
+  } @else {
+    <div class="tabla-contenedor">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th class="celda-acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (categoria of lista(); track categoria.id) {
+            <tr>
+              <td><strong>{{ categoria.nombre }}</strong></td>
+              <td class="texto-secundario">{{ categoria.descripcion || '—' }}</td>
+              <td>
+                <span
+                  class="insignia"
+                  [class.insignia-activo]="categoria.activa"
+                  [class.insignia-inactivo]="!categoria.activa">
+                  {{ categoria.activa ? 'Activa' : 'Desactivada' }}
+                </span>
+              </td>
+              <td class="celda-acciones">
+                <div class="fila-acciones">
+                  <button type="button" class="btn-icono" title="Editar" (click)="editar(categoria)">
+                    <app-icono nombre="editar" tamano="sm" />
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secundario btn-sm"
+                    (click)="pedirCambioEstado(categoria)">
+                    {{ categoria.activa ? 'Desactivar' : 'Activar' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+@if (formularioAbierto()) {
+  <div class="modal-fondo" (click)="cerrar()">
+    <div class="modal modal-angosto" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>{{ enEdicion() ? 'Editar categoria' : 'Nueva categoria' }}</h3>
+        <button type="button" class="btn-icono" (click)="cerrar()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" tamano="sm" />
+        </button>
+      </div>
+      <form (ngSubmit)="guardar()">
+        <div class="modal-cuerpo">
+          <div class="campo" [class.invalido]="errores()['nombre']">
+            <label for="cat-nombre">Nombre<span class="obligatorio">*</span></label>
+            <input
+              id="cat-nombre"
+              type="text"
+              name="nombre"
+              [(ngModel)]="nombre"
+              maxlength="100"
+              autocomplete="off" />
+            @if (errores()['nombre']) {
+              <span class="error-campo">{{ errores()['nombre'] }}</span>
+            }
+          </div>
+          <div class="campo mb-0" [class.invalido]="errores()['descripcion']">
+            <label for="cat-descripcion">Descripción</label>
+            <textarea
+              id="cat-descripcion"
+              name="descripcion"
+              [(ngModel)]="descripcion"
+              rows="3"
+              maxlength="500"
+              placeholder="Que tipo de bienes agrupa esta categoría"></textarea>
+          </div>
+        </div>
+        <div class="modal-pie">
+          <button type="button" class="btn btn-secundario" (click)="cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn-primario" [disabled]="guardando() || !nombre.trim()">
+            {{ guardando() ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (confirmacion(); as categoria) {
+  <app-confirmacion
+    [titulo]="categoria.activa ? 'Desactivar categoria' : 'Activar categoria'"
+    [mensaje]="mensajeConfirmacion"
+    [detalle]="detalleConfirmacion"
+    [textoConfirmar]="categoria.activa ? 'Desactivar' : 'Activar'"
+    [peligrosa]="categoria.activa"
+    (confirmar)="confirmarCambioEstado()"
+    (cancelar)="confirmacion.set(null)" />
+}

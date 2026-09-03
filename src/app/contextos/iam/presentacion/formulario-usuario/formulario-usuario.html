@@ -1,0 +1,210 @@
+<!-- Una ventana a la vez: mientras se confirma, el formulario se aparta. Dos
+     modales superpuestos dejan al usuario sin saber cual esta atendiendo, y el
+     de abajo se lee a medias por debajo del de arriba (RNF-22). -->
+@if (!confirmando()) {
+<div class="modal-fondo" (click)="cancelado.emit()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-cabecera">
+      <h3>{{ titulo }}</h3>
+      <button type="button" class="btn-icono" (click)="cancelado.emit()" aria-label="Cerrar">
+        <app-icono nombre="cerrar" tamano="sm" />
+      </button>
+    </div>
+
+    <form (ngSubmit)="revisar()">
+      <div class="modal-cuerpo">
+        <div class="rejilla">
+          <div class="campo" [class.invalido]="errores()['nombres']">
+            <label for="us-nombres">Nombres<span class="obligatorio">*</span></label>
+            <input
+              id="us-nombres"
+              type="text"
+              name="nombres"
+              [(ngModel)]="nombres"
+              maxlength="100"
+              autocomplete="off" />
+            @if (errores()['nombres']) {
+              <span class="error-campo">{{ errores()['nombres'] }}</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['primerApellido']">
+            <label for="us-apellido1">Primer apellido<span class="obligatorio">*</span></label>
+            <input
+              id="us-apellido1"
+              type="text"
+              name="primerApellido"
+              [(ngModel)]="primerApellido"
+              maxlength="100"
+              autocomplete="off" />
+            @if (errores()['primerApellido']) {
+              <span class="error-campo">{{ errores()['primerApellido'] }}</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['segundoApellido']">
+            <!-- RF-16: los dos apellidos. La identidad de una persona en la
+                 institucion no es medio nombre. -->
+            <label for="us-apellido2">Segundo apellido<span class="obligatorio">*</span></label>
+            <input
+              id="us-apellido2"
+              type="text"
+              name="segundoApellido"
+              [(ngModel)]="segundoApellido"
+              maxlength="100"
+              autocomplete="off" />
+            @if (errores()['segundoApellido']) {
+              <span class="error-campo">{{ errores()['segundoApellido'] }}</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="dniInvalido || errores()['dni']">
+            <label for="us-dni">DNI<span class="obligatorio">*</span></label>
+            <input
+              id="us-dni"
+              type="text"
+              name="dni"
+              [(ngModel)]="dni"
+              inputmode="numeric"
+              maxlength="8"
+              autocomplete="off" />
+            @if (errores()['dni']) {
+              <span class="error-campo">{{ errores()['dni'] }}</span>
+            } @else if (dniInvalido) {
+              <span class="error-campo">El DNI debe tener exactamente 8 digitos numericos.</span>
+            } @else {
+              <span class="ayuda-campo">8 digitos, sin puntos ni espacios.</span>
+            }
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['cargo']">
+            <label for="us-cargo">Cargo</label>
+            <input
+              id="us-cargo"
+              type="text"
+              name="cargo"
+              [(ngModel)]="cargo"
+              maxlength="150"
+              placeholder="Técnico de laboratorio" />
+            <span class="ayuda-campo">Opcional. Su puesto en el sistema se decide al asignarla.</span>
+          </div>
+
+          <div class="campo" [class.invalido]="errores()['correo']">
+            <label for="us-correo">Correo institucional<span class="obligatorio">*</span></label>
+            <!-- RF-16: el correo se escribe entero, a mano. El sistema no lo
+                 compone a partir del nombre: el correo de una persona es el
+                 que la institucion le dio, y adivinarlo dejaba registrada una
+                 direccion que parecia correcta y a la que no llegaba nada. -->
+            <input
+              id="us-correo"
+              type="email"
+              name="correo"
+              [(ngModel)]="correo"
+              maxlength="150"
+              autocomplete="off"
+              placeholder="nombre.apellido@inictel-uni.edu.pe" />
+            @if (errores()['correo']) {
+              <span class="error-campo">{{ errores()['correo'] }}</span>
+            } @else {
+              <span class="ayuda-campo">
+                Escribalo completo, tal como se lo dieron, con su dominio.
+              </span>
+            }
+          </div>
+
+          <div class="campo col-completa" [class.invalido]="errores()['username']">
+            <label for="us-username">Nombre de usuario<span class="obligatorio">*</span></label>
+            <input
+              id="us-username"
+              type="text"
+              name="username"
+              [(ngModel)]="username"
+              minlength="4"
+              maxlength="50"
+              autocomplete="off" />
+            @if (errores()['username']) {
+              <span class="error-campo">{{ errores()['username'] }}</span>
+            } @else {
+              <span class="ayuda-campo">Con el que iniciara sesión. Letras, numeros, punto y guion.</span>
+            }
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-pie">
+        <button type="button" class="btn btn-secundario" (click)="cancelado.emit()">Cancelar</button>
+        <button type="submit" class="btn btn-primario" [disabled]="guardando() || !valido">
+          {{ soloDatos ? 'Continuar' : esEdicion ? 'Guardar cambios' : 'Registrar persona' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}
+
+@if (confirmando(); as datos) {
+  <!-- RNF-26: nada se guarda sin que quien lo guarda haya leido que va a
+       quedar guardado. La ventana repite los datos tal cual y dice, en una
+       frase, que le faltara a la persona para poder entrar (RF-16c). -->
+  <div class="modal-fondo">
+    <div class="modal modal-angosto" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>{{ tituloConfirmacion }}</h3>
+      </div>
+
+      <div class="modal-cuerpo">
+        <p class="mb-1">
+          @if (esEdicion) {
+            Los datos de <strong>{{ nombreCompleto }}</strong> quedaran así:
+          } @else {
+            Se registrara a <strong>{{ nombreCompleto }}</strong> con estos datos:
+          }
+        </p>
+
+        <ul class="lista-atributos">
+          <li>
+            <span class="clave">Nombre completo</span>
+            <span class="valor">{{ nombreCompleto }}</span>
+          </li>
+          <li>
+            <span class="clave">DNI</span>
+            <span class="valor texto-mono">{{ datos.dni }}</span>
+          </li>
+          <li>
+            <span class="clave">Cargo</span>
+            <span class="valor">{{ datos.cargo || 'Sin cargo registrado' }}</span>
+          </li>
+          <li>
+            <span class="clave">Correo institucional</span>
+            <span class="valor">{{ datos.correo }}</span>
+          </li>
+          <li>
+            <span class="clave">Nombre de usuario</span>
+            <span class="valor texto-mono">{{ datos.username }}</span>
+          </li>
+        </ul>
+
+        @if (nota) {
+          <!-- Lo que va a ocurrir ademas de guardar los datos: el puesto que
+               la persona estrena y la contrasena que nace con el. Lo dice la
+               pantalla que abrio el formulario, que es la que lo sabe. -->
+          <p class="texto-secundario texto-pequeno mt-1 mb-0">{{ nota }}</p>
+        }
+      </div>
+
+      <div class="modal-pie">
+        <button
+          type="button"
+          class="btn btn-secundario"
+          [disabled]="guardando()"
+          (click)="cancelarConfirmacion()">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-primario" [disabled]="guardando()" (click)="guardar()">
+          {{ textoAceptar }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

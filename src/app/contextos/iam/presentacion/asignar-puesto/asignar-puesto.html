@@ -1,0 +1,190 @@
+<div class="modal-fondo" (click)="cerrar()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    @if (resultado(); as hecho) {
+      <!-- RNF-31: se confirma lo que acaba de ocurrir, con sus palabras. -->
+      <div class="modal-cabecera">
+        <h3>Puesto asignado</h3>
+      </div>
+      <div class="modal-cuerpo">
+        @if (hecho.passwordTemporal) {
+          <!-- RF-06: la contrasena nace con el puesto y se muestra una sola vez. -->
+          <p class="mb-1">
+            <strong>{{ hecho.usuario.username }}</strong> ya puede ingresar al sistema con esta
+            contraseña:
+          </p>
+          <div class="texto-centrado">
+            <span class="credencial">{{ hecho.passwordTemporal }}</span>
+          </div>
+          <p class="texto-secundario texto-pequeno mt-1 mb-0">
+            Anotela ahora: por seguridad no vuelve a mostrarse. La persona debera cambiarla en su
+            primer ingreso. Si se pierde, use <strong>Restablecer contraseña</strong> desde la lista.
+          </p>
+        } @else {
+          <p class="texto-secundario mb-0">
+            {{ hecho.usuario.nombreCompleto }} ya tenia credenciales de un puesto anterior y sigue
+            entrando con ellas.
+          </p>
+        }
+      </div>
+      <div class="modal-pie">
+        <button type="button" class="btn btn-primario" (click)="cerrar()">Entendido</button>
+      </div>
+    } @else {
+      <div class="modal-cabecera">
+        <h3>Asignar puesto</h3>
+        <button type="button" class="btn-icono" (click)="cerrar()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" tamano="sm" />
+        </button>
+      </div>
+
+      <div class="modal-cuerpo">
+        <div class="ficha-persona tarjeta">
+          <div class="tarjeta-cuerpo">
+            <div><strong>{{ persona.nombreCompleto }}</strong></div>
+            <div class="texto-secundario texto-pequeno">
+              DNI {{ persona.dni }} &middot; {{ persona.correo }} &middot; usuario
+              <span class="texto-mono">{{ persona.username }}</span>
+            </div>
+          </div>
+        </div>
+
+        @if (yaTienePuesto) {
+          <!-- RF-28d: lo que ya tiene, antes de decidir nada mas. RN-33: y
+               mientras lo tenga no recibe otro, asi que esta ventana empieza y
+               termina aqui. -->
+          <h4 class="mt-1">Puesto actual</h4>
+          <ul class="lista-pendientes mb-1">
+            @for (puesto of puestos(); track puesto.id) {
+              <li>
+                <span class="pendiente-datos">
+                  <strong>{{ nombreDe(puesto) }}</strong>
+                  <span class="texto-secundario texto-pequeno">
+                    {{ rolVigente() === 'RESPONSABLE' ? 'Responsable del inventario' : 'Operador' }}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-secundario btn-sm"
+                  [disabled]="guardando() || esUnoMismo"
+                  (click)="pedirConfirmacionDeBaja(puesto)">
+                  <app-icono nombre="quitar" tamano="sm" />
+                  <span>Dar de baja</span>
+                </button>
+              </li>
+            }
+            @if (puestoInstitucional) {
+              <!-- El administrador no ocupa ninguna coordinacion, asi que no
+                   hay asignacion que dar de baja desde aqui (RN-05). -->
+              <li>
+                <span class="pendiente-datos">
+                  <strong>Toda la institución</strong>
+                  <span class="texto-secundario texto-pequeno">Administrador del sistema</span>
+                </span>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (esUnoMismo) {
+          <!-- RN-33: quien reparte los puestos no es quien los recibe. -->
+        } @else if (yaTienePuesto) {
+        } @else {
+          <!-- Lo primero que decide la asignacion: que va a hacer esta persona.
+               De ello depende si se le pide una coordinacion (RN-05). -->
+          <fieldset class="campo col-completa">
+            <legend>Rol en el sistema<span class="obligatorio">*</span></legend>
+            @for (r of rolesOfrecidos; track r) {
+              <label class="opcion-conformidad" [class.elegida]="rolElegido === r">
+                <input
+                  type="radio"
+                  name="rol-puesto"
+                  [value]="r"
+                  [checked]="rolElegido === r"
+                  (change)="elegirRol(r)" />
+                <span>
+                  <strong>{{ etiquetaRol(r) }}</strong>
+                  <span class="texto-secundario texto-pequeno">{{ explicacionRol(r) }}</span>
+                </span>
+              </label>
+            }
+          </fieldset>
+
+          @if (pideCoordinacion) {
+            <div class="campo">
+              <label for="asig-coordinacion">
+                {{ rolElegido === 'RESPONSABLE' ? 'Coordinacion a su cargo' : 'Coordinacion donde trabaja' }}
+                <span class="obligatorio">*</span>
+              </label>
+              <select
+                id="asig-coordinacion"
+                [(ngModel)]="coordinacionElegida"
+                [disabled]="sinCoordinaciones || cargandoCoordinaciones">
+                <option [ngValue]="null">
+                  {{ cargandoCoordinaciones ? 'Cargando las coordinaciones...' : 'Seleccione una coordinacion' }}
+                </option>
+                @for (c of coordinacionesElegibles; track c.id) {
+                  <!-- RN-06: la que ya tiene responsable se ve, pero no se
+                       elige: relevar a alguien no puede ser el efecto lateral
+                       de nombrar a otro (RF-19b, RF-26). -->
+                  <option [ngValue]="c.id" [disabled]="ocupada(c)">
+                    {{ c.nombre }} - {{ c.direccionNombre }}@if (ocupada(c)) { (a cargo de {{ c.responsable }}) }
+                  </option>
+                }
+              </select>
+              <span class="ayuda-campo">
+                @if (rolElegido === 'RESPONSABLE') {
+                  Sera la <strong>única</strong> coordinación de la que responda. Las que ya tienen
+                  responsable aparecen en gris: para cambiarlo, primero se le da de baja desde
+                  <strong>Direcciones</strong>.
+                } @else {
+                  Un operador pertenece a <strong>una sola</strong> coordinación: ese sera el único
+                  inventario que vea y pueda modificar.
+                }
+              </span>
+            </div>
+          }
+
+          @if (sinCoordinaciones) {
+          } @else if (todasConResponsable) {
+          } @else if (rolElegido === 'ADMIN') {
+          }
+        }
+      </div>
+
+      <div class="modal-pie">
+        <button type="button" class="btn btn-secundario" (click)="cerrar()">Cancelar</button>
+        <button
+          type="button"
+          class="btn btn-primario"
+          [disabled]="!puedeAsignar"
+          (click)="pedirConfirmacionDeAsignacion()">
+          {{ textoConfirmar }}
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- RNF-26: las dos acciones criticas de esta ventana se confirman aparte. -->
+@if (confirmandoAsignacion()) {
+  <app-confirmacion
+    titulo="Confirmar la asignación"
+    [mensaje]="mensajeConfirmacion"
+    [detalle]="detalleConfirmacion"
+    textoConfirmar="Aceptar"
+    [procesando]="guardando()"
+    (confirmar)="asignar()"
+    (cancelar)="confirmandoAsignacion.set(false)" />
+}
+
+@if (confirmandoBaja()) {
+  <app-confirmacion
+    titulo="Dar de baja el puesto"
+    [mensaje]="mensajeBaja"
+    [detalle]="detalleBaja"
+    textoConfirmar="Dar de baja"
+    [peligrosa]="true"
+    [procesando]="guardando()"
+    (confirmar)="darDeBaja()"
+    (cancelar)="confirmandoBaja.set(null)" />
+}

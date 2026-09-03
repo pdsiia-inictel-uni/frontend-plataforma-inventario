@@ -1,0 +1,242 @@
+@if (cargando()) {
+  <div class="cargando"><span class="girador"></span> Cargando el panel...</div>
+} @else if (resumen(); as r) {
+  <!-- =============================================== Panel del OPERADOR ===
+       ERS 8.4: deliberadamente minimo. Dos botones grandes que cubren el
+       100% de lo que el Operador puede hacer, y tres numeros de contexto. -->
+  @if (esOperador()) {
+    <div class="pagina-cabecera">
+      <div>
+        <h1>Hola, {{ usuario()?.nombres }}</h1>
+        <p class="descripcion">{{ r.ambito }}</p>
+      </div>
+    </div>
+
+
+    <div class="accesos-directos">
+      <button
+        type="button"
+        class="acceso-directo"
+        [disabled]="r.sinResponsable > 0"
+        (click)="registrarEquipo()">
+        <app-icono nombre="inventario" tamano="lg" />
+        <span class="acceso-titulo">REGISTRAR EQUIPO</span>
+        <span class="acceso-sub">Agregar un bien al inventario</span>
+      </button>
+      <button
+        type="button"
+        class="acceso-directo"
+        [disabled]="r.sinResponsable > 0"
+        (click)="registrarPrestamo()">
+        <app-icono nombre="prestamos" tamano="lg" />
+        <span class="acceso-titulo">REGISTRAR PRÉSTAMO</span>
+        <span class="acceso-sub">Entregar un equipo a alguien</span>
+      </button>
+    </div>
+
+    <div class="indicadores mt-2">
+      <button type="button" class="indicador verde" (click)="irA('/inventario')">
+        <div class="etiqueta">Disponibles</div>
+        <div class="valor">{{ r.operativos }}</div>
+        <div class="pie">Equipos listos para prestar</div>
+      </button>
+      <button type="button" class="indicador ambar" (click)="irA('/prestamos')">
+        <div class="etiqueta">Prestados</div>
+        <div class="valor">{{ r.prestados }}</div>
+        <div class="pie">Fuera del laboratorio ahora</div>
+      </button>
+      <div class="indicador">
+        <div class="etiqueta">Préstamos activos</div>
+        <div class="valor">{{ r.prestamosActivos }}</div>
+        <div class="pie">Pendientes de devolución</div>
+      </div>
+    </div>
+
+  }
+
+  <!-- ============================================ Panel del RESPONSABLE === -->
+  @if (esResponsable()) {
+    <div class="pagina-cabecera">
+      <div>
+        <h1>Panel de la coordinación</h1>
+        <p class="descripcion">{{ r.ambito }}</p>
+      </div>
+      <div class="acciones-cabecera">
+        <button type="button" class="btn btn-primario" (click)="registrarEquipo()">
+          <app-icono nombre="agregar" tamano="sm" />
+          <span>Nuevo equipo</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="indicadores">
+      <button type="button" class="indicador verde" (click)="irA('/inventario')">
+        <div class="etiqueta">Disponibles</div>
+        <div class="valor">{{ r.operativos }}</div>
+        <div class="pie">En condición operativa</div>
+      </button>
+      <button type="button" class="indicador ambar" (click)="irA('/prestamos')">
+        <div class="etiqueta">Prestados</div>
+        <div class="valor">{{ r.prestados }}</div>
+        <div class="pie">Fuera del laboratorio</div>
+      </button>
+      <button type="button" class="indicador violeta" (click)="irA('/inventario')">
+        <div class="etiqueta">En mantenimiento</div>
+        <div class="valor">{{ r.enMantenimiento }}</div>
+        <div class="pie">Fuera de servicio</div>
+      </button>
+      <button type="button" class="indicador" (click)="irA('/inventario')">
+        <div class="etiqueta">Dados de baja</div>
+        <div class="valor">{{ r.dadosDeBaja }}</div>
+        <div class="pie">Conservados en el historial</div>
+      </button>
+    </div>
+
+    @if (r.prestamosVencidos > 0 || r.revisionPendiente > 0) {
+      <div class="rejilla-2 con-espacio mb-1">
+      </div>
+    }
+
+    <div class="rejilla-2 con-espacio alinear-arriba">
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h2>Equipos por categoría</h2></div>
+        <div class="tarjeta-cuerpo">
+          @if (r.porCategoria.length === 0) {
+            <p class="texto-secundario mb-0">Aun no hay equipos registrados.</p>
+          } @else {
+            @for (c of r.porCategoria; track c.etiqueta) {
+              <div class="barra-dato">
+                <span class="nombre">{{ c.etiqueta }}</span>
+                <span class="pista">
+                  <span class="relleno" [style.width.%]="porcentaje(c, r.porCategoria)"></span>
+                </span>
+                <span class="cantidad">{{ c.cantidad }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h2>Equipos por condición</h2></div>
+        <div class="tarjeta-cuerpo">
+          @if (r.porCondicion.length === 0) {
+            <p class="texto-secundario mb-0">Aun no hay equipos registrados.</p>
+          } @else {
+            @for (c of r.porCondicion; track c.etiqueta) {
+              <div class="barra-dato">
+                <span class="nombre">{{ c.etiqueta }}</span>
+                <span class="pista">
+                  <span class="relleno" [style.width.%]="porcentaje(c, r.porCondicion)"></span>
+                </span>
+                <span class="cantidad">{{ c.cantidad }}</span>
+              </div>
+            }
+          }
+          <div class="separador"></div>
+          <div class="fila-acciones separada">
+            <span class="texto-secundario texto-pequeno">Operadores en la coordinación</span>
+            <strong>{{ r.usuarios }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== Panel del ADMINISTRADOR === -->
+  @if (esAdmin()) {
+    <div class="pagina-cabecera">
+      <div>
+        <h1>Panel institucional</h1>
+        <p class="descripcion">{{ r.ambito }}</p>
+      </div>
+    </div>
+
+
+    <div class="indicadores">
+      <button type="button" class="indicador" (click)="irA('/direcciones')">
+        <div class="etiqueta">Direcciones</div>
+        <div class="valor">{{ r.direcciones }}</div>
+        <div class="pie">En la institución</div>
+      </button>
+      <button type="button" class="indicador" (click)="irA('/direcciones')">
+        <div class="etiqueta">Coordinaciones</div>
+        <div class="valor">{{ r.coordinaciones }}</div>
+        <div class="pie">Cada una con su inventario</div>
+      </button>
+      <button type="button" class="indicador" (click)="irA('/direcciones')">
+        <div class="etiqueta">Laboratorios</div>
+        <div class="valor">{{ r.laboratorios }}</div>
+        <div class="pie">Ubicaciones registradas</div>
+      </button>
+      <button type="button" class="indicador violeta" (click)="irA('/personas')">
+        <div class="etiqueta">Personas</div>
+        <div class="valor">{{ r.usuarios }}</div>
+        <div class="pie">Cuentas del sistema</div>
+      </button>
+    </div>
+
+    <div class="indicadores">
+      <div class="indicador">
+        <div class="etiqueta">Total de equipos</div>
+        <div class="valor">{{ r.totalBienes }}</div>
+        <div class="pie">En toda la institución</div>
+      </div>
+      <div class="indicador verde">
+        <div class="etiqueta">Operativos</div>
+        <div class="valor">{{ r.operativos }}</div>
+        <div class="pie">Disponibles para préstamo</div>
+      </div>
+      <div class="indicador ambar">
+        <div class="etiqueta">Prestados</div>
+        <div class="valor">{{ r.prestados }}</div>
+        <div class="pie">Fuera de su laboratorio</div>
+      </div>
+      <div class="indicador rojo">
+        <div class="etiqueta">Préstamos vencidos</div>
+        <div class="valor">{{ r.prestamosVencidos }}</div>
+        <div class="pie">Superaron la fecha comprometida</div>
+      </div>
+    </div>
+
+    <div class="rejilla-2 con-espacio alinear-arriba">
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h2>Equipos por categoría</h2></div>
+        <div class="tarjeta-cuerpo">
+          @if (r.porCategoria.length === 0) {
+            <p class="texto-secundario mb-0">Aun no hay equipos registrados en la institución.</p>
+          } @else {
+            @for (c of r.porCategoria; track c.etiqueta) {
+              <div class="barra-dato">
+                <span class="nombre">{{ c.etiqueta }}</span>
+                <span class="pista">
+                  <span class="relleno" [style.width.%]="porcentaje(c, r.porCategoria)"></span>
+                </span>
+                <span class="cantidad">{{ c.cantidad }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h2>Equipos por condición</h2></div>
+        <div class="tarjeta-cuerpo">
+          @if (r.porCondicion.length === 0) {
+            <p class="texto-secundario mb-0">Aun no hay equipos registrados en la institución.</p>
+          } @else {
+            @for (c of r.porCondicion; track c.etiqueta) {
+              <div class="barra-dato">
+                <span class="nombre">{{ c.etiqueta }}</span>
+                <span class="pista">
+                  <span class="relleno" [style.width.%]="porcentaje(c, r.porCondicion)"></span>
+                </span>
+                <span class="cantidad">{{ c.cantidad }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  }
+}

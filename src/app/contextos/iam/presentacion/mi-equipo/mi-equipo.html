@@ -1,0 +1,224 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>Mi equipo humano</h1>
+    <p class="descripcion">Personas que trabajan en {{ coordinacion() }}.</p>
+  </div>
+  <div class="acciones-cabecera">
+    <button type="button" class="btn btn-primario" (click)="nuevoOperador()">
+      <app-icono nombre="agregar" tamano="sm" />
+      <span>Nuevo operador</span>
+    </button>
+  </div>
+</div>
+
+@if (cargando()) {
+  <div class="cargando"><span class="girador"></span> Cargando el equipo...</div>
+} @else {
+  <!-- La tarjeta del propio Responsable se retiro: quien mira esta pantalla es
+       esa misma persona, y no necesita que el sistema le presente sus propios
+       datos. Siguen en Mi cuenta, que es donde se consultan y se corrigen. La
+       pantalla queda con lo que si es su equipo: sus operadores. -->
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <span class="texto-secundario texto-pequeno">
+        {{ operadores().length }} {{ operadores().length === 1 ? 'operador' : 'operadores' }}
+      </span>
+    </div>
+
+    @if (operadores().length === 0) {
+      <app-estado-vacio
+        icono="operadores"
+        titulo="Aun no hay operadores en su coordinación"
+        mensaje="Los operadores registran equipos y prestamos del dia a dia. Puede trabajar sin
+                 ellos, pero delegar el registro le ahorrara tiempo.">
+        <button type="button" class="btn btn-primario" (click)="nuevoOperador()">
+          <app-icono nombre="agregar" tamano="sm" />
+          <span>Registrar el primer operador</span>
+        </button>
+      </app-estado-vacio>
+    } @else {
+      <div class="tabla-contenedor">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Operador</th>
+              <th>DNI</th>
+              <th>Usuario</th>
+              <th>Cuenta</th>
+              <th class="celda-acciones">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (operador of operadores(); track operador.id) {
+              <tr>
+                <td>
+                  <div><strong>{{ operador.nombreCompleto }}</strong></div>
+                  <div class="texto-secundario texto-pequeno">
+                    {{ operador.cargo || 'Sin cargo registrado' }} &middot; {{ operador.correo }}
+                  </div>
+                </td>
+                <td class="texto-mono">{{ operador.dni }}</td>
+                <td class="texto-mono">{{ operador.username }}</td>
+                <td>
+                  <!-- RF-22b: activa, suspendida o de baja (RNF-30). -->
+                  <span [class]="claseDelEstado(operador.estado)">{{ operador.estadoEtiqueta }}</span>
+                  @if (operador.bloqueado) {
+                    <span class="insignia insignia-vencido">Bloqueada</span>
+                  }
+                  @if (operador.debeCambiarPassword) {
+                    <span class="insignia insignia-neutra">Cambio pendiente</span>
+                  }
+                </td>
+                <td class="celda-acciones">
+                  <div class="fila-acciones">
+                    <button type="button" class="btn-icono" title="Editar datos" (click)="editar(operador)">
+                      <app-icono nombre="editar" tamano="sm" />
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-icono"
+                      title="Restablecer contraseña" aria-label="Restablecer contraseña"
+                      (click)="pedirRestablecerPassword(operador)">
+                      <app-icono nombre="candado" tamano="sm" />
+                    </button>
+                    @if (operador.bloqueado) {
+                      <button
+                        type="button"
+                        class="btn-icono"
+                        title="Desbloquear cuenta"
+                        (click)="pedirDesbloqueo(operador)">
+                        <app-icono nombre="desbloquear" tamano="sm" />
+                      </button>
+                    }
+                    <!-- RF-22b, RF-29: el Responsable aparta y despide a sus operadores.
+                         Suspender guarda el puesto; dar de baja lo libera. -->
+                    @if (operador.estado !== 'BAJA') {
+                      <button
+                        type="button"
+                        class="btn btn-secundario btn-sm"
+                        (click)="pedirSuspension(operador)">
+                        {{ operador.estado === 'SUSPENDIDA' ? 'Reactivar' : 'Suspender' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-secundario btn-sm"
+                        (click)="pedirCambioEstado(operador, 'BAJA')">
+                        Dar de baja
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        class="btn btn-secundario btn-sm"
+                        (click)="pedirCambioEstado(operador, 'ACTIVA')">
+                        Reincorporar
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+}
+
+@if (formularioAbierto() && coordinacionId !== null) {
+  <!-- El puesto no se pregunta: el Responsable solo crea operadores, y solo
+       en la coordinacion que administra (RF-29, RNF-22). -->
+  <app-formulario-usuario
+    [usuario]="enEdicion()"
+    [soloDatos]="enEdicion() === null"
+    [erroresServidor]="erroresAlta()"
+    nota="Al aceptar, la persona quedará registrada como operador de esta coordinación y el sistema generará su contraseña."
+    (datosListos)="registrarOperador($event)"
+    (guardado)="alGuardar()"
+    (cancelado)="cerrarFormulario()" />
+}
+
+@if (recienAsignado(); as hecho) {
+  <div class="modal-fondo" (click)="recienAsignado.set(null)">
+    <div class="modal modal-angosto" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>Operador registrado</h3>
+      </div>
+      <div class="modal-cuerpo">
+        @if (!hecho.passwordTemporal) {
+          <!-- Quien ya tenia credenciales conserva las suyas (RF-06): sin esta
+               linea la ventana se abria vacia y no decia que habia ocurrido. -->
+          <p class="mb-0">{{ hecho.mensaje }}</p>
+        } @else {
+          <p class="mb-1">
+            <strong>{{ hecho.usuario.username }}</strong> ya puede ingresar con esta contraseña:
+          </p>
+          <div class="texto-centrado">
+            <span class="credencial">{{ hecho.passwordTemporal }}</span>
+          </div>
+          <p class="texto-secundario texto-pequeno mt-1 mb-0">
+            Anotela ahora: por seguridad no vuelve a mostrarse. Debera cambiarla en su primer ingreso.
+          </p>
+        }
+      </div>
+      <div class="modal-pie">
+        <button type="button" class="btn btn-primario" (click)="recienAsignado.set(null)">Entendido</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmacion()) {
+  <app-confirmacion
+    [titulo]="tituloConfirmacion"
+    [mensaje]="mensajeConfirmacion"
+    [detalle]="detalleConfirmacion"
+    [textoConfirmar]="textoConfirmacion"
+    [peligrosa]="confirmacionEsPeligrosa"
+    (confirmar)="confirmarCambioEstado()"
+    (cancelar)="confirmacion.set(null)" />
+}
+
+@if (credencial(); as cred) {
+  <div class="modal-fondo" (click)="credencial.set(null)">
+    <div class="modal modal-angosto" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>Contraseña restablecida</h3>
+      </div>
+      <div class="modal-cuerpo">
+        <p class="mb-1">{{ cred.mensaje }}</p>
+        <div class="texto-centrado">
+          <span class="credencial">{{ cred.passwordTemporal }}</span>
+        </div>
+        <p class="texto-secundario texto-pequeno mt-1 mb-0">
+          Anotela ahora: por seguridad no vuelve a mostrarse.
+        </p>
+      </div>
+      <div class="modal-pie">
+        <button type="button" class="btn btn-primario" (click)="credencial.set(null)">Entendido</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmandoPassword()) {
+  <!-- RNF-26: la contrasena vigente deja de servir en el acto. -->
+  <app-confirmacion
+    titulo="Restablecer contraseña"
+    [mensaje]="mensajePassword"
+    detalle="La contrasena actual dejara de funcionar y el operador debera cambiar la nueva en su siguiente ingreso. Se muestra una sola vez."
+    textoConfirmar="Restablecer"
+    [procesando]="procesando()"
+    (confirmar)="restablecerPassword()"
+    (cancelar)="confirmandoPassword.set(null)" />
+}
+
+@if (confirmandoDesbloqueo()) {
+  <app-confirmacion
+    titulo="Desbloquear cuenta"
+    [mensaje]="mensajeDesbloqueo"
+    detalle="El bloqueo por intentos fallidos se libera y el contador vuelve a cero."
+    textoConfirmar="Desbloquear"
+    [procesando]="procesando()"
+    (confirmar)="desbloquear()"
+    (cancelar)="confirmandoDesbloqueo.set(null)" />
+}

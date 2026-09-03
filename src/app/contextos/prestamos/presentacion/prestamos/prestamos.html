@@ -1,0 +1,286 @@
+<div class="pagina-cabecera">
+  <div>
+    <h1>Préstamos</h1>
+    <p class="descripcion">
+      @if (esAdmin()) {
+        Consulta de las salidas y devoluciones de cada coordinación.
+      } @else {
+        Equipos entregados y su devolución.
+      }
+    </p>
+  </div>
+  <div class="acciones-cabecera">
+    @if (esOperativo()) {
+      <button type="button" class="btn btn-primario" (click)="registrarSalida()">
+        <app-icono nombre="agregar" tamano="sm" />
+        <span>Registrar préstamo</span>
+      </button>
+    }
+  </div>
+</div>
+
+<div class="tarjeta">
+  <div class="pestanas" role="tablist">
+    @for (pestana of pestanas; track pestana.clave) {
+      <button
+        type="button"
+        class="pestana"
+        role="tab"
+        [class.activa]="pestanaActiva().clave === pestana.clave"
+        [attr.aria-selected]="pestanaActiva().clave === pestana.clave"
+        (click)="elegirPestana(pestana)">
+        {{ pestana.etiqueta }}
+      </button>
+    }
+  </div>
+
+  <div class="filtros">
+    @if (esAdmin()) {
+      <div class="campo">
+        <label for="pr-coordinacion">Coordinación<span class="obligatorio">*</span></label>
+        <select id="pr-coordinacion" [(ngModel)]="coordinacionElegida" (ngModelChange)="aplicarFiltros()">
+          <option [ngValue]="null">Seleccione una coordinación</option>
+          @for (c of coordinaciones(); track c.id) {
+            <option [ngValue]="c.id">{{ c.nombre }} - {{ c.direccionNombre }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <div class="campo">
+      <label for="pr-buscar">Buscar</label>
+      <input
+        id="pr-buscar"
+        type="search"
+        [(ngModel)]="texto"
+        (keyup.enter)="aplicarFiltros()"
+        placeholder="Equipo, código o persona" />
+    </div>
+
+    <div class="campo">
+      <label for="pr-dni">DNI de la persona</label>
+      <input
+        id="pr-dni"
+        type="text"
+        [(ngModel)]="dni"
+        (keyup.enter)="aplicarFiltros()"
+        inputmode="numeric"
+        maxlength="8"
+        placeholder="8 digitos" />
+    </div>
+
+    <div class="filtros-acciones">
+      <button type="button" class="btn btn-secundario" (click)="aplicarFiltros()">
+        <app-icono nombre="buscar" tamano="sm" />
+        <span>Buscar</span>
+      </button>
+      <button type="button" class="btn btn-secundario" (click)="limpiarFiltros()">Limpiar</button>
+    </div>
+  </div>
+
+  @if (faltaElegirCoordinacion()) {
+    <app-estado-vacio
+      icono="estructura"
+      titulo="Elija una coordinación"
+      mensaje="Los prestamos pertenecen a la coordinacion que entrego el equipo. Seleccione arriba
+               cual desea consultar." />
+  } @else if (cargando()) {
+    <div class="cargando"><span class="girador"></span> Cargando préstamos...</div>
+  } @else if (pagina().contenido.length === 0) {
+    <app-estado-vacio
+      icono="prestamos"
+      [titulo]="
+        hayFiltros ? 'Ningun prestamo coincide con la busqueda' : 'No hay prestamos en esta vista'
+      "
+      [mensaje]="
+        hayFiltros
+          ? 'Pruebe a limpiar los filtros o a cambiar de pestana.'
+          : 'Cuando entregue un equipo a alguien, registrelo aqui para saber siempre donde esta.'
+      ">
+      @if (esOperativo() && !hayFiltros) {
+        <button type="button" class="btn btn-primario" (click)="registrarSalida()">
+          <app-icono nombre="agregar" tamano="sm" />
+          <span>Registrar préstamo</span>
+        </button>
+      }
+    </app-estado-vacio>
+  } @else {
+    <div class="tabla-contenedor">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Equipo</th>
+            <th>Prestado a</th>
+            <th>Salida</th>
+            <th>Fecha de devolución</th>
+            <th>Situacion</th>
+            <th class="celda-acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (prestamo of pagina().contenido; track prestamo.id) {
+            <tr [class.fila-vencida]="prestamo.vencido">
+              <td>
+                <div><strong>{{ prestamo.equipoNombre }}</strong></div>
+                <div class="texto-secundario texto-pequeno texto-mono">
+                  {{ prestamo.equipoCodigoInventario }}
+                </div>
+              </td>
+              <td>
+                <div>{{ prestamo.nombrePersona }}</div>
+                <div class="texto-secundario texto-pequeno texto-mono">{{ prestamo.dniPersona }}</div>
+                @if (prestamo.destino) {
+                  <div class="texto-secundario texto-pequeno">{{ prestamo.destino }}</div>
+                }
+              </td>
+              <td>
+                <div>{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</div>
+                @if (prestamo.usuarioPrestaNombre) {
+                  <div class="texto-secundario texto-pequeno">
+                    Entrego {{ prestamo.usuarioPrestaNombre }}
+                  </div>
+                }
+              </td>
+              <td>
+                @if (prestamo.fechaEstimadaDevolucion) {
+                  {{ prestamo.fechaEstimadaDevolucion | date: 'dd/MM/yyyy' }}
+                } @else {
+                  <span class="texto-secundario">Sin fecha</span>
+                }
+                @if (prestamo.fechaDevolucion) {
+                  <div class="texto-secundario texto-pequeno">
+                    Devuelto {{ prestamo.fechaDevolucion | date: 'dd/MM/yyyy HH:mm' }}
+                  </div>
+                }
+              </td>
+              <td>
+                <span
+                  class="insignia"
+                  [class.insignia-prestado]="prestamo.estado === 'ACTIVO' && !prestamo.vencido"
+                  [class.insignia-vencido]="prestamo.vencido"
+                  [class.insignia-disponible]="prestamo.estado === 'DEVUELTO'">
+                  {{ prestamo.estadoEtiqueta }}
+                </span>
+                @if (prestamo.vencido) {
+                  <div class="texto-pequeno texto-vencido">
+                    {{ prestamo.diasAtraso === 1 ? '1 dia de atraso' : prestamo.diasAtraso + ' dias de atraso' }}
+                  </div>
+                }
+                @if (prestamo.reportaDano) {
+                  <span class="insignia insignia-revision">Con observaciones</span>
+                }
+              </td>
+              <td class="celda-acciones">
+                <div class="fila-acciones">
+                  <button type="button" class="btn-icono" title="Ver el equipo" (click)="verBien(prestamo)">
+                    <app-icono nombre="ver" tamano="sm" />
+                  </button>
+                  @if (esOperativo() && prestamo.estado === 'ACTIVO') {
+                    <button
+                      type="button"
+                      class="btn btn-primario btn-sm"
+                      (click)="abrirDevolucion(prestamo)">
+                      <app-icono nombre="restaurar" tamano="sm" />
+                      <span>Registrar devolución</span>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-paginador
+      [pagina]="pagina().pagina"
+      [tamano]="pagina().tamano"
+      [totalElementos]="pagina().totalElementos"
+      [totalPaginas]="pagina().totalPaginas"
+      (paginaCambiada)="irAPagina($event)"
+      (tamanoCambiado)="cambiarTamano($event)" />
+  }
+</div>
+
+@if (devolviendo(); as prestamo) {
+  <!-- RF-61, RF-65: checklist de conformidad con dos opciones claras. -->
+  <div class="modal-fondo" (click)="cerrarDevolucion()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>Registrar devolución</h3>
+        <button type="button" class="btn-icono" (click)="cerrarDevolucion()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" tamano="sm" />
+        </button>
+      </div>
+
+      <div class="modal-cuerpo">
+        <div class="lista-datos mb-1">
+          <div class="dato">
+            <div class="clave">Equipo</div>
+            <div class="valor">{{ prestamo.equipoNombre }}</div>
+          </div>
+          <div class="dato">
+            <div class="clave">Lo llevo</div>
+            <div class="valor">{{ prestamo.nombrePersona }}</div>
+          </div>
+          <div class="dato">
+            <div class="clave">Salio el</div>
+            <div class="valor">{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</div>
+          </div>
+        </div>
+
+        <p class="texto-secundario">Revise el equipo antes de confirmar:</p>
+
+        <label class="opcion-conformidad" [class.elegida]="conforme === true">
+          <input type="radio" name="conforme" [value]="true" [(ngModel)]="conforme" />
+          <span>
+            <strong>Conforme, completo y en buen estado</strong>
+            <span class="texto-secundario texto-pequeno">
+              El equipo vuelve al inventario y queda disponible de inmediato.
+            </span>
+          </span>
+        </label>
+
+        <label class="opcion-conformidad" [class.elegida]="conforme === false">
+          <input type="radio" name="conforme" [value]="false" [(ngModel)]="conforme" />
+          <span>
+            <strong>Con observaciones</strong>
+            <span class="texto-secundario texto-pequeno">
+              Falta alguna pieza o presenta danos. Quedara marcado para revisión.
+            </span>
+          </span>
+        </label>
+
+        @if (conforme === false) {
+          <div class="campo mt-1 mb-0">
+            <label for="dev-observaciones">
+              Detalle lo observado<span class="obligatorio">*</span>
+            </label>
+            <textarea
+              id="dev-observaciones"
+              [(ngModel)]="observacionesRetorno"
+              rows="3"
+              maxlength="1000"
+              placeholder="Falta el cargador, la carcasa esta rajada..."></textarea>
+            @if (!observacionesRetorno.trim()) {
+              <span class="error-campo">
+                Sin este detalle no queda constancia de en que estado volvio el equipo.
+              </span>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="modal-pie">
+        <button type="button" class="btn btn-secundario" (click)="cerrarDevolucion()">Cancelar</button>
+        <button
+          type="button"
+          class="btn btn-primario"
+          [disabled]="!devolucionValida || procesando()"
+          (click)="confirmarDevolucion()">
+          {{ procesando() ? 'Registrando...' : 'Confirmar devolucion' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
