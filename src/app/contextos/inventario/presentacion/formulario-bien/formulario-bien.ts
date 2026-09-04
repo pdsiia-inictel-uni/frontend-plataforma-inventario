@@ -19,6 +19,13 @@ import {
 } from '../../dominio/equipo.model';
 
 /**
+ * RF-34b: el valor convencional con que se registra un bien sin marca o sin
+ * modelo de fabrica. Es el equivalente del "S/N" de la serie (RF-39), y se
+ * escribe siempre igual para que la busqueda por marca lo encuentre.
+ */
+const SIN_MARCA_MODELO = 'S/M';
+
+/**
  * Registro y edicion de un bien (RF-34, RF-40).
  *
  * <p>El formulario se divide en pasos cortos con progreso visible (RNF-28)
@@ -45,16 +52,20 @@ export class FormularioBien {
   private readonly id = Number(this.ruta.snapshot.paramMap.get('id')) || null;
 
   /**
-   * RF-51c: la fotografia la pone quien puede cambiar el bien.
+   * RF-51b, RF-51j: quien puede aportar la fotografia, y cuando.
    *
-   * <p>Desde la v3.10 es el <b>Responsable</b>, y solo el: sobre un equipo ya
-   * registrado escribe el nada mas, y la fotografia es un dato del bien como
-   * cualquier otro (RF-45). El Operador registra el equipo sin ella y el
-   * Responsable la adjunta despues desde <em>Editar</em>, que es donde ahora
-   * vive —antes vivia en la ficha, y alli la cambiaba cualquiera de los
-   * dos—.</p>
+   * <p>En el <b>alta</b> la ofrece a los dos roles operativos. Quien registra
+   * el equipo lo tiene delante —es el momento en que se le puede tomar la
+   * foto— y el Operador es quien mas altas hace; obligarle a registrar sin
+   * imagen y esperar a que el Responsable la adjunte despues significaba, en
+   * la practica, un inventario sin fotografias.</p>
+   *
+   * <p>En la <b>edicion</b> sigue siendo del Responsable y solo de el, porque
+   * la pantalla entera lo es: sobre un equipo ya registrado el Operador no
+   * cambia ningun atributo, y una fotografia es un dato del bien como el
+   * modelo o el laboratorio (RF-45, RF-51g).</p>
    */
-  protected readonly puedeFotografiar = this.sesion.esResponsable();
+  protected readonly puedeFotografiar = this.id === null || this.sesion.esResponsable();
 
   /**
    * Pasos del asistente (RNF-28).
@@ -220,6 +231,32 @@ export class FormularioBien {
     this.numeroSerie = 'S/N';
   }
 
+  protected get sinMarca(): boolean {
+    return this.marca.trim().toUpperCase() === SIN_MARCA_MODELO;
+  }
+
+  protected get sinModelo(): boolean {
+    return this.modelo.trim().toUpperCase() === SIN_MARCA_MODELO;
+  }
+
+  /**
+   * RF-34b: comodin de marca y de modelo.
+   *
+   * <p>Las dos son obligatorias porque casi todos los bienes las tienen y
+   * dejarlas en blanco convierte el inventario en una lista de nombres. Pero
+   * el mobiliario y buena parte del material de laboratorio salen de fabrica
+   * sin ninguna de las dos, y el alta no puede quedarse detenida ahi: se
+   * escribe el mismo comodin que la serie ya tenia, en lugar de inventarse una
+   * marca que despues nadie encuentra al buscar.</p>
+   */
+  protected usarSinMarca(): void {
+    this.marca = SIN_MARCA_MODELO;
+  }
+
+  protected usarSinModelo(): void {
+    this.modelo = SIN_MARCA_MODELO;
+  }
+
   protected get nombreCategoria(): string {
     return this.categorias().find((c) => c.id === this.categoriaId)?.nombre ?? '—';
   }
@@ -291,8 +328,13 @@ export class FormularioBien {
    * <p>El alta y la fotografia son dos operaciones: el bien no puede recibir
    * una imagen antes de existir. Si la segunda falla, la primera se conserva
    * —el equipo ya esta en el inventario— y se avisa que la fotografia quedo
-   * pendiente, que se adjunta desde la ficha. Perder un alta completa por una
-   * imagen opcional seria el peor de los desenlaces (RNF-31).</p>
+   * pendiente. Perder un alta completa por una imagen opcional seria el peor
+   * de los desenlaces (RNF-31).</p>
+   *
+   * <p>El aviso dice a cada rol lo que ese rol puede hacer: el Responsable la
+   * vuelve a intentar desde <em>Editar</em>; el Operador no entra ahi (RF-45),
+   * asi que a el se le dice a quien pedirsela, y no una salida que no tiene
+   * (RNF-23).</p>
    */
   private adjuntarFoto(equipo: Equipo, foto: File): void {
     const esEdicion = this.id !== null;
@@ -308,10 +350,13 @@ export class FormularioBien {
       },
       error: (error) => {
         this.guardando.set(false);
+        const salida = this.sesion.esResponsable()
+          ? 'vuelva a intentarlo desde Editar.'
+          : 'pidasela al responsable de su coordinacion, que es quien la adjunta despues del alta.';
         this.notificaciones.alerta(
           `${equipo.nombre} ${esEdicion ? 'se actualizo' : 'quedo registrado'}, pero la ` +
             `fotografia no se pudo guardar: ` +
-            `${mensajeError(error, 'vuelva a intentarlo desde Editar.')}`,
+            `${mensajeError(error, salida)}`,
         );
         void this.router.navigate(['/inventario', equipo.id]);
       },

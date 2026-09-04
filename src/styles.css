@@ -375,15 +375,25 @@ table.tabla tr.fila-vencida td { background: var(--rojo-suave); }
 /* La columna de acciones se queda pegada al borde derecho cuando la tabla es
    mas ancha que la pantalla. Sin esto, en cuanto entran unas cuantas columnas
    los botones se van fuera del area visible y hay que desplazarse a ciegas
-   para pulsarlos, que es justo la accion que la fila existe para ofrecer. */
+   para pulsarlos, que es justo la accion que la fila existe para ofrecer.
+
+   Su contenido se alinea a la izquierda, como el de todas las demas columnas:
+   el rotulo "ACCIONES" y el boton que rotula empiezan en la misma vertical.
+   Antes no lo hacian, y no por decision de nadie: la celda pedia
+   `text-align: right` con una especificidad de (0,1,0), que pierde contra el
+   (0,1,2) de `table.tabla th`, de modo que la cabecera se quedaba a la
+   izquierda y solo el boton se iba a la derecha. Cuanto mas ancha la columna,
+   mas separados quedaban los dos, y en el inventario —que desde la v3.13 tiene
+   tres columnas menos y por tanto mas sitio— la separacion era la de media
+   tabla (RNF-22). */
 .celda-acciones {
   white-space: nowrap;
-  text-align: right;
+  text-align: left;
   position: sticky;
   right: 0;
   background: var(--blanco);
 }
-table.tabla th.celda-acciones { background: var(--gris-50); }
+table.tabla th.celda-acciones { background: var(--gris-50); text-align: left; }
 table.tabla tbody tr:hover .celda-acciones { background: var(--marca-50); }
 table.tabla tr.fila-baja .celda-acciones { background: var(--gris-50); }
 table.tabla tr.fila-vencida .celda-acciones { background: var(--rojo-suave); }
@@ -399,7 +409,7 @@ table.tabla tr.fila-vencida .celda-acciones { background: var(--rojo-suave); }
 /* El nombre del equipo es lo que se busca con la vista al recorrer la tabla:
    necesita ancho para caber en una linea o dos, no en cuatro. */
 .celda-principal { min-width: 12.5rem; }
-.celda-acciones .fila-acciones { justify-content: flex-end; flex-wrap: nowrap; gap: .4rem; }
+.celda-acciones .fila-acciones { justify-content: flex-start; flex-wrap: nowrap; gap: .4rem; }
 
 .vacio {
   padding: 2.5rem 1rem;

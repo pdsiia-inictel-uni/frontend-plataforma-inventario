@@ -71,6 +71,20 @@ export class CambiarPassword {
   /** El paso de identidad solo existe para el Administrador. */
   protected readonly enPasoIdentidad = computed(() => this.esAdmin() && this.paso() === 0);
 
+  /**
+   * RNF-25: ver lo que se escribe, campo por campo.
+   *
+   * <p>Los tres se estrenan ocultos y cada uno se descubre por separado, como
+   * en la pantalla de acceso. Es la contrasena que el usuario acaba de recibir
+   * en un papel y la que va a estrenar: teclearla a ciegas y por duplicado es
+   * la causa mas frecuente de "las contrasenas no coinciden" en quien tiene
+   * poca experiencia con el teclado, que es justo el segmento objetivo de este
+   * sistema (RNF-22).</p>
+   */
+  protected verActual = false;
+  protected verNueva = false;
+  protected verConfirmacion = false;
+
   protected continuar(): void {
     if (this.formIdentidad.invalid) {
       this.formIdentidad.markAllAsTouched();

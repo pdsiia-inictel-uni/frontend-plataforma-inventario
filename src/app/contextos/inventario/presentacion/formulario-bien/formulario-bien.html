@@ -41,7 +41,7 @@
               type="text"
               [(ngModel)]="nombre"
               maxlength="150"
-              placeholder="Laptop Dell Latitude"
+              placeholder="Equipo"
               autocomplete="off" />
             @if (errores()['nombre']) {
               <span class="error-campo">{{ errores()['nombre'] }}</span>
@@ -50,19 +50,33 @@
             }
           </div>
 
+          <!-- RF-34b: marca y modelo son obligatorios, pero el mobiliario y los
+               bienes fabricados sin identificacion no los llevan. El boton S/M
+               escribe el comodin, igual que el S/N de la serie, para que nadie
+               tenga que inventarse una marca ni dejar el alta a medias. -->
           <div class="campo" [class.invalido]="errores()['marca']">
             <label for="bi-marca">Marca<span class="obligatorio">*</span></label>
-            <input id="bi-marca" type="text" [(ngModel)]="marca" maxlength="100" autocomplete="off" />
+            <div class="fila-campo">
+              <input id="bi-marca" type="text" [(ngModel)]="marca" maxlength="100" autocomplete="off" />
+              <button type="button" class="btn btn-secundario" (click)="usarSinMarca()">S/M</button>
+            </div>
             @if (errores()['marca']) {
               <span class="error-campo">{{ errores()['marca'] }}</span>
+            } @else if (sinMarca) {
+              <span class="ayuda-campo">Marcado como sin marca.</span>
             }
           </div>
 
           <div class="campo" [class.invalido]="errores()['modelo']">
             <label for="bi-modelo">Modelo<span class="obligatorio">*</span></label>
-            <input id="bi-modelo" type="text" [(ngModel)]="modelo" maxlength="100" autocomplete="off" />
+            <div class="fila-campo">
+              <input id="bi-modelo" type="text" [(ngModel)]="modelo" maxlength="100" autocomplete="off" />
+              <button type="button" class="btn btn-secundario" (click)="usarSinModelo()">S/M</button>
+            </div>
             @if (errores()['modelo']) {
               <span class="error-campo">{{ errores()['modelo'] }}</span>
+            } @else if (sinModelo) {
+              <span class="ayuda-campo">Marcado como sin modelo.</span>
             }
           </div>
 

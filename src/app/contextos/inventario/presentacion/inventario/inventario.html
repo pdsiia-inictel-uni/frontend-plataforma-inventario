@@ -190,10 +190,11 @@
         <thead>
           <tr>
             <th class="ordenable" (click)="ordenarPorColumna('nombre')">Equipo</th>
+            <!-- RF-47b: la fila se identifica por el código de inventario y nada
+                 más. La categoría, el laboratorio y la fecha de adquisición se
+                 leen en la ficha; en la tabla estrechaban las columnas que sí
+                 se buscan de un vistazo. Los dos filtros siguen arriba. -->
             <th class="ordenable" (click)="ordenarPorColumna('codigoInventario')">Códigos</th>
-            <th>Categoría</th>
-            <th>Laboratorio</th>
-            <th class="ordenable" (click)="ordenarPorColumna('fechaAdquisicion')">Adquisición</th>
             <!-- RF-83, RF-84: de quién es cada equipo. Con esta columna el
                  listado deja de ser un catálogo y pasa a ser un reparto. -->
             <th>A cargo de</th>
@@ -215,9 +216,6 @@
                 <div class="texto-secundario">Pat. {{ equipo.codigoPatrimonial }}</div>
                 <div class="texto-secundario">Serie {{ equipo.numeroSerie }}</div>
               </td>
-              <td data-etiqueta="Categoría">{{ equipo.categoria || '—' }}</td>
-              <td data-etiqueta="Laboratorio">{{ equipo.laboratorio || 'Sin ubicar' }}</td>
-              <td class="celda-numero" data-etiqueta="Adquisición">{{ equipo.fechaAdquisicion | date: 'dd/MM/yyyy' }}</td>
               <td data-etiqueta="A cargo de">
                 {{ equipo.responsableEquipo || '—' }}
                 @if (!equipo.responsableEquipoId) {

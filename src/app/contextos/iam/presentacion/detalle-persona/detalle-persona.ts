@@ -78,18 +78,21 @@ export class DetallePersona {
     return (this.aCargo()?.cantidad ?? 0) > 0;
   }
 
-  /** El aviso que acompaña al botón desactivado, con la salida escrita. */
+  /**
+   * El aviso que acompaña al botón desactivado.
+   *
+   * <p>Dice el hecho —cuántos equipos la retienen— y la lista que sigue los
+   * nombra. Quién debe repartirlos y cómo no se repite aquí: lo lee un
+   * Responsable, que es precisamente quien los reparte, y la salida está en la
+   * ficha de cada equipo, un clic más allá (RN-38, RF-83).</p>
+   */
   protected get motivoBloqueoBaja(): string {
     const cantidad = this.aCargo()?.cantidad ?? 0;
     if (cantidad === 0) {
       return '';
     }
     const equipos = cantidad === 1 ? 'un equipo' : `${cantidad} equipos`;
-    return (
-      `No se puede dar de baja: tiene ${equipos} a su cargo. El responsable de su coordinación ` +
-      'debe entregárselos a otro operador de la misma coordinación o quedárselos, y entonces la ' +
-      'baja quedará disponible.'
-    );
+    return `No se puede dar de baja: tiene ${equipos} a su cargo.`;
   }
 
   /** RNF-30: el rol se distingue por color Y por texto. */
