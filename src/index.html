@@ -19,19 +19,11 @@
     - img-src blob:  las fotografias se descargan con JWT y se muestran como blob.
     - frame-src blob: la vista previa del formato de registro de uso enseña en un
                      marco el PDF que el servidor acaba de devolver (RF-70).
-    - connect-src    solo el propio origen; en desarrollo /api va por el proxy
-                     (proxy.conf.json) y en produccion lo reenvia el nginx del
-                     frontend, de modo que la API nunca es un origen distinto.
-
-    SI EL BACKEND SE DESPLIEGA EN OTRO DOMINIO (modo B de environment.prod.ts),
-    hay que anadirlo aqui a connect-src, porque la CSP se evalua ANTES que CORS
-    y la peticion ni siquiera llega a salir del navegador:
-
-      connect-src 'self' https://inventario-api.onrender.com
-
-    El mismo origen se anade en la cabecera Content-Security-Policy de
-    seguridad-cabeceras.conf, y en el backend se declara el dominio del
-    frontend en APP_CORS_ORIGENES_PERMITIDOS.
+    - connect-src    solo el propio origen, y basta: la API nunca es un origen
+                     distinto. En desarrollo /api va por el proxy del servidor
+                     de Angular (proxy.conf.json) y en produccion lo reenvia el
+                     nginx del frontend (nginx.conf), de modo que el navegador
+                     no llega a hacer una peticion cruzada (RNF-44b).
 
     Dos directivas de la politica completa no aparecen aqui a proposito, porque
     el navegador las ignora cuando llegan por <meta> y solo generarian ruido:
@@ -44,10 +36,10 @@
   <!--
     Icono del navegador.
 
-    Se sirve desde la raiz y con rutas absolutas: una ruta relativa como
-    "assets/logo.png" se resuelve contra la direccion en curso, de modo que en
-    /inventario/nuevo el navegador la iba a buscar donde no estaba y la
-    pestana se quedaba con el icono generico.
+    Se sirve desde la raiz y con rutas absolutas: una ruta relativa se resuelve
+    contra la direccion en curso, de modo que en /inventario/nuevo el navegador
+    la iba a buscar donde no estaba y la pestana se quedaba con el icono
+    generico.
 
     Los archivos se generan a partir del logotipo institucional recortado a su
     simbolo: la palabra "INICTEL-UNI" del logotipo completo es un borron
