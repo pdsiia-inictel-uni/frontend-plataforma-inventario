@@ -19,7 +19,19 @@
     - img-src blob:  las fotografias se descargan con JWT y se muestran como blob.
     - frame-src blob: la vista previa del formato de registro de uso enseña en un
                      marco el PDF que el servidor acaba de devolver (RF-70).
-    - connect-src    solo el propio origen; en desarrollo /api va por el proxy.
+    - connect-src    solo el propio origen; en desarrollo /api va por el proxy
+                     (proxy.conf.json) y en produccion lo reenvia el nginx del
+                     frontend, de modo que la API nunca es un origen distinto.
+
+    SI EL BACKEND SE DESPLIEGA EN OTRO DOMINIO (modo B de environment.prod.ts),
+    hay que anadirlo aqui a connect-src, porque la CSP se evalua ANTES que CORS
+    y la peticion ni siquiera llega a salir del navegador:
+
+      connect-src 'self' https://inventario-api.onrender.com
+
+    El mismo origen se anade en la cabecera Content-Security-Policy de
+    seguridad-cabeceras.conf, y en el backend se declara el dominio del
+    frontend en APP_CORS_ORIGENES_PERMITIDOS.
 
     Dos directivas de la politica completa no aparecen aqui a proposito, porque
     el navegador las ignora cuando llegan por <meta> y solo generarian ruido:
