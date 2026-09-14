@@ -75,6 +75,14 @@ export class CapturaFoto implements OnInit, OnDestroy {
     typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia,
   );
 
+  /**
+   * RF-51c, RNF-01: el navegador solo expone la camara en contexto seguro
+   * (https o localhost). Servido por http, getUserMedia no existe y la via en
+   * vivo desaparece sin aviso; se explica para que nadie la busque.
+   */
+  protected readonly contextoInseguro =
+    typeof window !== 'undefined' && window.isSecureContext === false;
+
   constructor() {
     // El visor solo existe mientras la camara esta abierta, de modo que el
     // flujo se enlaza cuando ambos coinciden.

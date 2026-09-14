@@ -66,6 +66,14 @@
     <span class="error-campo texto-centrado">{{ error() }}</span>
   }
 
+  @if (!flujo() && contextoInseguro) {
+    <p class="ayuda-campo texto-centrado mb-0">
+      La cámara en vivo solo funciona cuando el sistema se abre con una dirección segura (https://).
+      Con esta conexión, «Tomar foto ahora» abre la cámara del dispositivo en tablet y móvil; en una
+      computadora, elija una imagen guardada.
+    </p>
+  }
+
   <!--
     Entradas de archivo, siempre presentes y operadas desde su etiqueta.
 
