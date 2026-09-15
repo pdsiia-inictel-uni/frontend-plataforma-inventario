@@ -5,13 +5,14 @@ import { NotificacionStore } from '../../../../compartido/aplicacion/notificacio
 import { RefrescoAutomatico } from '../../../../compartido/aplicacion/refresco-automatico';
 import { PAGINA_VACIA, Pagina } from '../../../../compartido/dominio/pagina.model';
 import { mensajeError } from '../../../../compartido/infraestructura/http/error.interceptor';
+import { FiltroActivo } from '../../../../compartido/presentacion/barra-filtros/barra-filtros';
 import { SesionStore } from '../../../iam/aplicacion/sesion.store';
 import { OrganizacionFacade } from '../../../organizacion/aplicacion/organizacion.facade';
 import { Coordinacion } from '../../../organizacion/dominio/estructura.model';
 import { PrestamosFacade } from '../../aplicacion/prestamos.facade';
 import { DevolucionPeticion, EstadoPrestamo, Prestamo } from '../../dominio/prestamo.model';
 
-/** Pestanas del listado de prestamos. */
+/** Opciones del filtro "Estado" del listado de prestamos. */
 interface PestanaPrestamo {
   clave: string;
   etiqueta: string;
@@ -59,7 +60,6 @@ export class Prestamos {
   protected readonly pagina = signal<Pagina<Prestamo>>(PAGINA_VACIA);
   protected readonly coordinaciones = signal<Coordinacion[]>([]);
   protected readonly cargando = signal(false);
-  protected readonly pestanaActiva = signal<PestanaPrestamo>(PESTANAS[0]);
 
   /** Prestamo cuya devolucion se esta registrando. */
   protected readonly devolviendo = signal<Prestamo | null>(null);
@@ -69,6 +69,10 @@ export class Prestamos {
 
   protected texto = '';
   protected dni = '';
+  /** Estado elegido en el panel de filtros; filtra cuando se aplica. */
+  protected estadoElegido: PestanaPrestamo = PESTANAS[0];
+  /** Lo que filtra la lista: el panel es un borrador hasta pulsar Aplicar. */
+  private aplicados = { dni: '', estado: PESTANAS[0] };
   protected coordinacionElegida: number | null = null;
   protected numeroPagina = 0;
   protected tamano = 10;
@@ -97,6 +101,13 @@ export class Prestamos {
       }
     });
 
+    // El panel enlaza aqui con el estado ya elegido ("?estado=vencidos").
+    const estadoDesdeRuta = PESTANAS.find((p) => p.clave === this.ruta.snapshot.queryParamMap.get('estado'));
+    if (estadoDesdeRuta) {
+      this.estadoElegido = estadoDesdeRuta;
+      this.aplicados.estado = estadoDesdeRuta;
+    }
+
     if (this.esAdmin()) {
       this.organizacion.coordinacionesDisponibles().subscribe({
         next: (lista) => {
@@ -123,7 +134,7 @@ export class Prestamos {
       this.pagina.set(PAGINA_VACIA);
       return;
     }
-    const pestana = this.pestanaActiva();
+    const pestana = this.aplicados.estado;
     if (!silencioso) {
       this.cargando.set(true);
     }
@@ -133,7 +144,7 @@ export class Prestamos {
           q: this.texto.trim() || undefined,
           coordinacionId: this.esAdmin() ? this.coordinacionElegida : null,
           estado: pestana.estado,
-          dni: this.dni.trim() || null,
+          dni: this.aplicados.dni || null,
           vencidos: pestana.soloVencidos ? true : null,
         },
         { pagina: this.numeroPagina, tamano: this.tamano, ordenarPor: 'fechaPrestamo', descendente: true },
@@ -152,21 +163,46 @@ export class Prestamos {
       });
   }
 
-  protected elegirPestana(pestana: PestanaPrestamo): void {
-    this.pestanaActiva.set(pestana);
+  /** Buscar y Aplicar: el borrador del panel pasa a filtrar la lista. */
+  protected aplicarFiltros(): void {
+    this.aplicados = { dni: this.dni.trim(), estado: this.estadoElegido };
     this.numeroPagina = 0;
     this.buscar();
   }
 
-  protected aplicarFiltros(): void {
-    this.numeroPagina = 0;
-    this.buscar();
+  /** El panel se cerró sin aplicar: los campos vuelven a lo que filtra. */
+  protected descartarFiltros(): void {
+    this.dni = this.aplicados.dni;
+    this.estadoElegido = this.aplicados.estado;
   }
 
   protected limpiarFiltros(): void {
     this.texto = '';
     this.dni = '';
+    this.estadoElegido = PESTANAS[0];
     this.aplicarFiltros();
+  }
+
+  protected quitarFiltro(clave: string): void {
+    this.descartarFiltros();
+    if (clave === 'dni') {
+      this.dni = '';
+    } else if (clave === 'estado') {
+      this.estadoElegido = PESTANAS[0];
+    }
+    this.aplicarFiltros();
+  }
+
+  /** Indicadores de lo aplicado, visibles también con el panel cerrado. */
+  protected get filtrosActivos(): FiltroActivo[] {
+    const activos: FiltroActivo[] = [];
+    if (this.aplicados.dni) {
+      activos.push({ clave: 'dni', etiqueta: 'DNI', valor: this.aplicados.dni });
+    }
+    if (this.aplicados.estado !== PESTANAS[0]) {
+      activos.push({ clave: 'estado', etiqueta: 'Estado', valor: this.aplicados.estado.etiqueta });
+    }
+    return activos;
   }
 
   protected irAPagina(destino: number): void {
@@ -180,8 +216,16 @@ export class Prestamos {
     this.buscar();
   }
 
+  /**
+   * Alguna fila ofrece "Registrar devolución". Solo entonces la columna de
+   * acciones reserva el ancho de ese botón; sin él le basta el del icono.
+   */
+  protected get hayDevolucionesPendientes(): boolean {
+    return this.esOperativo() && this.pagina().contenido.some((p) => p.estado === 'ACTIVO');
+  }
+
   protected get hayFiltros(): boolean {
-    return !!this.texto.trim() || !!this.dni.trim();
+    return !!this.texto.trim() || this.filtrosActivos.length > 0;
   }
 
   protected registrarSalida(): void {
@@ -230,8 +274,8 @@ export class Prestamos {
       next: () => {
         this.notificaciones.exito(
           this.conforme
-            ? `${prestamo.equipoNombre} volvio al inventario y esta disponible.`
-            : `${prestamo.equipoNombre} volvio al inventario y quedo marcado para revision.`,
+            ? `${prestamo.equipoNombre} volvió al inventario y esta disponible.`
+            : `${prestamo.equipoNombre} volvió al inventario y quedo marcado para revisión.`,
         );
         this.procesando.set(false);
         this.devolviendo.set(null);

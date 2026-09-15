@@ -20,7 +20,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
           [ngModel]="tamano"
           (ngModelChange)="cambiarTamano($event)"
           name="tamano"
-          aria-label="Registros por pagina">
+          aria-label="Registros por página">
           @for (t of tamanos; track t) {
             <option [ngValue]="t">{{ t }}</option>
           }
@@ -31,7 +31,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         <button type="button" class="btn btn-sm btn-secundario" [disabled]="pagina === 0" (click)="ir(pagina - 1)">
           Anterior
         </button>
-        <span class="texto-pequeno">Pagina {{ totalPaginas === 0 ? 0 : pagina + 1 }} de {{ totalPaginas }}</span>
+        <span class="texto-pequeno">Página {{ totalPaginas === 0 ? 0 : pagina + 1 }} de {{ totalPaginas }}</span>
         <button
           type="button"
           class="btn btn-sm btn-secundario"

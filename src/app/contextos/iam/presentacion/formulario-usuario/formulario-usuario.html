@@ -71,9 +71,9 @@
             @if (errores()['dni']) {
               <span class="error-campo">{{ errores()['dni'] }}</span>
             } @else if (dniInvalido) {
-              <span class="error-campo">El DNI debe tener exactamente 8 digitos numericos.</span>
+              <span class="error-campo">El DNI debe tener exactamente 8 dígitos numericos.</span>
             } @else {
-              <span class="ayuda-campo">8 digitos, sin puntos ni espacios.</span>
+              <span class="ayuda-campo">8 dígitos, sin puntos ni espacios.</span>
             }
           </div>
 
@@ -107,7 +107,7 @@
               <span class="error-campo">{{ errores()['correo'] }}</span>
             } @else {
               <span class="ayuda-campo">
-                Escribalo completo, tal como se lo dieron, con su dominio.
+                Escríbalo completo, tal como se lo dieron, con su dominio.
               </span>
             }
           </div>
@@ -125,7 +125,7 @@
             @if (errores()['username']) {
               <span class="error-campo">{{ errores()['username'] }}</span>
             } @else {
-              <span class="ayuda-campo">Con el que iniciara sesión. Letras, numeros, punto y guion.</span>
+              <span class="ayuda-campo">Con el que iniciará sesión. Letras, números, punto y guion.</span>
             }
           </div>
         </div>

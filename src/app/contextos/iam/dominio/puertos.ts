@@ -2,7 +2,6 @@ import { Observable } from 'rxjs';
 
 import { CriterioPagina, Pagina } from '../../../compartido/dominio/pagina.model';
 import {
-  CambioCredencialesPeticion,
   CambioPasswordPeticion,
   LoginPeticion,
   PrimerIngresoPeticion,
@@ -33,7 +32,6 @@ export abstract class AutenticacionPuerto {
   abstract cambiarPassword(peticion: CambioPasswordPeticion): Observable<Sesion>;
   /** RF-06b: datos personales propios y contrasena definitiva, en un solo acto. */
   abstract completarPrimerIngreso(peticion: PrimerIngresoPeticion): Observable<Sesion>;
-  abstract cambiarCredenciales(peticion: CambioCredencialesPeticion): Observable<Sesion>;
 }
 
 export abstract class UsuariosPuerto {

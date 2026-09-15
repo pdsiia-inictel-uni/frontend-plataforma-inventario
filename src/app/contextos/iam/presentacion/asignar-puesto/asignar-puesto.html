@@ -16,7 +16,7 @@
             <span class="credencial">{{ hecho.passwordTemporal }}</span>
           </div>
           <p class="texto-secundario texto-pequeno mt-1 mb-0">
-            Anotela ahora: por seguridad no vuelve a mostrarse. La persona debera cambiarla en su
+            Anotela ahora: por seguridad no vuelve a mostrarse. La persona deberá cambiarla en su
             primer ingreso. Si se pierde, use <strong>Restablecer contraseña</strong> desde la lista.
           </p>
         } @else {
@@ -112,7 +112,7 @@
           @if (pideCoordinacion) {
             <div class="campo">
               <label for="asig-coordinacion">
-                {{ rolElegido === 'RESPONSABLE' ? 'Coordinacion a su cargo' : 'Coordinacion donde trabaja' }}
+                {{ rolElegido === 'RESPONSABLE' ? 'Coordinación a su cargo' : 'Coordinación donde trabaja' }}
                 <span class="obligatorio">*</span>
               </label>
               <select
@@ -120,7 +120,7 @@
                 [(ngModel)]="coordinacionElegida"
                 [disabled]="sinCoordinaciones || cargandoCoordinaciones">
                 <option [ngValue]="null">
-                  {{ cargandoCoordinaciones ? 'Cargando las coordinaciones...' : 'Seleccione una coordinacion' }}
+                  {{ cargandoCoordinaciones ? 'Cargando las coordinaciones...' : 'Seleccione una coordinación' }}
                 </option>
                 @for (c of coordinacionesElegibles; track c.id) {
                   <!-- RN-06: la que ya tiene responsable se ve, pero no se
@@ -139,7 +139,7 @@
                   <strong>Direcciones</strong>. El saliente queda libre en el mismo acto, así que la
                   coordinación no se para.
                 } @else {
-                  Un operador pertenece a <strong>una sola</strong> coordinación: ese sera el único
+                  Un operador pertenece a <strong>una sola</strong> coordinación: ese será el único
                   inventario que vea y pueda modificar.
                 }
               </span>

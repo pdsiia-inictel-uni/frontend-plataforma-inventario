@@ -37,11 +37,9 @@ type Formulario =
  * pueden crearse responsables ni operadores (RN-04).</p>
  *
  * <p>Las dos direcciones de INICTEL-UNI vienen dadas: se precargan con el
- * esquema y no se crean ni se desactivan desde aqui (RF-10). Lo que el
- * Administrador construye son sus coordinaciones y los laboratorios de cada
- * una. Por eso el arbol se pide entero, con las coordinaciones desactivadas
- * incluidas: sin un filtro que las traiga de vuelta, desactivar una seria
- * perderla de vista para siempre.</p>
+ * esquema y no se crean desde aqui (RF-10). Lo que el Administrador construye
+ * son sus coordinaciones y los laboratorios de cada una. Ningun nivel se
+ * desactiva: solo se crean y se corrigen sus datos.</p>
  *
  * <p>La v3 presenta las coordinaciones como tarjetas en rejilla y no como
  * filas largas: cada coordinacion es una unidad completa —su responsable, su
@@ -112,8 +110,6 @@ export class EstructuraOrganizacional {
   protected readonly confirmandoResponsable = signal<Usuario | null>(null);
   /** RF-06: contrasena recien nacida del puesto, que se muestra una sola vez. */
   protected readonly credencial = signal<AsignacionRealizada | null>(null);
-  protected readonly cambioDeCoordinacion = signal<Coordinacion | null>(null);
-  protected readonly cambioDeLaboratorio = signal<Laboratorio | null>(null);
   protected readonly procesando = signal(false);
 
   // Campos del formulario en curso; uno solo esta activo a la vez.
@@ -154,7 +150,7 @@ export class EstructuraOrganizacional {
     if (!silencioso) {
       this.cargando.set(true);
     }
-    this.organizacion.estructura(false).subscribe({
+    this.organizacion.estructura().subscribe({
       next: (estructura) => {
         this.estructura.set(estructura);
         this.refrescarDetalle(estructura);
@@ -226,15 +222,8 @@ export class EstructuraOrganizacional {
       this.formulario() === null &&
       this.cambioDeResponsable() === null &&
       this.confirmandoResponsable() === null &&
-      this.credencial() === null &&
-      this.cambioDeCoordinacion() === null &&
-      this.cambioDeLaboratorio() === null
+      this.credencial() === null
     );
-  }
-
-  /** Laboratorios activos de la coordinacion abierta (RN-26). */
-  protected get laboratoriosActivos(): number {
-    return (this.laboratorios() ?? []).filter((lab) => lab.activo).length;
   }
 
   /**
@@ -243,7 +232,7 @@ export class EstructuraOrganizacional {
    *                   avisar de algo que el usuario no pidio.
    */
   private cargarLaboratorios(coordinacionId: number, silencioso = false): void {
-    this.organizacion.listarLaboratorios(coordinacionId, false).subscribe({
+    this.organizacion.listarLaboratorios(coordinacionId).subscribe({
       next: (lista) => this.laboratorios.set(lista),
       error: (error) => {
         if (silencioso) {
@@ -262,7 +251,6 @@ export class EstructuraOrganizacional {
     this.limpiar();
     this.nombre = direccion.nombre;
     this.sigla = direccion.sigla ?? '';
-    this.descripcion = direccion.descripcion ?? '';
     this.formulario.set({ tipo: 'direccion', direccion });
   }
 
@@ -351,7 +339,6 @@ export class EstructuraOrganizacional {
       const peticion: DireccionPeticion = {
         nombre: this.nombre.trim(),
         sigla: this.sigla.trim() || null,
-        descripcion: this.descripcion.trim() || null,
       };
       this.organizacion.editarDireccion(f.direccion.id, peticion).subscribe({
         next: () => terminar('Dirección actualizada.'),
@@ -394,7 +381,7 @@ export class EstructuraOrganizacional {
           this.cerrarFormulario();
           this.organizacion.olvidarCoordinaciones();
           this.notificaciones.exito(
-            `Coordinacion "${creada.nombre}" creada con su primer laboratorio. Asignele un responsable para que pueda operar.`,
+            `Coordinación "${creada.nombre}" creada con su primer laboratorio. Asignele un responsable para que pueda operar.`,
           );
           this.cargar();
         },
@@ -461,7 +448,7 @@ export class EstructuraOrganizacional {
     if (!persona || !coordinacion) {
       return '';
     }
-    return `${persona.nombreCompleto} pasara a ser responsable de ${coordinacion.nombre}.`;
+    return `${persona.nombreCompleto} pasará a ser responsable de ${coordinacion.nombre}.`;
   }
 
   /**
@@ -483,7 +470,7 @@ export class EstructuraOrganizacional {
           ? 'Dejará de ser administrador del sistema para hacerse cargo de esta coordinación.'
           : 'Dejará de ser operador para responder por el inventario entero de su coordinación.';
     const sobreElSaliente = coordinacion.responsableId
-      ? ` ${coordinacion.responsable} dejara el cargo en el acto y quedara sin puesto, con su cuenta activa y su historial intacto.`
+      ? ` ${coordinacion.responsable} dejará el cargo en el acto y quedará sin puesto, con su cuenta activa y su historial intacto.`
       : '';
     return sobreElEntrante + sobreElSaliente;
   }
@@ -517,98 +504,6 @@ export class EstructuraOrganizacional {
       error: (error) => {
         this.procesando.set(false);
         this.confirmandoResponsable.set(null);
-        this.notificaciones.error(mensajeError(error));
-      },
-    });
-  }
-
-  // ---------------------------------------------------- Activar y desactivar
-
-  protected pedirCambioEstadoCoordinacion(coordinacion: Coordinacion): void {
-    this.cambioDeCoordinacion.set(coordinacion);
-  }
-
-  protected get mensajeCoordinacion(): string {
-    const coordinacion = this.cambioDeCoordinacion();
-    if (!coordinacion) {
-      return '';
-    }
-    return coordinacion.activa
-      ? `${coordinacion.nombre} dejara de aparecer como coordinacion en funcionamiento.`
-      : `${coordinacion.nombre} volvera a estar en funcionamiento.`;
-  }
-
-  protected get detalleCoordinacion(): string {
-    return this.cambioDeCoordinacion()?.activa
-      ? 'Sus equipos, laboratorios y personas se conservan, y podrá volver a activarla cuando lo necesite. Si tiene equipos activos o préstamos vigentes, el sistema lo impedira y le dira por que.'
-      : 'Sus equipos y su gente vuelven a estar disponibles tal como quedaron.';
-  }
-
-  protected confirmarCambioEstadoCoordinacion(): void {
-    const coordinacion = this.cambioDeCoordinacion();
-    if (!coordinacion) {
-      return;
-    }
-    this.procesando.set(true);
-    this.organizacion.cambiarEstadoCoordinacion(coordinacion.id, !coordinacion.activa).subscribe({
-      next: () => {
-        this.procesando.set(false);
-        this.cambioDeCoordinacion.set(null);
-        this.notificaciones.exito(
-          coordinacion.activa ? 'Coordinación desactivada.' : 'Coordinación activada.',
-        );
-        this.organizacion.olvidarCoordinaciones();
-        this.cargar();
-      },
-      // RF-13: el backend explica por que no se puede (bienes o prestamos vivos).
-      error: (error) => {
-        this.procesando.set(false);
-        this.cambioDeCoordinacion.set(null);
-        this.notificaciones.error(mensajeError(error));
-      },
-    });
-  }
-
-  protected pedirCambioEstadoLaboratorio(laboratorio: Laboratorio): void {
-    this.cambioDeLaboratorio.set(laboratorio);
-  }
-
-  protected get mensajeLaboratorio(): string {
-    const laboratorio = this.cambioDeLaboratorio();
-    if (!laboratorio) {
-      return '';
-    }
-    return laboratorio.activo
-      ? `${laboratorio.nombre} dejara de ofrecerse como ubicacion de los equipos.`
-      : `${laboratorio.nombre} volvera a ofrecerse como ubicacion de los equipos.`;
-  }
-
-  protected get detalleLaboratorio(): string {
-    return this.cambioDeLaboratorio()?.activo
-      ? 'Toda coordinación conserva al menos un laboratorio activo: si es el último, o si tiene equipos dentro, el sistema lo impedira y le dira por que.'
-      : '';
-  }
-
-  protected confirmarCambioEstadoLaboratorio(): void {
-    const laboratorio = this.cambioDeLaboratorio();
-    if (!laboratorio) {
-      return;
-    }
-    this.procesando.set(true);
-    this.organizacion.cambiarEstadoLaboratorio(laboratorio.id, !laboratorio.activo).subscribe({
-      next: () => {
-        this.procesando.set(false);
-        this.cambioDeLaboratorio.set(null);
-        this.notificaciones.exito(
-          laboratorio.activo ? 'Laboratorio desactivado.' : 'Laboratorio activado.',
-        );
-        this.cargarLaboratorios(laboratorio.coordinacionId);
-        this.cargar();
-      },
-      // RF-14, RN-26: el backend explica si tiene bienes dentro o si es el ultimo.
-      error: (error) => {
-        this.procesando.set(false);
-        this.cambioDeLaboratorio.set(null);
         this.notificaciones.error(mensajeError(error));
       },
     });

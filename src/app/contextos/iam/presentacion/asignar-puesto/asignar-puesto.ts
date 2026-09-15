@@ -149,9 +149,9 @@ export class AsignarPuesto implements OnInit {
     return requiereCoordinacion(this.rolElegido);
   }
 
-  /** Solo se reparten puestos en coordinaciones que estan en funcionamiento. */
+  /** Toda coordinacion admite puestos: ninguna se desactiva (RF-13). */
   protected get coordinacionesElegibles(): Coordinacion[] {
-    return this.coordinaciones.filter((c) => c.activa);
+    return this.coordinaciones;
   }
 
   /**
@@ -244,11 +244,11 @@ export class AsignarPuesto implements OnInit {
   /** RNF-26: la consecuencia, en palabras concretas, antes de confirmar. */
   protected get mensajeConfirmacion(): string {
     if (this.rolElegido === 'ADMIN') {
-      return `${this.persona.nombreCompleto} sera administrador del sistema.`;
+      return `${this.persona.nombreCompleto} será administrador del sistema.`;
     }
-    const destino = this.elegida?.nombre ?? 'la coordinacion elegida';
+    const destino = this.elegida?.nombre ?? 'la coordinación elegida';
     return (
-      `${this.persona.nombreCompleto} quedara como ` +
+      `${this.persona.nombreCompleto} quedará como ` +
       `${this.rolElegido === 'RESPONSABLE' ? 'responsable' : 'operador'} de ${destino}.`
     );
   }
@@ -261,7 +261,7 @@ export class AsignarPuesto implements OnInit {
     if (this.rolElegido === 'ADMIN') {
       return `Vera el inventario de todas las coordinaciones, en modo consulta. ${credenciales}`;
     }
-    return `Sera la unica coordinacion en la que trabaje. ${credenciales}`;
+    return `Será la única coordinación en la que trabaje. ${credenciales}`;
   }
 
   // --------------------------------------------------------------- Acciones
@@ -309,7 +309,7 @@ export class AsignarPuesto implements OnInit {
       return '';
     }
     return (
-      `${this.persona.nombreCompleto} dejara de ser ` +
+      `${this.persona.nombreCompleto} dejará de ser ` +
       `${this.rolVigente() === 'RESPONSABLE' ? 'responsable' : 'operador'} de ` +
       `${this.nombreDe(puesto)}.`
     );
@@ -341,7 +341,7 @@ export class AsignarPuesto implements OnInit {
         this.puestos.set(actualizada.coordinaciones ?? []);
         this.rolVigente.set(actualizada.rol);
         this.notificaciones.exito(
-          `${actualizada.nombreCompleto} ya no trabaja en ${coordinacion.nombre ?? 'esa coordinacion'}.`,
+          `${actualizada.nombreCompleto} ya no trabaja en ${coordinacion.nombre ?? 'esa coordinación'}.`,
         );
       },
       error: (error) => {
@@ -352,7 +352,7 @@ export class AsignarPuesto implements OnInit {
   }
 
   protected nombreDe(coordinacion: CoordinacionAsignada): string {
-    return coordinacion.nombre ?? `Coordinacion #${coordinacion.id}`;
+    return coordinacion.nombre ?? `Coordinación #${coordinacion.id}`;
   }
 
   protected cerrar(): void {

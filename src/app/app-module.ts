@@ -11,6 +11,7 @@ import { errorInterceptor } from './compartido/infraestructura/http/error.interc
 import { jwtInterceptor } from './compartido/infraestructura/http/jwt.interceptor';
 import { CondicionBien, RevisionPendiente } from './compartido/presentacion/condicion/condicion';
 import { Confirmacion } from './compartido/presentacion/confirmacion/confirmacion';
+import { BarraFiltros } from './compartido/presentacion/barra-filtros/barra-filtros';
 import { EstadoVacio } from './compartido/presentacion/estado-vacio/estado-vacio';
 import { Icono } from './compartido/presentacion/icono/icono';
 import { Importe } from './compartido/presentacion/importe/importe';
@@ -88,6 +89,7 @@ import { Panel } from './contextos/reportes/presentacion/panel/panel';
     Principal,
     NoEncontrado,
     // compartido
+    BarraFiltros,
     CondicionBien,
     Confirmacion,
     EstadoVacio,

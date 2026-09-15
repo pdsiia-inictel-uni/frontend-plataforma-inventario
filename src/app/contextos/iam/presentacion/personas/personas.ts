@@ -5,6 +5,7 @@ import { NotificacionStore } from '../../../../compartido/aplicacion/notificacio
 import { RefrescoAutomatico } from '../../../../compartido/aplicacion/refresco-automatico';
 import { PAGINA_VACIA, Pagina } from '../../../../compartido/dominio/pagina.model';
 import { mensajeError } from '../../../../compartido/infraestructura/http/error.interceptor';
+import { FiltroActivo } from '../../../../compartido/presentacion/barra-filtros/barra-filtros';
 import { OrganizacionFacade } from '../../../organizacion/aplicacion/organizacion.facade';
 import { Coordinacion } from '../../../organizacion/dominio/estructura.model';
 import { SesionStore } from '../../aplicacion/sesion.store';
@@ -21,6 +22,15 @@ import {
   claseRol,
   coordinacionDe,
 } from '../../dominio/usuario.model';
+
+interface FiltrosPersonas {
+  rol: Rol | null;
+  coordinacionId: number | null;
+  sinAsignar: boolean | null;
+  estado: EstadoCuenta | null;
+}
+
+const SIN_FILTROS: FiltrosPersonas = { rol: null, coordinacionId: null, sinAsignar: null, estado: null };
 
 /**
  * Personas del sistema, vistas por el Administrador (RF-28).
@@ -107,6 +117,8 @@ export class Personas {
   /** RF-28e: true deja solo a las personas registradas que aun no tienen puesto. */
   protected sinAsignarFiltro: boolean | null = null;
   protected estadoFiltro: EstadoCuenta | null = null;
+  /** Lo que filtra la lista: el panel es un borrador hasta pulsar Aplicar. */
+  private aplicados: FiltrosPersonas = { ...SIN_FILTROS };
   protected numeroPagina = 0;
   protected tamano = 10;
 
@@ -133,7 +145,7 @@ export class Personas {
     if (rol && !asignarA) {
       this.rolFiltro = rol;
     }
-    this.buscar();
+    this.aplicarFiltros();
 
     // El panel de coordinaciones sin responsable es una tarea pendiente, y las
     // tareas pendientes las resuelve tambien el de al lado: dejarlo quieto
@@ -201,10 +213,10 @@ export class Personas {
    * hable de personas concretas: "No hay responsables que mostrar".
    */
   protected get pluralDelFiltro(): string {
-    if (this.sinAsignarFiltro === true) {
+    if (this.aplicados.sinAsignar === true) {
       return 'personas sin asignar';
     }
-    switch (this.rolFiltro) {
+    switch (this.aplicados.rol) {
       case 'ADMIN':
         return 'administradores';
       case 'RESPONSABLE':
@@ -254,10 +266,7 @@ export class Personas {
       .buscar(
         {
           q: this.texto.trim() || undefined,
-          rol: this.rolFiltro,
-          coordinacionId: this.coordinacionId,
-          sinAsignar: this.sinAsignarFiltro,
-          estado: this.estadoFiltro,
+          ...this.aplicados,
         },
         { pagina: this.numeroPagina, tamano: this.tamano, ordenarPor: 'primerApellido' },
       )
@@ -275,9 +284,60 @@ export class Personas {
       });
   }
 
+  /** Buscar y Aplicar: el borrador del panel pasa a filtrar la lista. */
   protected aplicarFiltros(): void {
+    this.aplicados = {
+      rol: this.rolFiltro,
+      coordinacionId: this.coordinacionId,
+      sinAsignar: this.sinAsignarFiltro,
+      estado: this.estadoFiltro,
+    };
     this.numeroPagina = 0;
     this.buscar();
+  }
+
+  /** El panel se cerró sin aplicar: los campos vuelven a lo que filtra. */
+  protected descartarFiltros(): void {
+    this.rolFiltro = this.aplicados.rol;
+    this.coordinacionId = this.aplicados.coordinacionId;
+    this.sinAsignarFiltro = this.aplicados.sinAsignar;
+    this.estadoFiltro = this.aplicados.estado;
+  }
+
+  protected quitarFiltro(clave: string): void {
+    this.descartarFiltros();
+    if (clave === 'rol') {
+      this.rolFiltro = null;
+    } else if (clave === 'puesto') {
+      this.sinAsignarFiltro = null;
+    } else if (clave === 'coordinacion') {
+      this.coordinacionId = null;
+    } else if (clave === 'estado') {
+      this.estadoFiltro = null;
+    }
+    this.aplicarFiltros();
+  }
+
+  /** Indicadores de lo aplicado, visibles también con el panel cerrado. */
+  protected get filtrosActivos(): FiltroActivo[] {
+    const { rol, coordinacionId, sinAsignar, estado } = this.aplicados;
+    const activos: FiltroActivo[] = [];
+    if (rol !== null) {
+      const etiqueta = ROLES.find((r) => r.valor === rol)?.etiqueta ?? rol;
+      activos.push({ clave: 'rol', etiqueta: 'Rol', valor: etiqueta });
+    }
+    if (sinAsignar !== null) {
+      activos.push({ clave: 'puesto', etiqueta: 'Puesto', valor: sinAsignar ? 'Sin asignar' : 'Con puesto' });
+    }
+    if (coordinacionId !== null) {
+      const coordinacion = this.coordinaciones().find((c) => c.id === coordinacionId);
+      activos.push({ clave: 'coordinacion', etiqueta: 'Coordinación', valor: coordinacion?.nombre ?? '—' });
+    }
+    if (estado !== null) {
+      const etiqueta = ESTADOS_CUENTA.find((e) => e.valor === estado)?.etiqueta ?? estado;
+      activos.push({ clave: 'estado', etiqueta: 'Cuenta', valor: etiqueta });
+    }
+    return activos;
   }
 
   protected limpiarFiltros(): void {
@@ -291,13 +351,7 @@ export class Personas {
 
   /** Hay algun filtro puesto: cambia lo que dice la pantalla si no hay resultados. */
   protected get hayFiltros(): boolean {
-    return (
-      this.texto.trim().length > 0 ||
-      this.rolFiltro !== null ||
-      this.coordinacionId !== null ||
-      this.sinAsignarFiltro !== null ||
-      this.estadoFiltro !== null
-    );
+    return this.texto.trim().length > 0 || this.filtrosActivos.length > 0;
   }
 
   protected irAPagina(destino: number): void {
@@ -359,7 +413,7 @@ export class Personas {
     this.buscar();
     if (eraAlta) {
       this.notificaciones.exito(
-        `${persona.nombreCompleto} quedo registrada. Asignele una coordinacion y su rol ` +
+        `${persona.nombreCompleto} quedo registrada. Asignele una coordinación y su rol ` +
           'para que pueda entrar.',
       );
     }
@@ -510,7 +564,7 @@ export class Personas {
   protected get mensajePassword(): string {
     const usuario = this.confirmandoPassword();
     return usuario
-      ? `Se generara una contrasena nueva para ${usuario.nombreCompleto}.`
+      ? `Se generará una contraseña nueva para ${usuario.nombreCompleto}.`
       : '';
   }
 
@@ -542,7 +596,7 @@ export class Personas {
   protected get mensajeDesbloqueo(): string {
     const usuario = this.confirmandoDesbloqueo();
     return usuario
-      ? `${usuario.nombreCompleto} volvera a poder intentar el ingreso ahora mismo.`
+      ? `${usuario.nombreCompleto} volverá a poder intentar el ingreso ahora mismo.`
       : '';
   }
 

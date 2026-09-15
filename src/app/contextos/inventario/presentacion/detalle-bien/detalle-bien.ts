@@ -63,6 +63,8 @@ export class DetalleBien {
   private readonly router = inject(Router);
 
   protected readonly esResponsable = this.sesion.esResponsable;
+  /** El Administrador no ve titulo ni descripcion de pagina. */
+  protected readonly esAdmin = this.sesion.esAdmin;
 
   protected readonly equipo = signal<Equipo | null>(null);
   protected readonly movimientos = signal<Movimiento[]>([]);
@@ -282,13 +284,13 @@ export class DetalleBien {
     const nombre = `${equipo.nombre} (${equipo.codigoInventario})`;
     switch (this.accionPendiente()) {
       case 'mantenimiento':
-        return `${nombre} pasara a "En mantenimiento" y dejara de estar disponible para prestamo.`;
+        return `${nombre} pasará a "En mantenimiento" y dejará de estar disponible para préstamo.`;
       case 'operativo':
-        return `${nombre} volvera a estar disponible para prestamo.`;
+        return `${nombre} volverá a estar disponible para préstamo.`;
       case 'baja':
-        return `Se dara de baja ${nombre}. Dejara de aparecer en el inventario operativo, pero se conservara en el historial.`;
+        return `Se dará de baja ${nombre}. Dejará de aparecer en el inventario operativo, pero se conservará en el historial.`;
       default:
-        return `${nombre} volvera al inventario en condicion Operativo.`;
+        return `${nombre} volverá al inventario en condición Operativo.`;
     }
   }
 
@@ -315,7 +317,7 @@ export class DetalleBien {
     peticion.subscribe({
       next: (actualizado) => {
         this.notificaciones.exito(
-          `${actualizado.nombre} quedo en condicion ${actualizado.condicionEtiqueta}.`,
+          `${actualizado.nombre} quedo en condición ${actualizado.condicionEtiqueta}.`,
         );
         this.procesando.set(false);
         this.accionPendiente.set(null);

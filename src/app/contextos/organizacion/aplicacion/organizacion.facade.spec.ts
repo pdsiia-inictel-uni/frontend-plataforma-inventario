@@ -18,7 +18,7 @@ import { OrganizacionFacade } from './organizacion.facade';
  * podia nombrar administradores, que son los unicos que no necesitan una.</p>
  */
 describe('Memoria de coordinaciones de OrganizacionFacade', () => {
-  const coordinacion = { id: 1, nombre: 'Coordinacion de Redes', activa: true } as Coordinacion;
+  const coordinacion = { id: 1, nombre: 'Coordinacion de Redes' } as Coordinacion;
 
   /** Puerto de mentira que cuenta las llamadas y decide que devuelve cada una. */
   class PuertoFalso {

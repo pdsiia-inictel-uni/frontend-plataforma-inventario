@@ -33,7 +33,7 @@ import { Equipo } from '../../dominio/equipo.model';
   template: `
     <div class="tarjeta">
       <div class="tarjeta-cabecera">
-        <h2>Fotografia</h2>
+        <h2>Fotografía</h2>
       </div>
       <div class="tarjeta-cuerpo texto-centrado">
         @if (url(); as imagen) {
@@ -48,12 +48,12 @@ import { Equipo } from '../../dominio/equipo.model';
             <img [src]="imagen" [alt]="'Fotografía de ' + equipo.nombre" class="foto-bien" />
           </button>
           <p class="texto-secundario texto-pequeno mt-1 mb-0">
-            Pulse la fotografia para verla mas grande.
+            Pulse la fotografía para verla más grande.
           </p>
         } @else {
           <div class="sin-foto">
             <app-icono nombre="foto" tamano="lg" />
-            <p class="texto-secundario texto-pequeno mb-0">Este equipo aun no tiene fotografia.</p>
+            <p class="texto-secundario texto-pequeno mb-0">Este equipo aún no tiene fotografía.</p>
           </div>
         }
 

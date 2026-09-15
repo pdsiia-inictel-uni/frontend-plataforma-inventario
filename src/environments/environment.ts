@@ -21,6 +21,8 @@ export const environment = {
   apiUrl: '/api',
   nombreSistema: 'Sistema de Gestión de Inventarios',
   /** RN-01: la institucion es una constante, no un dato editable. */
-  institucion: 'Desarrollado por INICTEL-UNI',
+  institucion: 'INICTEL-UNI',
+  /** Credito del pie de las pantallas de acceso y de error. */
+  credito: 'Desarrollado por INICTEL-UNI',
   version: '3.8',
 };

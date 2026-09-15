@@ -5,7 +5,6 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AutenticacionPuerto } from '../dominio/puertos';
 import {
-  CambioCredencialesPeticion,
   CambioPasswordPeticion,
   LoginPeticion,
   PrimerIngresoPeticion,
@@ -47,10 +46,6 @@ export class AutenticacionHttpAdapter extends AutenticacionPuerto {
     return this.http
       .post<Sesion>(`${this.url}/primer-ingreso`, peticion)
       .pipe(map(conUsuarioNormalizado));
-  }
-
-  override cambiarCredenciales(peticion: CambioCredencialesPeticion): Observable<Sesion> {
-    return this.http.put<Sesion>(`${this.url}/mi-usuario`, peticion).pipe(map(conUsuarioNormalizado));
   }
 }
 

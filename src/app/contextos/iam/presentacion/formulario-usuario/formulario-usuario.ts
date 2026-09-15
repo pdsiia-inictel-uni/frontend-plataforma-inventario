@@ -50,6 +50,8 @@ export class FormularioUsuario implements OnInit {
   @Input() soloDatos = false;
   /** Aviso propio de la pantalla que abre el formulario, si lo necesita. */
   @Input() nota = '';
+  /** Titulo del alta: "Nuevo operador" cuando lo abre el Responsable desde Mi equipo. */
+  @Input() tituloAlta = 'Nueva persona';
 
   /**
    * Errores por campo que devolvio el servidor a quien guardo los datos.
@@ -106,7 +108,7 @@ export class FormularioUsuario implements OnInit {
   }
 
   protected get titulo(): string {
-    return this.esEdicion ? 'Editar persona' : 'Nueva persona';
+    return this.esEdicion ? 'Editar persona' : this.tituloAlta;
   }
 
   // Ni el nombre de usuario ni el correo se sugieren: los dos se escriben

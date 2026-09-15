@@ -1,10 +1,5 @@
+<!-- Pantalla del Administrador: sin titulo ni descripcion; quedan sus acciones. -->
 <div class="pagina-cabecera">
-  <div>
-    <h1>Categorías</h1>
-    <p class="descripcion">
-      Catalogo institucional de tipos de bien. Es comun a todas las coordinaciones.
-    </p>
-  </div>
   <div class="acciones-cabecera">
     <!-- Se llega desde el inventario y no desde el menu: el camino de vuelta
          tiene que estar a la vista. -->
@@ -26,7 +21,7 @@
     <app-estado-vacio
       icono="categorias"
       titulo="El catalogo esta vacio"
-      mensaje="Las categorias clasifican los equipos del inventario. Cree la primera para poder
+      mensaje="Las categorías clasifican los equipos del inventario. Cree la primera para poder
                registrar bienes.">
       <button type="button" class="btn btn-primario" (click)="nueva()">
         <app-icono nombre="agregar" tamano="sm" />
@@ -34,22 +29,25 @@
       </button>
     </app-estado-vacio>
   } @else {
-    <div class="tabla-contenedor">
-      <table class="tabla">
+    <!-- tabla-tarjetas: en el telefono cada fila se lee como tarjeta. -->
+    <div class="tabla-contenedor tabla-tarjetas">
+      <table class="tabla tabla-equilibrada">
         <thead>
           <tr>
-            <th>Categoría</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th class="celda-acciones">Acciones</th>
+            <th class="col-nombre-corto">Categoría</th>
+            <th class="col-principal">Descripción</th>
+            <th class="col-estado">Estado</th>
+            <th class="celda-acciones col-acciones-media">Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (categoria of lista(); track categoria.id) {
             <tr>
-              <td><strong>{{ categoria.nombre }}</strong></td>
-              <td class="texto-secundario">{{ categoria.descripcion || '—' }}</td>
-              <td>
+              <td><div class="truncar" [title]="categoria.nombre"><strong>{{ categoria.nombre }}</strong></div></td>
+              <td class="texto-secundario" data-etiqueta="Descripción">
+                <div class="recortar-2" [title]="categoria.descripcion || ''">{{ categoria.descripcion || '—' }}</div>
+              </td>
+              <td data-etiqueta="Estado">
                 <span
                   class="insignia"
                   [class.insignia-activo]="categoria.activa"
@@ -82,7 +80,7 @@
   <div class="modal-fondo" (click)="cerrar()">
     <div class="modal modal-angosto" (click)="$event.stopPropagation()">
       <div class="modal-cabecera">
-        <h3>{{ enEdicion() ? 'Editar categoria' : 'Nueva categoria' }}</h3>
+        <h3>{{ enEdicion() ? 'Editar categoría' : 'Nueva categoría' }}</h3>
         <button type="button" class="btn-icono" (click)="cerrar()" aria-label="Cerrar">
           <app-icono nombre="cerrar" tamano="sm" />
         </button>
@@ -126,7 +124,7 @@
 
 @if (confirmacion(); as categoria) {
   <app-confirmacion
-    [titulo]="categoria.activa ? 'Desactivar categoria' : 'Activar categoria'"
+    [titulo]="categoria.activa ? 'Desactivar categoría' : 'Activar categoría'"
     [mensaje]="mensajeConfirmacion"
     [detalle]="detalleConfirmacion"
     [textoConfirmar]="categoria.activa ? 'Desactivar' : 'Activar'"

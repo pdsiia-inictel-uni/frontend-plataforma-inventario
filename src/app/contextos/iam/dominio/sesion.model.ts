@@ -23,13 +23,6 @@ export interface CambioPasswordPeticion {
   confirmacion: string;
 }
 
-/** Cambio del propio nombre de usuario y correo institucional. */
-export interface CambioCredencialesPeticion {
-  username: string;
-  correo: string;
-  passwordActual: string;
-}
-
 /**
  * Primer ingreso al sistema (RF-06b).
  *

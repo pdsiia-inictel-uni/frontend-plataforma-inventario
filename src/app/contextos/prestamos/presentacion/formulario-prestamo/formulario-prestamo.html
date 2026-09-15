@@ -45,8 +45,8 @@
         <app-estado-vacio
           icono="inventario"
           titulo="No hay equipos disponibles"
-          mensaje="Solo pueden prestarse los equipos en condicion Operativo. Los que estan prestados,
-                   en mantenimiento o dados de baja no aparecen aqui." />
+          mensaje="Solo pueden prestarse los equipos en condición Operativo. Los que están prestados,
+                   en mantenimiento o dados de baja no aparecen aquí." />
       } @else {
         <ul class="lista-seleccion">
           @for (equipo of disponibles(); track equipo.id) {
@@ -110,14 +110,14 @@
           @if (errores()['dniPersona']) {
             <span class="error-campo">{{ errores()['dniPersona'] }}</span>
           } @else if (dniPersona && !dniValido) {
-            <span class="error-campo">El DNI debe tener exactamente 8 digitos numericos.</span>
+            <span class="error-campo">El DNI debe tener exactamente 8 dígitos numericos.</span>
           } @else {
-            <span class="ayuda-campo">Permite consultar después todo lo que esa persona se llevo.</span>
+            <span class="ayuda-campo">Permite consultar después todo lo que esa persona se llevó.</span>
           }
         </div>
 
         <div class="campo" [class.invalido]="errores()['destino']">
-          <label for="pn-destino">Destino o area de uso</label>
+          <label for="pn-destino">Destino o área de uso</label>
           <input
             id="pn-destino"
             type="text"
@@ -142,7 +142,7 @@
             <span class="error-campo">La fecha comprometida no puede ser anterior a hoy.</span>
           } @else {
             <span class="ayuda-campo">
-              Opcional. Si la indica, el sistema le avisara cuando el préstamo se venza.
+              Opcional. Si la indica, el sistema le avisará cuando el préstamo se venza.
             </span>
           }
         </div>
@@ -155,14 +155,14 @@
             [(ngModel)]="observacionesSalida"
             rows="3"
             maxlength="1000"
-            placeholder="Se entrega con cargador y maletin"></textarea>
+            placeholder="Se entrega con cargador y maletín"></textarea>
         </div>
       </div>
 
       <div class="tarjeta-pie">
         <button type="button" class="btn btn-secundario" (click)="cancelar()">Cancelar</button>
         <button type="submit" class="btn btn-primario" [disabled]="!valido || guardando()">
-          {{ guardando() ? 'Registrando...' : 'Registrar prestamo' }}
+          {{ guardando() ? 'Registrando...' : 'Registrar préstamo' }}
         </button>
       </div>
     </form>

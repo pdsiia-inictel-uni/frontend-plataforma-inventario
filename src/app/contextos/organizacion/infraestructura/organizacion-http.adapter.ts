@@ -21,16 +21,14 @@ export class OrganizacionHttpAdapter extends OrganizacionPuerto {
   private readonly http = inject(HttpClient);
   private readonly url = `${environment.apiUrl}/organizacion`;
 
-  override estructura(soloActivas = false): Observable<Estructura> {
-    const params = new HttpParams().set('soloActivas', String(soloActivas));
-    return this.http.get<Estructura>(`${this.url}/estructura`, { params });
+  override estructura(): Observable<Estructura> {
+    return this.http.get<Estructura>(`${this.url}/estructura`);
   }
 
   // ------------------------------------------------------------ Direcciones
 
-  override listarDirecciones(soloActivas = true): Observable<Direccion[]> {
-    const params = new HttpParams().set('soloActivas', String(soloActivas));
-    return this.http.get<Direccion[]>(`${this.url}/direcciones`, { params });
+  override listarDirecciones(): Observable<Direccion[]> {
+    return this.http.get<Direccion[]>(`${this.url}/direcciones`);
   }
 
   override editarDireccion(id: number, peticion: DireccionPeticion): Observable<Direccion> {
@@ -39,8 +37,8 @@ export class OrganizacionHttpAdapter extends OrganizacionPuerto {
 
   // ---------------------------------------------------------- Coordinaciones
 
-  override listarCoordinaciones(direccionId?: number | null, soloActivas = true): Observable<Coordinacion[]> {
-    let params = new HttpParams().set('soloActivas', String(soloActivas));
+  override listarCoordinaciones(direccionId?: number | null): Observable<Coordinacion[]> {
+    let params = new HttpParams();
     if (direccionId) {
       params = params.set('direccionId', String(direccionId));
     }
@@ -59,16 +57,10 @@ export class OrganizacionHttpAdapter extends OrganizacionPuerto {
     return this.http.put<Coordinacion>(`${this.url}/coordinaciones/${id}`, peticion);
   }
 
-  override cambiarEstadoCoordinacion(id: number, activo: boolean): Observable<Coordinacion> {
-    return this.http.patch<Coordinacion>(`${this.url}/coordinaciones/${id}/estado`, { activo });
-  }
-
   // ----------------------------------------------------------- Laboratorios
 
-  override listarLaboratorios(coordinacionId: number, soloActivos = true): Observable<Laboratorio[]> {
-    const params = new HttpParams().set('soloActivos', String(soloActivos));
-    return this.http.get<Laboratorio[]>(
-      `${this.url}/coordinaciones/${coordinacionId}/laboratorios`, { params });
+  override listarLaboratorios(coordinacionId: number): Observable<Laboratorio[]> {
+    return this.http.get<Laboratorio[]>(`${this.url}/coordinaciones/${coordinacionId}/laboratorios`);
   }
 
   override crearLaboratorio(peticion: LaboratorioPeticion): Observable<Laboratorio> {
@@ -77,9 +69,5 @@ export class OrganizacionHttpAdapter extends OrganizacionPuerto {
 
   override editarLaboratorio(id: number, peticion: LaboratorioPeticion): Observable<Laboratorio> {
     return this.http.put<Laboratorio>(`${this.url}/laboratorios/${id}`, peticion);
-  }
-
-  override cambiarEstadoLaboratorio(id: number, activo: boolean): Observable<Laboratorio> {
-    return this.http.patch<Laboratorio>(`${this.url}/laboratorios/${id}/estado`, { activo });
   }
 }

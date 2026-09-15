@@ -1,61 +1,48 @@
-<div class="pagina-cabecera">
-  <div>
-    <h1>Préstamos</h1>
-    <p class="descripcion">
-      @if (esAdmin()) {
-        Consulta de las salidas y devoluciones de cada coordinación.
-      } @else {
-        Equipos entregados y su devolución.
-      }
-    </p>
-  </div>
-  <div class="acciones-cabecera">
-    @if (esOperativo()) {
-      <button type="button" class="btn btn-primario" (click)="registrarSalida()">
-        <app-icono nombre="agregar" tamano="sm" />
-        <span>Registrar préstamo</span>
-      </button>
-    }
-  </div>
-</div>
-
+<!-- Sin titulo ni descripcion de pagina, para ningun rol, igual que el
+     inventario, y la misma fila de consulta: busqueda y "Filtros" a la
+     izquierda, la accion de quien registra salidas a la derecha. -->
 <div class="tarjeta">
-  <div class="pestanas" role="tablist">
-    @for (pestana of pestanas; track pestana.clave) {
-      <button
-        type="button"
-        class="pestana"
-        role="tab"
-        [class.activa]="pestanaActiva().clave === pestana.clave"
-        [attr.aria-selected]="pestanaActiva().clave === pestana.clave"
-        (click)="elegirPestana(pestana)">
-        {{ pestana.etiqueta }}
-      </button>
-    }
-  </div>
-
-  <div class="filtros">
-    @if (esAdmin()) {
-      <div class="campo">
-        <label for="pr-coordinacion">Coordinación<span class="obligatorio">*</span></label>
-        <select id="pr-coordinacion" [(ngModel)]="coordinacionElegida" (ngModelChange)="aplicarFiltros()">
+  <app-barra-filtros
+    [activos]="filtrosActivos"
+    (aplicado)="aplicarFiltros()"
+    (limpiado)="limpiarFiltros()"
+    (descartado)="descartarFiltros()"
+    (quitado)="quitarFiltro($event)">
+    <div barraBusqueda class="busqueda-principal">
+      @if (esAdmin()) {
+        <select
+          id="pr-coordinacion"
+          class="selector-ambito"
+          aria-label="Coordinación"
+          [(ngModel)]="coordinacionElegida"
+          (ngModelChange)="aplicarFiltros()">
           <option [ngValue]="null">Seleccione una coordinación</option>
           @for (c of coordinaciones(); track c.id) {
             <option [ngValue]="c.id">{{ c.nombre }} - {{ c.direccionNombre }}</option>
           }
         </select>
-      </div>
-    }
-
-    <div class="campo">
-      <label for="pr-buscar">Buscar</label>
+      }
       <input
         id="pr-buscar"
         type="search"
+        aria-label="Buscar préstamos"
         [(ngModel)]="texto"
         (keyup.enter)="aplicarFiltros()"
-        placeholder="Equipo, código o persona" />
+        placeholder="Buscar por equipo, código o persona" />
+      <button type="button" class="btn btn-secundario" (click)="aplicarFiltros()">
+        <app-icono nombre="buscar" tamano="sm" />
+        <span>Buscar</span>
+      </button>
     </div>
+
+    @if (esOperativo()) {
+      <div barraAcciones class="acciones-cabecera">
+        <button type="button" class="btn btn-primario" (click)="registrarSalida()">
+          <app-icono nombre="agregar" tamano="sm" />
+          <span>Registrar préstamo</span>
+        </button>
+      </div>
+    }
 
     <div class="campo">
       <label for="pr-dni">DNI de la persona</label>
@@ -63,39 +50,41 @@
         id="pr-dni"
         type="text"
         [(ngModel)]="dni"
-        (keyup.enter)="aplicarFiltros()"
         inputmode="numeric"
         maxlength="8"
-        placeholder="8 digitos" />
+        placeholder="8 dígitos" />
     </div>
 
-    <div class="filtros-acciones">
-      <button type="button" class="btn btn-secundario" (click)="aplicarFiltros()">
-        <app-icono nombre="buscar" tamano="sm" />
-        <span>Buscar</span>
-      </button>
-      <button type="button" class="btn btn-secundario" (click)="limpiarFiltros()">Limpiar</button>
+    <!-- RF-67: "Todos" es la opcion de partida, de modo que la lista no
+         empieza escondiendo el historico que se viene a consultar. -->
+    <div class="campo">
+      <label for="pr-estado">Estado</label>
+      <select id="pr-estado" [(ngModel)]="estadoElegido">
+        @for (pestana of pestanas; track pestana.clave) {
+          <option [ngValue]="pestana">{{ pestana.etiqueta }}</option>
+        }
+      </select>
     </div>
-  </div>
+  </app-barra-filtros>
 
   @if (faltaElegirCoordinacion()) {
     <app-estado-vacio
       icono="estructura"
       titulo="Elija una coordinación"
-      mensaje="Los prestamos pertenecen a la coordinacion que entrego el equipo. Seleccione arriba
-               cual desea consultar." />
+      mensaje="Los préstamos pertenecen a la coordinación que entregó el equipo. Seleccione arriba
+               cuál desea consultar." />
   } @else if (cargando()) {
     <div class="cargando"><span class="girador"></span> Cargando préstamos...</div>
   } @else if (pagina().contenido.length === 0) {
     <app-estado-vacio
       icono="prestamos"
       [titulo]="
-        hayFiltros ? 'Ningun prestamo coincide con la busqueda' : 'No hay prestamos en esta vista'
+        hayFiltros ? 'Ningún préstamo coincide con la búsqueda' : 'No hay préstamos en esta vista'
       "
       [mensaje]="
         hayFiltros
-          ? 'Pruebe a limpiar los filtros o a cambiar de pestana.'
-          : 'Cuando entregue un equipo a alguien, registrelo aqui para saber siempre donde esta.'
+          ? 'Pruebe a limpiar los filtros o a elegir otro estado.'
+          : 'Cuando entregue un equipo a alguien, regístrelo aquí para saber siempre dónde está.'
       ">
       @if (esOperativo() && !hayFiltros) {
         <button type="button" class="btn btn-primario" (click)="registrarSalida()">
@@ -105,43 +94,44 @@
       }
     </app-estado-vacio>
   } @else {
-    <div class="tabla-contenedor">
-      <table class="tabla">
+    <!-- tabla-tarjetas: en el telefono cada fila se lee como tarjeta. -->
+    <div class="tabla-contenedor tabla-tarjetas">
+      <table class="tabla tabla-equilibrada tabla-prestamos">
         <thead>
           <tr>
-            <th>Equipo</th>
-            <th>Prestado a</th>
-            <th>Salida</th>
-            <th>Fecha de devolución</th>
-            <th>Situacion</th>
-            <th class="celda-acciones">Acciones</th>
+            <th class="col-principal">Equipo</th>
+            <th class="col-persona">Prestado a</th>
+            <th class="col-fecha">Salida</th>
+            <th class="col-fecha">Devolución</th>
+            <th class="col-estado">Situación</th>
+            <th class="celda-acciones" [class.col-acciones-amplia]="hayDevolucionesPendientes" [class.col-acciones-icono]="!hayDevolucionesPendientes">Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (prestamo of pagina().contenido; track prestamo.id) {
             <tr [class.fila-vencida]="prestamo.vencido">
               <td>
-                <div><strong>{{ prestamo.equipoNombre }}</strong></div>
-                <div class="texto-secundario texto-pequeno texto-mono">
+                <div class="truncar" [title]="prestamo.equipoNombre"><strong>{{ prestamo.equipoNombre }}</strong></div>
+                <div class="texto-secundario texto-pequeno texto-mono truncar">
                   {{ prestamo.equipoCodigoInventario }}
                 </div>
               </td>
-              <td>
-                <div>{{ prestamo.nombrePersona }}</div>
+              <td data-etiqueta="Prestado a">
+                <div class="recortar-2" [title]="prestamo.nombrePersona">{{ prestamo.nombrePersona }}</div>
                 <div class="texto-secundario texto-pequeno texto-mono">{{ prestamo.dniPersona }}</div>
                 @if (prestamo.destino) {
-                  <div class="texto-secundario texto-pequeno">{{ prestamo.destino }}</div>
+                  <div class="texto-secundario texto-pequeno truncar" [title]="prestamo.destino">{{ prestamo.destino }}</div>
                 }
               </td>
-              <td>
+              <td data-etiqueta="Salida">
                 <div>{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</div>
                 @if (prestamo.usuarioPrestaNombre) {
-                  <div class="texto-secundario texto-pequeno">
-                    Entrego {{ prestamo.usuarioPrestaNombre }}
+                  <div class="texto-secundario texto-pequeno truncar" [title]="'Entregó ' + prestamo.usuarioPrestaNombre">
+                    Entregó {{ prestamo.usuarioPrestaNombre }}
                   </div>
                 }
               </td>
-              <td>
+              <td data-etiqueta="Devolución">
                 @if (prestamo.fechaEstimadaDevolucion) {
                   {{ prestamo.fechaEstimadaDevolucion | date: 'dd/MM/yyyy' }}
                 } @else {
@@ -153,7 +143,7 @@
                   </div>
                 }
               </td>
-              <td>
+              <td data-etiqueta="Situación">
                 <span
                   class="insignia"
                   [class.insignia-prestado]="prestamo.estado === 'ACTIVO' && !prestamo.vencido"
@@ -163,7 +153,7 @@
                 </span>
                 @if (prestamo.vencido) {
                   <div class="texto-pequeno texto-vencido">
-                    {{ prestamo.diasAtraso === 1 ? '1 dia de atraso' : prestamo.diasAtraso + ' dias de atraso' }}
+                    {{ prestamo.diasAtraso === 1 ? '1 día de atraso' : prestamo.diasAtraso + ' días de atraso' }}
                   </div>
                 }
                 @if (prestamo.reportaDano) {
@@ -220,11 +210,11 @@
             <div class="valor">{{ prestamo.equipoNombre }}</div>
           </div>
           <div class="dato">
-            <div class="clave">Lo llevo</div>
+            <div class="clave">Lo llevó</div>
             <div class="valor">{{ prestamo.nombrePersona }}</div>
           </div>
           <div class="dato">
-            <div class="clave">Salio el</div>
+            <div class="clave">Salió el</div>
             <div class="valor">{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</div>
           </div>
         </div>
@@ -246,7 +236,7 @@
           <span>
             <strong>Con observaciones</strong>
             <span class="texto-secundario texto-pequeno">
-              Falta alguna pieza o presenta danos. Quedara marcado para revisión.
+              Falta alguna pieza o presenta daños. Quedará marcado para revisión.
             </span>
           </span>
         </label>
@@ -264,7 +254,7 @@
               placeholder="Falta el cargador, la carcasa esta rajada..."></textarea>
             @if (!observacionesRetorno.trim()) {
               <span class="error-campo">
-                Sin este detalle no queda constancia de en que estado volvio el equipo.
+                Sin este detalle no queda constancia de en que estado volvió el equipo.
               </span>
             }
           </div>
@@ -278,7 +268,7 @@
           class="btn btn-primario"
           [disabled]="!devolucionValida || procesando()"
           (click)="confirmarDevolucion()">
-          {{ procesando() ? 'Registrando...' : 'Confirmar devolucion' }}
+          {{ procesando() ? 'Registrando...' : 'Confirmar devolución' }}
         </button>
       </div>
     </div>

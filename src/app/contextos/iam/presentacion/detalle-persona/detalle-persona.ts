@@ -64,7 +64,20 @@ export class DetallePersona {
 
   private personaActual!: Usuario;
 
+  /**
+   * RF-28d: dar un puesto es cosa del Administrador. El Responsable abre la
+   * misma ficha para sus operadores, pero sin esa accion (RF-29).
+   */
+  @Input() conAsignacion = true;
+  /**
+   * RF-84: la ficha ofrece ir a los equipos que lleva la persona. Solo para el
+   * Responsable, cuyo inventario es el de su coordinacion y se abre ya filtrado
+   * por ella.
+   */
+  @Input() conEquipos = false;
+
   @Output() editar = new EventEmitter<Usuario>();
+  @Output() verEquipos = new EventEmitter<Usuario>();
   @Output() asignar = new EventEmitter<Usuario>();
   @Output() restablecerPassword = new EventEmitter<Usuario>();
   @Output() desbloquear = new EventEmitter<Usuario>();
@@ -72,6 +85,14 @@ export class DetallePersona {
   @Output() darDeBaja = new EventEmitter<Usuario>();
   @Output() reincorporar = new EventEmitter<Usuario>();
   @Output() cerrado = new EventEmitter<void>();
+
+  /** RF-84: cuántos equipos lleva; null mientras no se sabe. */
+  protected get cantidadEquipos(): number | null {
+    if (this.persona.estado === 'BAJA') {
+      return 0;
+    }
+    return this.aCargo()?.cantidad ?? null;
+  }
 
   /** RN-38: mientras conserve algún equipo, la baja se rechazaría. */
   protected get retenidoPorSusEquipos(): boolean {

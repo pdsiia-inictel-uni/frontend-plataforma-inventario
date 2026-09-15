@@ -49,6 +49,12 @@ export interface Usuario {
   estado: EstadoCuenta;
   estadoEtiqueta: string;
   debeCambiarPassword: boolean;
+  /**
+   * RF-06b: solo la cuenta administradora inicial, que nace con datos de
+   * relleno, declara su identidad al estrenarse. Cualquier otro usuario —otro
+   * Administrador incluido— solo cambia su contraseña.
+   */
+  debeCompletarIdentidad?: boolean;
   bloqueado: boolean;
   ultimoAcceso?: string;
   fechaCreacion: string;

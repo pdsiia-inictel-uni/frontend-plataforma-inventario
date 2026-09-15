@@ -7,16 +7,18 @@ import {
   erroresDeCampo,
   mensajeError,
 } from '../../../../compartido/infraestructura/http/error.interceptor';
-import { InventarioFacade } from '../../../inventario/aplicacion/inventario.facade';
+import { FiltroActivo } from '../../../../compartido/presentacion/barra-filtros/barra-filtros';
 import { SesionStore } from '../../aplicacion/sesion.store';
 import { UsuariosFacade } from '../../aplicacion/usuarios.facade';
 import {
   AsignacionRealizada,
+  ESTADOS_CUENTA,
   EstadoCuenta,
   PasswordTemporal,
   Usuario,
   UsuarioPeticion,
   claseEstadoCuenta,
+  claseRol,
 } from '../../dominio/usuario.model';
 
 /**
@@ -39,7 +41,6 @@ import {
 })
 export class MiEquipo {
   private readonly usuarios = inject(UsuariosFacade);
-  private readonly inventario = inject(InventarioFacade);
   private readonly sesion = inject(SesionStore);
   private readonly notificaciones = inject(NotificacionStore);
   private readonly refresco = inject(RefrescoAutomatico);
@@ -47,16 +48,14 @@ export class MiEquipo {
 
   protected readonly coordinacion = this.sesion.coordinacion;
   protected readonly integrantes = signal<Usuario[]>([]);
-  /**
-   * RN-38: cuántos equipos lleva cada operador, por identificador.
-   *
-   * <p>Se pide entero y de una vez —el reparto de la coordinación es una sola
-   * consulta (RF-84)— en lugar de preguntarlo operador por operador: la
-   * pantalla necesita el dato de todos a la vez para saber a quién puede dar de
-   * baja y a quién no.</p>
-   */
-  protected readonly equiposPorOperador = signal<Map<number, number>>(new Map());
   protected readonly cargando = signal(true);
+
+  /**
+   * RF-28f, RF-29: operador cuya ficha se esta consultando. La lista dice quien
+   * hay, igual que la de Personas del Administrador; editar, restablecer la
+   * contrasena, ver sus equipos, desbloquear y dar de baja viven en la ficha.
+   */
+  protected readonly detalle = signal<Usuario | null>(null);
 
   protected readonly formularioAbierto = signal(false);
   protected readonly enEdicion = signal<Usuario | null>(null);
@@ -81,6 +80,73 @@ export class MiEquipo {
     this.integrantes().filter((u) => u.rol === 'OPERADOR'),
   );
 
+  // ------------------------------------------------------------------ Filtros
+  //
+  // La misma barra que Personas, Inventario y Prestamos: busqueda a la vista y
+  // el estado de la cuenta en el panel de filtros. Los operadores de una
+  // coordinacion llegan enteros en una sola consulta, asi que se filtran aqui
+  // sin volver a preguntar al servidor.
+
+  protected readonly estadosCuenta = ESTADOS_CUENTA;
+  protected texto = '';
+  protected estadoFiltro: EstadoCuenta | null = null;
+  /** Lo que se aplico con Buscar o Aplicar; tocar los campos no filtra hasta confirmarlo. */
+  private readonly textoAplicado = signal('');
+  private readonly estadoAplicado = signal<EstadoCuenta | null>(null);
+
+  protected aplicarFiltros(): void {
+    this.textoAplicado.set(this.texto.trim().toLowerCase());
+    this.estadoAplicado.set(this.estadoFiltro);
+  }
+
+  /** El panel se cerró sin aplicar: el campo vuelve a lo que filtra. */
+  protected descartarFiltros(): void {
+    this.estadoFiltro = this.estadoAplicado();
+  }
+
+  protected limpiarFiltros(): void {
+    this.texto = '';
+    this.estadoFiltro = null;
+    this.aplicarFiltros();
+  }
+
+  protected quitarFiltro(clave: string): void {
+    if (clave === 'estado') {
+      this.estadoFiltro = null;
+      this.estadoAplicado.set(null);
+    }
+  }
+
+  /** Indicadores de lo aplicado, visibles también con el panel cerrado. */
+  protected get filtrosActivos(): FiltroActivo[] {
+    const estado = this.estadoAplicado();
+    if (estado === null) {
+      return [];
+    }
+    const etiqueta = ESTADOS_CUENTA.find((e) => e.valor === estado)?.etiqueta ?? estado;
+    return [{ clave: 'estado', etiqueta: 'Cuenta', valor: etiqueta }];
+  }
+
+  protected get hayFiltros(): boolean {
+    return this.textoAplicado() !== '' || this.estadoAplicado() !== null;
+  }
+
+  /** Operadores que cumplen la busqueda (nombre, DNI, usuario o correo) y el estado. */
+  protected get operadoresFiltrados(): Usuario[] {
+    const texto = this.textoAplicado();
+    const estado = this.estadoAplicado();
+    return this.operadores().filter((u) => {
+      if (estado !== null && u.estado !== estado) {
+        return false;
+      }
+      if (!texto) {
+        return true;
+      }
+      return [u.nombreCompleto, u.dni, u.username, u.correo]
+        .some((campo) => (campo ?? '').toLowerCase().includes(texto));
+    });
+  }
+
   constructor() {
     this.cargar();
 
@@ -100,6 +166,7 @@ export class MiEquipo {
    */
   private get ventanaAbierta(): boolean {
     return (
+      this.detalle() !== null ||
       this.formularioAbierto() ||
       this.confirmacion() !== null ||
       this.confirmandoPassword() !== null ||
@@ -134,50 +201,20 @@ export class MiEquipo {
         this.cargando.set(false);
       },
     });
-
-    // RN-38: quién lleva equipos, para decir de quién se puede prescindir y de
-    // quién no. Va aparte porque es otro contexto y su fallo no debe dejar la
-    // pantalla sin la lista de personas, que es lo que se viene a ver.
-    this.inventario.responsablesDeEquipo(coordinacionId).subscribe({
-      next: (reparto) => {
-        const cuenta = new Map<number, number>();
-        for (const fila of reparto) {
-          if (fila.usuarioId) {
-            cuenta.set(fila.usuarioId, fila.cantidad);
-          }
-        }
-        this.equiposPorOperador.set(cuenta);
-      },
-      error: () => this.equiposPorOperador.set(new Map()),
-    });
   }
 
-  /** RN-38: equipos en servicio a nombre de ese operador. */
-  protected equiposDe(operador: Usuario): number {
-    return this.equiposPorOperador().get(operador.id) ?? 0;
+  protected verDetalle(operador: Usuario): void {
+    this.detalle.set(operador);
+  }
+
+  protected cerrarDetalle(): void {
+    this.detalle.set(null);
   }
 
   /** RF-84: abre el inventario ya acotado a lo que lleva ese operador. */
   protected verEquiposDe(operador: Usuario): void {
+    this.detalle.set(null);
     void this.router.navigate(['/inventario'], { queryParams: { responsable: operador.id } });
-  }
-
-  /**
-   * Por qué el botón de baja está desactivado, y qué hacer al respecto.
-   *
-   * <p>La salida está en manos de quien lee este aviso: es el Responsable quien
-   * reparte los equipos de su coordinación (RF-83).</p>
-   */
-  protected motivoBloqueoBaja(operador: Usuario): string {
-    const cantidad = this.equiposDe(operador);
-    if (cantidad === 0) {
-      return 'Dar de baja de la institución';
-    }
-    const equipos = cantidad === 1 ? 'un equipo' : `${cantidad} equipos`;
-    return (
-      `No se puede dar de baja: tiene ${equipos} a su cargo. Entrégueselos a otro operador de la ` +
-      'coordinación o quédeselos usted desde la ficha de cada equipo, y la baja quedará disponible.'
-    );
   }
 
   protected get coordinacionId(): number | null {
@@ -191,6 +228,7 @@ export class MiEquipo {
   }
 
   protected editar(usuario: Usuario): void {
+    this.detalle.set(null);
     this.enEdicion.set(usuario);
     this.erroresAlta.set({});
     this.formularioAbierto.set(true);
@@ -252,6 +290,7 @@ export class MiEquipo {
    * de la institución, y deja la plaza libre (RN-34).</p>
    */
   protected pedirCambioEstado(usuario: Usuario, destino: EstadoCuenta): void {
+    this.detalle.set(null);
     this.confirmacion.set({ usuario, destino });
   }
 
@@ -311,6 +350,11 @@ export class MiEquipo {
   }
 
   /** RF-22b, RNF-30: el estado de la cuenta, por color Y por texto. */
+  /** RNF-30: el rol, por color Y por texto, igual que en Personas. */
+  protected claseDelRol(operador: Usuario): string {
+    return claseRol(operador.rol);
+  }
+
   protected claseDelEstado(estado: EstadoCuenta): string {
     return claseEstadoCuenta(estado);
   }
@@ -318,12 +362,13 @@ export class MiEquipo {
   // ------------------------------------------- RF-06, RF-08: credenciales
 
   protected pedirRestablecerPassword(usuario: Usuario): void {
+    this.detalle.set(null);
     this.confirmandoPassword.set(usuario);
   }
 
   protected get mensajePassword(): string {
     const usuario = this.confirmandoPassword();
-    return usuario ? `Se generara una contrasena nueva para ${usuario.nombreCompleto}.` : '';
+    return usuario ? `Se generará una contraseña nueva para ${usuario.nombreCompleto}.` : '';
   }
 
   protected restablecerPassword(): void {
@@ -347,13 +392,14 @@ export class MiEquipo {
   }
 
   protected pedirDesbloqueo(usuario: Usuario): void {
+    this.detalle.set(null);
     this.confirmandoDesbloqueo.set(usuario);
   }
 
   protected get mensajeDesbloqueo(): string {
     const usuario = this.confirmandoDesbloqueo();
     return usuario
-      ? `${usuario.nombreCompleto} volvera a poder intentar el ingreso ahora mismo.`
+      ? `${usuario.nombreCompleto} volverá a poder intentar el ingreso ahora mismo.`
       : '';
   }
 

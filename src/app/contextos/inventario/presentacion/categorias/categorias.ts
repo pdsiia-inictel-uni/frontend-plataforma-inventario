@@ -134,8 +134,8 @@ export class Categorias {
       return '';
     }
     return categoria.activa
-      ? `"${categoria.nombre}" dejara de aparecer al registrar equipos nuevos.`
-      : `"${categoria.nombre}" volvera a estar disponible al registrar equipos.`;
+      ? `"${categoria.nombre}" dejará de aparecer al registrar equipos nuevos.`
+      : `"${categoria.nombre}" volverá a estar disponible al registrar equipos.`;
   }
 
   protected get detalleConfirmacion(): string {
@@ -143,7 +143,7 @@ export class Categorias {
     if (!categoria?.activa) {
       return '';
     }
-    return 'Los equipos ya clasificados con ella conservan su categoría. Si tiene equipos activos, el sistema no permitira desactivarla.';
+    return 'Los equipos ya clasificados con ella conservan su categoría. Si tiene equipos activos, el sistema no permitirá desactivarla.';
   }
 
   protected confirmarCambioEstado(): void {

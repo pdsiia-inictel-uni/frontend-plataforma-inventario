@@ -30,38 +30,44 @@
     <div class="menu-pie">v{{ entorno.version }}</div>
   </aside>
 
+  <!-- Oculta y muestra el menu lateral para dejar la pantalla entera al
+       contenido. Vive sobre el borde derecho del propio menu, centrado en esa
+       linea y a media altura: se encuentra donde esta lo que controla. Con el
+       menu oculto queda en el borde izquierdo de la pantalla, en la misma
+       altura. Solo en pantallas anchas: en movil el menu es un cajon. -->
+  <button
+    type="button"
+    class="boton-visibilidad"
+    (click)="alternarVisibilidadMenu()"
+    aria-controls="menu-lateral"
+    [attr.aria-expanded]="!menuOculto()"
+    [attr.aria-label]="menuOculto() ? 'Mostrar el menú' : 'Ocultar el menú'"
+    [title]="menuOculto() ? 'Mostrar el menú' : 'Ocultar el menú y ver a pantalla completa'">
+    <app-icono [nombre]="menuOculto() ? 'desplegar' : 'plegar'" tamano="sm" />
+  </button>
+
   <div class="contenido">
+    <!-- Una sola fila: donde se trabaja a la izquierda, quien trabaja a la
+         derecha. El nombre de la pantalla no se repite aqui: cada pagina lo
+         lleva en su propio encabezado. -->
     <header class="barra-superior">
-      <div class="fila-acciones">
+      <div class="barra-ambito">
         <button
           type="button"
           class="btn btn-secundario btn-solo-icono boton-menu"
           (click)="alternarMenu()"
-          aria-label="Abrir menu">
+          aria-controls="menu-lateral"
+          [attr.aria-expanded]="menuAbierto()"
+          aria-label="Abrir menú">
           <app-icono nombre="menu" tamano="sm" />
         </button>
-
-        <!-- Oculta y muestra el menu lateral para dejar la pantalla entera al
-             contenido. La flecha apunta a donde va el menu: hacia el borde
-             izquierdo al replegarlo, de vuelta al centro al mostrarlo. La
-             eleccion se recuerda entre sesiones (Principal). -->
-        <button
-          type="button"
-          class="btn btn-secundario btn-solo-icono boton-visibilidad"
-          (click)="alternarVisibilidadMenu()"
-          aria-controls="menu-lateral"
-          [attr.aria-expanded]="!menuOculto()"
-          [attr.aria-label]="menuOculto() ? 'Mostrar el menu' : 'Ocultar el menu'"
-          [title]="menuOculto() ? 'Mostrar el menu' : 'Ocultar el menu y ver a pantalla completa'">
-          <app-icono [nombre]="menuOculto() ? 'desplegar' : 'plegar'" tamano="sm" />
-        </button>
-        <div>
-          <h1 class="titulo-pagina">{{ tituloPagina() }}</h1>
-          <!-- ERS 8.1: el usuario nunca debe dudar de donde esta parado. Cada
-               persona pertenece a una sola coordinacion (RN-05), asi que el
-               ambito se enuncia; no se elige. -->
-          <div class="ambito-trabajo">{{ ambito() }}</div>
-        </div>
+        <!-- ERS 8.1: el usuario nunca debe dudar de donde esta parado. Cada
+             persona pertenece a una sola coordinacion (RN-05), asi que el
+             ambito se enuncia; no se elige. -->
+        <span class="ambito-trabajo" [title]="ambitoDetalle()">
+          <app-icono [nombre]="esAdmin() ? 'estructura' : 'ubicacion'" tamano="sm" />
+          <span class="ambito-nombre">{{ ambito() }}</span>
+        </span>
       </div>
 
       <div class="barra-usuario">
@@ -69,15 +75,19 @@
           <div class="nombre">{{ usuario()?.nombreCompleto }}</div>
           <div class="rol">{{ usuario()?.rolEtiqueta }}</div>
         </div>
-        <div class="avatar" [title]="usuario()?.correo ?? ''">{{ iniciales }}</div>
-        <button type="button" class="btn btn-secundario btn-sm" (click)="cerrarSesion()">
+        <div class="avatar" [title]="usuario()?.correo ?? ''" aria-hidden="true">{{ iniciales }}</div>
+        <button
+          type="button"
+          class="btn btn-secundario btn-sm boton-salir"
+          (click)="cerrarSesion()"
+          aria-label="Cerrar sesión">
           <app-icono nombre="salir" tamano="sm" />
-          <span>Salir</span>
+          <span class="texto-boton">Salir</span>
         </button>
       </div>
     </header>
 
-    <main class="pagina">
+    <main id="contenido-principal" class="pagina">
       <router-outlet />
     </main>
   </div>

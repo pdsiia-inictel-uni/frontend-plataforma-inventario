@@ -46,10 +46,25 @@
             } @else if (coordinacion) {
               {{ coordinacion }}
             } @else {
-              Todavia ninguna
+              Todavía ninguna
             }
           </span>
         </li>
+        @if (conEquipos) {
+          <!-- RF-84, RN-38: lo que antes era una columna de la lista. -->
+          <li>
+            <span class="clave">Equipos a su cargo</span>
+            <span class="valor">
+              @if (cantidadEquipos === null) {
+                <span class="texto-secundario">Consultando...</span>
+              } @else if (cantidadEquipos === 0) {
+                Ninguno
+              } @else {
+                {{ cantidadEquipos === 1 ? '1 equipo' : cantidadEquipos + ' equipos' }}
+              }
+            </span>
+          </li>
+        }
         <li>
           <span class="clave">Último acceso</span>
           <span class="valor">
@@ -104,6 +119,18 @@
         </button>
       }
 
+      @if (conEquipos) {
+        <button
+          type="button"
+          class="btn btn-secundario"
+          [disabled]="!cantidadEquipos"
+          [title]="cantidadEquipos ? 'Abrir el inventario con los equipos de esta persona' : 'No tiene equipos a su cargo'"
+          (click)="verEquipos.emit(persona)">
+          <app-icono nombre="inventario" tamano="sm" />
+          <span>Equipos</span>
+        </button>
+      }
+
       @if (persona.bloqueado) {
         <button type="button" class="btn btn-secundario" (click)="desbloquear.emit(persona)">
           <app-icono nombre="desbloquear" tamano="sm" />
@@ -137,7 +164,7 @@
       }
 
       <!-- RN-33: nadie se cambia el puesto a si mismo. -->
-      @if (!esUnoMismo) {
+      @if (!esUnoMismo && conAsignacion) {
         <button
           type="button"
           class="btn btn-primario"

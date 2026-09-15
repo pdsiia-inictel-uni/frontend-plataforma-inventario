@@ -37,8 +37,8 @@
               type="button"
               class="btn-icono boton-ojo"
               (click)="verPassword = !verPassword"
-              [title]="verPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'"
-              [attr.aria-label]="verPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'">
+              [title]="verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-label]="verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
               <app-icono [nombre]="verPassword ? 'ver-oculto' : 'ver'" tamano="sm" />
             </button>
           </div>
@@ -53,10 +53,10 @@
       </form>
 
       <p class="texto-secundario texto-pequeno texto-centrado mt-2 mb-0">
-        Si es su primer ingreso, el sistema le pedira cambiar su contraseña.
+        Si es su primer ingreso, el sistema le pedirá cambiar su contraseña.
       </p>
     </div>
 
-    <p class="pie-acceso">{{ entorno.institucion }} &middot; v{{ entorno.version }}</p>
+    <p class="pie-acceso">{{ entorno.credito }} &middot; v{{ entorno.version }}</p>
   </div>
 </div>

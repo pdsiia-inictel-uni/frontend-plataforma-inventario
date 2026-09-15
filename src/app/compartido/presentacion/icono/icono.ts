@@ -21,6 +21,7 @@ export type NombreIcono =
   | 'ver'
   | 'ver-oculto'
   | 'buscar'
+  | 'filtros'
   | 'editar'
   | 'agregar'
   | 'quitar'
@@ -157,6 +158,14 @@ export type NombreIcono =
           <path d="M9.9 5.9A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.5 4.3" />
           <path d="M6.6 7.6A17.3 17.3 0 0 0 2.5 12S6 18.5 12 18.5c1.6 0 3-.3 4.2-.9" />
           <path d="M10 10.1a2.8 2.8 0 0 0 3.9 3.9" />
+        }
+        @case ('filtros') {
+          <path d="M4 7h9" />
+          <path d="M17 7h3" />
+          <circle cx="15" cy="7" r="2" />
+          <path d="M4 17h3" />
+          <path d="M11 17h9" />
+          <circle cx="9" cy="17" r="2" />
         }
         @case ('buscar') {
           <circle cx="11" cy="11" r="7" />

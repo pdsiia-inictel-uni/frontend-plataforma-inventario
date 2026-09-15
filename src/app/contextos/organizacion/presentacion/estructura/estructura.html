@@ -1,18 +1,5 @@
-<div class="pagina-cabecera">
-  <div>
-    <h1>{{ entorno.institucion }}</h1>
-    <!-- RF-10: las direcciones son las dos de la institucion y vienen dadas.
-         El trabajo del Administrador empieza en sus coordinaciones. -->
-    <p class="descripcion">
-      Las dos direcciones de la institución, con sus coordinaciones y laboratorios. Cada
-      coordinación administra su propio inventario.
-    </p>
-  </div>
-</div>
-
-@if (estructura(); as arbol) {
-}
-
+<!-- Pantalla del Administrador: sin titulo ni descripcion de pagina. La barra
+     superior ya dice donde se esta (INICTEL-UNI) y el menu, que pantalla. -->
 @if (cargando()) {
   <div class="cargando"><span class="girador"></span> Cargando la estructura...</div>
 } @else if (vacia) {
@@ -21,8 +8,8 @@
   <app-estado-vacio
     icono="estructura"
     titulo="No se encontro ninguna dirección"
-    mensaje="Las dos direcciones de la institucion se registran al instalar el sistema. Si esta
-             pantalla sigue vacia, avise al area de sistemas: la instalacion quedo incompleta y sin
+    mensaje="Las dos direcciones de la institución se registran al instalar el sistema. Si esta
+             pantalla sigue vacia, avise al área de sistemas: la instalacion quedo incompleta y sin
              direcciones no pueden crearse coordinaciones." />
 } @else {
   <div class="arbol">
@@ -36,9 +23,6 @@
                 <span class="texto-secundario texto-pequeno">({{ rama.direccion.sigla }})</span>
               }
             </h2>
-            @if (rama.direccion.descripcion) {
-              <p class="descripcion mb-0">{{ rama.direccion.descripcion }}</p>
-            }
           </div>
           <div class="fila-acciones">
             <button
@@ -74,83 +58,81 @@
                 <button
                   type="button"
                   class="tarjeta-coordinacion"
-                  [class.inactiva]="!coordinacion.activa"
-                  [class.sin-responsable]="!coordinacion.responsableId"
-                  (click)="abrirDetalle(coordinacion)">
+                  [class.sin-responsable]="!coordinacion.responsableId"                  (click)="abrirDetalle(coordinacion)">
                   <span class="coord-cabecera">
                     <span class="coord-nombre">{{ coordinacion.nombre }}</span>
-                    @if (!coordinacion.activa) {
-                      <span class="insignia insignia-inactivo">Desactivada</span>
+                    <!-- El dato que decide si la coordinacion puede trabajar. -->
+                    <span class="coord-estado" [class.alerta]="!coordinacion.responsableId">
+                      {{ coordinacion.responsableId ? 'Operativa' : 'Sin responsable' }}
+                    </span>
+                  </span>
+
+                  <span class="coord-responsable">
+                    <span class="clave">Responsable</span>
+                    @if (coordinacion.responsableId) {
+                      <span class="valor">{{ coordinacion.responsable }}</span>
+                    } @else {
+                      <span class="valor pendiente">Por asignar · inventario detenido</span>
                     }
                   </span>
-                  <!-- El dato que decide si la coordinacion puede trabajar. -->
-                  @if (coordinacion.responsableId) {
-                    <span class="coord-responsable">
-                      <app-icono nombre="responsables" tamano="sm" />
-                      <span class="coord-responsable-texto">
-                        <span class="clave">Responsable</span>
-                        <strong>{{ coordinacion.responsable }}</strong>
-                      </span>
-                    </span>
-                  } @else {
-                    <span class="coord-responsable alerta">
-                      <app-icono nombre="alerta" tamano="sm" />
-                      <span class="coord-responsable-texto">
-                        <strong>Sin responsable</strong>
-                        <span class="clave">Su inventario esta parado</span>
-                      </span>
-                    </span>
-                  }
 
+                  <!-- Tres cifras, siempre en el mismo orden, para comparar cuadros. -->
                   <span class="coord-cifras">
                     <span class="cifra">
                       <span class="numero">{{ coordinacion.bienesTotal }}</span>
-                      <span class="etiqueta">{{ coordinacion.bienesTotal === 1 ? 'equipo' : 'equipos' }}</span>
+                      <span class="etiqueta">{{ coordinacion.bienesTotal === 1 ? 'Equipo' : 'Equipos' }}</span>
                     </span>
                     <span class="cifra">
                       <span class="numero">{{ coordinacion.laboratorios }}</span>
                       <span class="etiqueta">
-                        {{ coordinacion.laboratorios === 1 ? 'laboratorio' : 'laboratorios' }}
+                        {{ coordinacion.laboratorios === 1 ? 'Laboratorio' : 'Laboratorios' }}
                       </span>
                     </span>
                     <span class="cifra">
                       <span class="numero">{{ coordinacion.operadores }}</span>
                       <span class="etiqueta">
-                        {{ coordinacion.operadores === 1 ? 'operador' : 'operadores' }}
+                        {{ coordinacion.operadores === 1 ? 'Operador' : 'Operadores' }}
                       </span>
                     </span>
                   </span>
 
-                  @if (coordinacion.bienesTotal > 0) {
-                    <span class="coord-condiciones">
-                      @if (coordinacion.bienesOperativos > 0) {
-                        <span class="insignia insignia-disponible">
-                          {{ coordinacion.bienesOperativos }} operativos
-                        </span>
-                      }
-                      @if (coordinacion.bienesPrestados > 0) {
-                        <span class="insignia insignia-prestado">
-                          {{ coordinacion.bienesPrestados }} prestados
-                        </span>
-                      }
-                      @if (coordinacion.bienesEnMantenimiento > 0) {
-                        <span class="insignia insignia-mantenimiento">
-                          {{ coordinacion.bienesEnMantenimiento }} en mantenimiento
-                        </span>
-                      }
-                      @if (coordinacion.bienesDadosDeBaja > 0) {
-                        <span class="insignia insignia-baja">
-                          {{ coordinacion.bienesDadosDeBaja }} dados de baja
-                        </span>
-                      }
-                    </span>
-                  }
+                  <!-- Composicion del inventario: una barra fina y su leyenda. -->
+                  <span class="coord-composicion">
+                    @if (coordinacion.bienesTotal > 0) {
+                      <span class="coord-barra" aria-hidden="true">
+                        @if (coordinacion.bienesOperativos > 0) {
+                          <span data-tono="verde" [style.width.%]="(coordinacion.bienesOperativos / coordinacion.bienesTotal) * 100"></span>
+                        }
+                        @if (coordinacion.bienesPrestados > 0) {
+                          <span data-tono="azul" [style.width.%]="(coordinacion.bienesPrestados / coordinacion.bienesTotal) * 100"></span>
+                        }
+                        @if (coordinacion.bienesEnMantenimiento > 0) {
+                          <span data-tono="ambar" [style.width.%]="(coordinacion.bienesEnMantenimiento / coordinacion.bienesTotal) * 100"></span>
+                        }
+                        @if (coordinacion.bienesDadosDeBaja > 0) {
+                          <span data-tono="gris" [style.width.%]="(coordinacion.bienesDadosDeBaja / coordinacion.bienesTotal) * 100"></span>
+                        }
+                      </span>
+                      <span class="coord-leyenda">
+                        <span><i data-tono="verde"></i>{{ coordinacion.bienesOperativos }} operativos</span>
+                        <span><i data-tono="azul"></i>{{ coordinacion.bienesPrestados }} prestados</span>
+                        @if (coordinacion.bienesEnMantenimiento > 0) {
+                          <span><i data-tono="ambar"></i>{{ coordinacion.bienesEnMantenimiento }} en mantenimiento</span>
+                        }
+                        @if (coordinacion.bienesDadosDeBaja > 0) {
+                          <span><i data-tono="gris"></i>{{ coordinacion.bienesDadosDeBaja }} de baja</span>
+                        }
+                      </span>
+                    } @else {
+                      <span class="coord-leyenda vacia">Sin equipos registrados</span>
+                    }
+                  </span>
 
-                  <!-- RNF-22: el cuadro dice que se puede hacer con el antes de
-                       mostrar nada mas. Sus acciones estan dentro (RF-15b). -->
+                  <!-- RNF-22: el cuadro dice que se puede hacer con el. Sus acciones
+                       estan dentro (RF-15b). -->
                   <span class="coord-pie">
-                    <app-icono nombre="ver" tamano="sm" />
-                    <span>Ver detalle y opciones</span>
+                    <span>Ver detalle</span>
+                    <app-icono nombre="adelante" tamano="sm" />
                   </span>
                 </button>
               }
@@ -179,12 +161,7 @@
       </div>
 
       <div class="modal-cuerpo">
-        <p class="texto-secundario mb-1">
-          {{ coord.direccionNombre }}
-          @if (!coord.activa) {
-            &middot; <span class="insignia insignia-inactivo">Desactivada</span>
-          }
-        </p>
+        <p class="texto-secundario mb-1">{{ coord.direccionNombre }}</p>
 
         @if (coord.descripcion) {
           <p class="mb-1">{{ coord.descripcion }}</p>
@@ -249,14 +226,7 @@
           </li>
           <li>
             <span class="clave">Laboratorios</span>
-            <span class="valor">
-              {{ plural(coord.laboratorios, 'laboratorio', 'laboratorios') }}
-              @if (laboratorios(); as labs) {
-                <span class="texto-secundario texto-pequeno">
-                  ({{ laboratoriosActivos }} {{ laboratoriosActivos === 1 ? 'activo' : 'activos' }})
-                </span>
-              }
-            </span>
+            <span class="valor">{{ plural(coord.laboratorios, 'laboratorio', 'laboratorios') }}</span>
           </li>
         </ul>
 
@@ -269,8 +239,8 @@
           </button>
         </div>
         <p class="texto-secundario texto-pequeno mb-1">
-          Toda coordinación conserva al menos un laboratorio activo: sin ninguno no se pueden
-          registrar equipos.
+          Toda coordinación necesita al menos un laboratorio: sin ninguno no se pueden registrar
+          equipos.
         </p>
 
         @if (laboratorios(); as labs) {
@@ -286,13 +256,13 @@
                     @if (lab.ubicacion) {
                       <span class="texto-secundario"> - {{ lab.ubicacion }}</span>
                     }
-                    @if (!lab.activo) {
-                      <span class="insignia insignia-inactivo">Desactivado</span>
-                    }
                   </span>
                   <span class="valor fila-acciones">
                     <span class="texto-secundario texto-pequeno">
                       {{ plural(lab.bienesUbicados, 'equipo', 'equipos') }}
+                      @if (lab.bienesDadosDeBaja > 0) {
+                        ({{ lab.bienesDadosDeBaja }} de baja)
+                      }
                     </span>
                     <button
                       type="button"
@@ -301,12 +271,6 @@
                       aria-label="Editar laboratorio"
                       (click)="editarLaboratorio(lab)">
                       <app-icono nombre="editar" tamano="sm" />
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-secundario btn-sm"
-                      (click)="pedirCambioEstadoLaboratorio(lab)">
-                      {{ lab.activo ? 'Desactivar' : 'Activar' }}
                     </button>
                   </span>
                 </li>
@@ -326,12 +290,6 @@
         <button type="button" class="btn btn-secundario" (click)="verInventario(coord)">
           <app-icono nombre="inventario" tamano="sm" />
           <span>Ver inventario</span>
-        </button>
-        <button
-          type="button"
-          class="btn btn-secundario"
-          (click)="pedirCambioEstadoCoordinacion(coord)">
-          {{ coord.activa ? 'Desactivar coordinacion' : 'Activar coordinacion' }}
         </button>
         <button type="button" class="btn btn-primario" (click)="cerrarDetalle()">Cerrar</button>
       </div>
@@ -369,7 +327,7 @@
 
           @if (f.tipo === 'laboratorio') {
             <div class="campo" [class.invalido]="errores()['ubicacion']">
-              <label for="est-ubicacion">Ubicación fisica</label>
+              <label for="est-ubicacion">Ubicación física</label>
               <input
                 id="est-ubicacion"
                 type="text"
@@ -379,17 +337,16 @@
                 placeholder="Pabellon A - Aula 201" />
               <span class="ayuda-campo">Opcional. Ayuda a encontrar el laboratorio dentro del campus.</span>
             </div>
+          } @else if (f.tipo === 'direccion') {
+            <!-- Solo las direcciones tienen sigla: DIDT y DCTT son como se
+                 las nombra en la institucion. Una coordinacion no la tiene
+                 (RF-11). -->
+            <div class="campo" [class.invalido]="errores()['sigla']">
+              <label for="est-sigla">Sigla</label>
+              <input id="est-sigla" type="text" name="sigla" [(ngModel)]="sigla" maxlength="20" />
+              <span class="ayuda-campo">Abreviatura oficial de la dirección.</span>
+            </div>
           } @else {
-            @if (f.tipo === 'direccion') {
-              <!-- Solo las direcciones tienen sigla: DIDT y DCTT son como se
-                   las nombra en la institucion. Una coordinacion no la tiene
-                   (RF-11). -->
-              <div class="campo" [class.invalido]="errores()['sigla']">
-                <label for="est-sigla">Sigla</label>
-                <input id="est-sigla" type="text" name="sigla" [(ngModel)]="sigla" maxlength="20" />
-                <span class="ayuda-campo">Abreviatura oficial de la dirección.</span>
-              </div>
-            }
             <div class="campo" [class.invalido]="errores()['descripcion']">
               <label for="est-descripcion">Descripción</label>
               <textarea
@@ -407,7 +364,7 @@
             <h4 class="titulo-seccion-form">Su primer laboratorio</h4>
             <p class="texto-secundario texto-pequeno">
               Toda coordinación necesita al menos un laboratorio: es el lugar donde estaran sus
-              equipos. Podra agregar más después.
+              equipos. Podrá agregar más después.
             </p>
 
             <div class="campo" [class.invalido]="errores()['laboratorioNombre']">
@@ -427,7 +384,7 @@
             </div>
 
             <div class="campo" [class.invalido]="errores()['laboratorioUbicacion']">
-              <label for="est-lab-ubicacion">Ubicación fisica</label>
+              <label for="est-lab-ubicacion">Ubicación física</label>
               <input
                 id="est-lab-ubicacion"
                 type="text"
@@ -547,7 +504,7 @@
           <span class="credencial">{{ hecho.passwordTemporal }}</span>
         </div>
         <p class="texto-secundario texto-pequeno mt-1 mb-0">
-          Anotela ahora: por seguridad no vuelve a mostrarse. Debera cambiarla en su primer ingreso.
+          Anotela ahora: por seguridad no vuelve a mostrarse. Deberá cambiarla en su primer ingreso.
         </p>
       </div>
       <div class="modal-pie">
@@ -557,28 +514,4 @@
       </div>
     </div>
   </div>
-}
-
-@if (cambioDeCoordinacion(); as coordinacion) {
-  <app-confirmacion
-    [titulo]="coordinacion.activa ? 'Desactivar coordinacion' : 'Activar coordinacion'"
-    [mensaje]="mensajeCoordinacion"
-    [detalle]="detalleCoordinacion"
-    [textoConfirmar]="coordinacion.activa ? 'Desactivar' : 'Activar'"
-    [peligrosa]="coordinacion.activa"
-    [procesando]="procesando()"
-    (confirmar)="confirmarCambioEstadoCoordinacion()"
-    (cancelar)="cambioDeCoordinacion.set(null)" />
-}
-
-@if (cambioDeLaboratorio(); as laboratorio) {
-  <app-confirmacion
-    [titulo]="laboratorio.activo ? 'Desactivar laboratorio' : 'Activar laboratorio'"
-    [mensaje]="mensajeLaboratorio"
-    [detalle]="detalleLaboratorio"
-    [textoConfirmar]="laboratorio.activo ? 'Desactivar' : 'Activar'"
-    [peligrosa]="laboratorio.activo"
-    [procesando]="procesando()"
-    (confirmar)="confirmarCambioEstadoLaboratorio()"
-    (cancelar)="cambioDeLaboratorio.set(null)" />
 }

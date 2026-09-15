@@ -90,5 +90,5 @@ export function describirAtraso(prestamo: Prestamo): string {
   if (!prestamo.vencido) {
     return '';
   }
-  return prestamo.diasAtraso === 1 ? '1 dia de atraso' : `${prestamo.diasAtraso} dias de atraso`;
+  return prestamo.diasAtraso === 1 ? '1 día de atraso' : `${prestamo.diasAtraso} días de atraso`;
 }

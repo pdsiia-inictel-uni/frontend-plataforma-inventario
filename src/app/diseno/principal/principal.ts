@@ -50,14 +50,22 @@ export class Principal {
    */
   protected readonly menuOculto = signal(Principal.leerPreferencia());
 
-  protected readonly tituloPagina = signal('Inventario');
-
   /**
-   * ERS 8.1: el encabezado indica siempre el ambito de trabajo. El usuario
-   * operativo trabaja dentro de su coordinacion; el Administrador, sobre toda
-   * la institucion.
+   * ERS 8.1: el encabezado dice siempre donde se trabaja, en una sola fila.
+   *
+   * <p>El Responsable y el Operador, el nombre de su coordinacion. El
+   * Administrador no pertenece a ninguna (RN-05): trabaja sobre la
+   * institucion, y eso es lo que lee.</p>
    */
-  protected readonly ambito = computed(() => this.sesion.coordinacion() ?? this.entorno.institucion);
+  protected readonly ambito = computed(() =>
+    this.sesion.esAdmin() ? this.entorno.institucion : (this.sesion.coordinacion() ?? this.entorno.institucion),
+  );
+
+  /** La direccion completa, al pasar el cursor: el encabezado lleva solo el nombre. */
+  protected readonly ambitoDetalle = computed(() => {
+    const direccion = this.sesion.direccion();
+    return !this.sesion.esAdmin() && direccion ? `${this.ambito()} · ${direccion}` : this.ambito();
+  });
 
   /**
    * RF-01b: saludo de bienvenida, una vez por ingreso.
@@ -127,14 +135,6 @@ export class Principal {
     { ruta: '/cuenta', etiqueta: 'Mi cuenta', icono: 'perfil', grupo: 'Cuenta', roles: ['ADMIN', 'RESPONSABLE', 'OPERADOR'] },
   ];
 
-  /**
-   * Pantallas que no son una entrada del menu pero necesitan titulo propio en
-   * la barra superior: se llega a ellas desde otra pantalla.
-   */
-  private readonly titulosFueraDelMenu: { ruta: string; etiqueta: string }[] = [
-    { ruta: '/categorias', etiqueta: 'Categorias' },
-  ];
-
   /** Menu del rol en curso, agrupado y en el orden en que se declaro. */
   protected readonly grupos = computed(() => {
     const rol = this.sesion.rol();
@@ -150,13 +150,11 @@ export class Principal {
   });
 
   constructor() {
-    this.actualizarTitulo(this.router.url);
+    // En movil el cajon del menu se cierra al navegar: quien elige una
+    // entrada quiere ver la pantalla, no el menu encima de ella.
     this.router.events
       .pipe(filter((evento): evento is NavigationEnd => evento instanceof NavigationEnd))
-      .subscribe((evento) => {
-        this.actualizarTitulo(evento.urlAfterRedirects);
-        this.menuAbierto.set(false);
-      });
+      .subscribe(() => this.menuAbierto.set(false));
 
     // El puesto de una persona lo cambia el Administrador desde su pantalla, y
     // de el dependen el menu, el ambito del encabezado y lo que cada pantalla
@@ -214,23 +212,5 @@ export class Principal {
 
   protected cerrarSesion(): void {
     this.sesion.cerrarSesion('cerrada');
-  }
-
-  private actualizarTitulo(url: string): void {
-    const rol = this.sesion.rol();
-    const candidatos = rol ? this.enlaces.filter((e) => e.roles.includes(rol)) : [];
-    // El enlace mas especifico gana: /inventario/nuevo debe titularse como
-    // Inventario, no como la primera coincidencia que empiece por barra.
-    const coincide = (ruta: string) =>
-      url === ruta || url.startsWith(`${ruta}/`) || url.startsWith(`${ruta}?`);
-    const coincidencia = candidatos
-      .filter((e) => coincide(e.ruta))
-      .sort((a, b) => b.ruta.length - a.ruta.length)[0];
-    if (coincidencia) {
-      this.tituloPagina.set(coincidencia.etiqueta);
-      return;
-    }
-    const fueraDelMenu = this.titulosFueraDelMenu.find((e) => coincide(e.ruta));
-    this.tituloPagina.set(fueraDelMenu ? fueraDelMenu.etiqueta : 'Inventario');
   }
 }

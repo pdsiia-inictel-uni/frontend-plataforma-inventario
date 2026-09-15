@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { NotificacionStore } from '../../../../compartido/aplicacion/notificacion.store';
@@ -7,7 +7,8 @@ import { PAGINA_VACIA, Pagina } from '../../../../compartido/dominio/pagina.mode
 import { mensajeError } from '../../../../compartido/infraestructura/http/error.interceptor';
 import { SesionStore } from '../../../iam/aplicacion/sesion.store';
 import { OrganizacionFacade } from '../../../organizacion/aplicacion/organizacion.facade';
-import { Coordinacion, Laboratorio } from '../../../organizacion/dominio/estructura.model';
+import { Coordinacion } from '../../../organizacion/dominio/estructura.model';
+import { FiltroActivo } from '../../../../compartido/presentacion/barra-filtros/barra-filtros';
 import { ExportacionFacade } from '../../../reportes/aplicacion/exportacion.facade';
 import { FormatoExportacion } from '../../../reportes/dominio/puertos';
 import { InventarioFacade } from '../../aplicacion/inventario.facade';
@@ -56,18 +57,17 @@ export class Inventario {
 
   protected readonly pagina = signal<Pagina<EquipoResumen>>(PAGINA_VACIA);
   protected readonly categorias = signal<Categoria[]>([]);
-  protected readonly laboratorios = signal<Laboratorio[]>([]);
   protected readonly coordinaciones = signal<Coordinacion[]>([]);
   /** RF-84: quién lleva equipos en esta coordinación, y cuántos lleva cada uno. */
   protected readonly responsablesEquipo = signal<ResponsableEquipo[]>([]);
   protected readonly cargando = signal(false);
   protected readonly exportando = signal(false);
 
-  protected readonly pestanaActiva = signal<PestanaCondicion>(PESTANAS_INVENTARIO[0]);
+  /** Estado elegido en el panel de filtros; filtra cuando se aplica. */
+  protected estadoElegido: PestanaCondicion = PESTANAS_INVENTARIO[0];
 
   protected texto = '';
   protected categoriaId: number | null = null;
-  protected laboratorioId: number | null = null;
   protected coordinacionElegida: number | null = null;
   /**
    * RF-84: el listado por responsable de equipo.
@@ -81,6 +81,17 @@ export class Inventario {
    * {@code null}.</p>
    */
   protected responsableEquipoElegido: number | 'responsable' | null = null;
+
+  /**
+   * Lo que filtra la tabla. Los campos del panel son un borrador hasta que se
+   * pulsa Aplicar: la paginación, el orden y la exportación usan esto y no lo
+   * que se esté tocando con el panel abierto.
+   */
+  private aplicados: {
+    categoriaId: number | null;
+    estado: PestanaCondicion;
+    responsable: number | 'responsable' | null;
+  } = { categoriaId: null, estado: PESTANAS_INVENTARIO[0], responsable: null };
   protected numeroPagina = 0;
   protected tamano = 10;
   protected ordenarPor = 'nombre';
@@ -112,6 +123,15 @@ export class Inventario {
       this.cargarResponsablesEquipo();
     });
 
+    // El panel enlaza aquí con la condición ya elegida ("?estado=mantenimiento").
+    const estadoDesdeRuta = PESTANAS_INVENTARIO.find(
+      (p) => p.clave === this.ruta.snapshot.queryParamMap.get('estado'),
+    );
+    if (estadoDesdeRuta) {
+      this.estadoElegido = estadoDesdeRuta;
+      this.aplicados.estado = estadoDesdeRuta;
+    }
+
     this.inventario.categoriasDisponibles(true).subscribe({
       next: (lista) => this.categorias.set(lista),
       error: () => this.categorias.set([]),
@@ -133,13 +153,10 @@ export class Inventario {
       return;
     }
 
-    const propia = this.sesion.coordinacionId();
-    if (propia) {
-      this.cargarLaboratorios(propia);
-    }
     // RF-84: "Mi equipo" enlaza aquí con el operador ya elegido, para que quien
     // venía preguntando qué lleva esa persona lo tenga delante al llegar.
     this.responsableEquipoElegido = this.responsableDesdeLaRuta();
+    this.aplicados.responsable = this.responsableEquipoElegido;
     this.cargarResponsablesEquipo();
     this.buscar();
   }
@@ -170,44 +187,21 @@ export class Inventario {
   // --------------------------------------------------------------- Consulta
 
   protected get filtro(): FiltroInventario {
-    const pestana = this.pestanaActiva();
-    const elegido = this.responsableEquipoElegido;
+    const pestana = this.aplicados.estado;
+    const elegido = this.aplicados.responsable;
     return {
       q: this.texto.trim() || undefined,
       // El cliente solo la envia si es Administrador; para el resto la deduce
       // el servidor del token (RF-37, RNF-10).
       coordinacionId: this.esAdmin() ? this.coordinacionElegida : null,
-      categoriaId: this.categoriaId,
-      laboratorioId: this.laboratorioId,
+      categoriaId: this.aplicados.categoriaId,
+      laboratorioId: null,
       condicion: pestana.condicion,
       todas: pestana.todas,
       // RF-84: "los del responsable" son los que no tienen operador asignado.
       responsableEquipoId: typeof elegido === 'number' ? elegido : null,
       sinResponsable: elegido === 'responsable',
     };
-  }
-
-  /** RF-84: la opción "Mis equipos" del desplegable, solo para quien opera. */
-  protected get miIdentificador(): number | null {
-    return this.esAdmin() ? null : (this.sesion.usuario()?.id ?? null);
-  }
-
-  /** RF-84: cuántos equipos lleva quien está mirando la pantalla. */
-  protected get misEquipos(): number {
-    const mio = this.miIdentificador;
-    if (!mio) {
-      return 0;
-    }
-    return this.responsablesEquipo().find((r) => r.usuarioId === mio)?.cantidad ?? 0;
-  }
-
-  /**
-   * Las opciones del desplegable, sin la propia: "Mis equipos" ya la ofrece
-   * arriba con su nombre, y repetirla haría dudar de si son la misma cosa.
-   */
-  protected get otrosResponsables(): ResponsableEquipo[] {
-    const mio = this.miIdentificador;
-    return this.responsablesEquipo().filter((r) => !mio || r.usuarioId !== mio);
   }
 
   /**
@@ -243,50 +237,74 @@ export class Inventario {
       });
   }
 
-  protected elegirPestana(pestana: PestanaCondicion): void {
-    this.pestanaActiva.set(pestana);
+  /** Buscar y Aplicar: el borrador del panel pasa a filtrar la tabla. */
+  protected aplicarFiltros(): void {
+    this.aplicados = {
+      categoriaId: this.categoriaId,
+      estado: this.estadoElegido,
+      responsable: this.responsableEquipoElegido,
+    };
     this.numeroPagina = 0;
     this.buscar();
   }
 
-  protected aplicarFiltros(): void {
-    this.numeroPagina = 0;
-    this.buscar();
+  /** El panel se cerró sin aplicar: los campos vuelven a lo que filtra. */
+  protected descartarFiltros(): void {
+    this.categoriaId = this.aplicados.categoriaId;
+    this.estadoElegido = this.aplicados.estado;
+    this.responsableEquipoElegido = this.aplicados.responsable;
   }
 
   protected limpiarFiltros(): void {
     this.texto = '';
     this.categoriaId = null;
-    this.laboratorioId = null;
     this.responsableEquipoElegido = null;
+    this.estadoElegido = PESTANAS_INVENTARIO[0];
     this.aplicarFiltros();
   }
 
+  /** El aspa de un indicador quita ese filtro y deja los demás como estaban. */
+  protected quitarFiltro(clave: string): void {
+    this.descartarFiltros();
+    if (clave === 'categoria') {
+      this.categoriaId = null;
+    } else if (clave === 'estado') {
+      this.estadoElegido = PESTANAS_INVENTARIO[0];
+    } else if (clave === 'responsable') {
+      this.responsableEquipoElegido = null;
+    }
+    this.aplicarFiltros();
+  }
+
+  /** Indicadores de lo aplicado, visibles también con el panel cerrado. */
+  protected get filtrosActivos(): FiltroActivo[] {
+    const activos: FiltroActivo[] = [];
+    const { categoriaId, estado, responsable } = this.aplicados;
+    if (categoriaId !== null) {
+      const categoria = this.categorias().find((c) => c.id === categoriaId);
+      activos.push({ clave: 'categoria', etiqueta: 'Categoría', valor: categoria?.nombre ?? '—' });
+    }
+    if (!estado.todas) {
+      activos.push({ clave: 'estado', etiqueta: 'Estado', valor: estado.etiqueta });
+    }
+    if (responsable !== null) {
+      activos.push({
+        clave: 'responsable',
+        etiqueta: 'Responsable',
+        valor: this.responsableElegidoNombre || '—',
+      });
+    }
+    return activos;
+  }
+
   protected cambiarCoordinacion(): void {
-    this.laboratorioId = null;
-    this.laboratorios.set([]);
     // RF-84: el reparto es de cada coordinación; el operador de una no figura
     // en el inventario de otra, y arrastrar la elección dejaría el listado
     // filtrado por alguien que no sale en la lista (RN-23).
     this.responsableEquipoElegido = null;
-    if (this.coordinacionElegida) {
-      this.cargarLaboratorios(this.coordinacionElegida);
-    }
+    this.aplicados.responsable = null;
     this.cargarResponsablesEquipo();
     this.aplicarFiltros();
-  }
-
-  /** RF-84: atajo a los equipos de quien está mirando la pantalla. */
-  protected verMisEquipos(): void {
-    this.responsableEquipoElegido = this.miIdentificador;
-    this.aplicarFiltros();
-  }
-
-  private cargarLaboratorios(coordinacionId: number): void {
-    this.organizacion.listarLaboratorios(coordinacionId, true).subscribe({
-      next: (lista) => this.laboratorios.set(lista),
-      error: () => this.laboratorios.set([]),
-    });
   }
 
   /** RF-50: el listado es ordenable por columna. */
@@ -314,9 +332,9 @@ export class Inventario {
   protected get hayFiltros(): boolean {
     return (
       !!this.texto.trim() ||
-      this.categoriaId !== null ||
-      this.laboratorioId !== null ||
-      this.responsableEquipoElegido !== null
+      this.aplicados.categoriaId !== null ||
+      !this.aplicados.estado.todas ||
+      this.aplicados.responsable !== null
     );
   }
 
@@ -345,13 +363,13 @@ export class Inventario {
       );
     }
     return this.hayFiltros
-      ? 'Pruebe a limpiar los filtros o a cambiar de pestaña.'
-      : `La pestaña ${this.pestanaActiva().etiqueta} no tiene equipos en este momento.`;
+      ? 'Pruebe a limpiar los filtros o a elegir otro estado.'
+      : `No hay equipos con el estado ${this.aplicados.estado.etiqueta} en este momento.`;
   }
 
   /** El nombre de la vista en curso, para el estado vacío y la cabecera. */
   protected get responsableElegidoNombre(): string {
-    const elegido = this.responsableEquipoElegido;
+    const elegido = this.aplicados.responsable;
     if (elegido === null) {
       return '';
     }
@@ -381,7 +399,24 @@ export class Inventario {
 
   // ------------------------------------------------------------- Exportacion
 
+  /** RF-52: menu del boton "Exportar", con Excel, CSV y PDF. */
+  protected readonly menuExportar = signal(false);
+
+  protected alternarMenuExportar(evento: Event): void {
+    // Sin esto el mismo clic llega al documento y cierra el menu al abrirlo.
+    evento.stopPropagation();
+    this.menuExportar.update((abierto) => !abierto);
+  }
+
+  /** El menu se cierra al pulsar fuera de el o con Escape (RNF-32). */
+  @HostListener('document:click')
+  @HostListener('document:keydown.escape')
+  protected cerrarMenuExportar(): void {
+    this.menuExportar.set(false);
+  }
+
   protected exportar(formato: FormatoExportacion): void {
+    this.menuExportar.set(false);
     if (this.faltaElegirCoordinacion()) {
       this.notificaciones.alerta('Elija primero la coordinación que desea exportar.');
       return;

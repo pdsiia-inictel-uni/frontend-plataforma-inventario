@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, Validators } from '@angular/forms';
 
 import { NotificacionStore } from '../../../../compartido/aplicacion/notificacion.store';
@@ -8,8 +8,13 @@ import { SesionStore } from '../../aplicacion/sesion.store';
 import { coordinacionDe } from '../../dominio/usuario.model';
 
 /**
- * Datos de la cuenta propia: cambio de nombre de usuario / correo y de la
- * contrasena (RF-01, RF-05, RNF-05).
+ * Mi cuenta: los datos de la persona y de su acceso, y el cambio de la propia
+ * contrasena (RF-05, RF-06, RF-21c, RNF-05).
+ *
+ * <p>Todo lo que se ve es de lectura salvo la contrasena. El nombre, el DNI, el
+ * nombre de usuario y el correo institucional los modifica quien gestiona la
+ * cuenta: el Administrador, o el Responsable si es la de uno de sus
+ * operadores. La contrasena la cambia cada uno, en una ventana aparte.</p>
  */
 @Component({
   selector: 'app-perfil',
@@ -22,23 +27,29 @@ export class Perfil implements OnInit {
   private readonly notificaciones = inject(NotificacionStore);
 
   protected readonly usuario = this.sesion.usuario;
+  /** El Administrador no ve titulo ni descripcion de pagina. */
+  protected readonly esAdmin = this.sesion.esAdmin;
 
   /** RN-05: cada persona pertenece a una sola coordinacion. */
   protected get nombreDeSuCoordinacion(): string {
     return coordinacionDe(this.usuario()!);
   }
 
-  protected readonly guardandoCuenta = signal(false);
-  protected readonly guardandoPassword = signal(false);
-  protected readonly erroresCuenta = signal<Record<string, string>>({});
-  protected readonly erroresPassword = signal<Record<string, string>>({});
+  /** RF-21, RF-29: quién puede corregir estos datos depende del rol de la cuenta. */
+  protected get quienModifica(): string {
+    return this.usuario()?.rol === 'OPERADOR'
+      ? 'Sus datos personales, su nombre de usuario y su correo institucional solo pueden ' +
+          'modificarlos el Responsable de su coordinación o un Administrador.'
+      : 'Sus datos personales, su nombre de usuario y su correo institucional solo puede ' +
+          'modificarlos un Administrador.';
+  }
 
-  protected readonly formCuenta = this.fb.nonNullable.group({
-    username: ['', [Validators.required, Validators.minLength(4), Validators.maxLength(50),
-      Validators.pattern(/^[a-zA-Z0-9._-]+$/)]],
-    correo: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
-    passwordActual: ['', [Validators.required]],
-  });
+  protected readonly cambiandoPassword = signal(false);
+  protected readonly guardandoPassword = signal(false);
+  protected readonly erroresPassword = signal<Record<string, string>>({});
+  protected verActual = false;
+  protected verNueva = false;
+  protected verConfirmacion = false;
 
   protected readonly formPassword = this.fb.nonNullable.group(
     {
@@ -50,44 +61,24 @@ export class Perfil implements OnInit {
   );
 
   ngOnInit(): void {
-    const u = this.usuario();
-    if (u) {
-      this.formCuenta.patchValue({ username: u.username, correo: u.correo });
-    }
-    // Mantiene los datos sincronizados con el servidor al entrar a la pantalla.
-    this.sesion.refrescarPerfil().subscribe({
-      next: (perfil) => this.formCuenta.patchValue({ username: perfil.username, correo: perfil.correo }),
-      error: () => undefined,
-    });
+    // Los datos pueden haberlos corregido el Administrador o el Responsable
+    // desde otra sesion: se piden de nuevo al entrar a la pantalla.
+    this.sesion.refrescarPerfil().subscribe({ error: () => undefined });
   }
 
-  protected guardarCuenta(): void {
-    this.erroresCuenta.set({});
-    if (this.formCuenta.invalid) {
-      this.formCuenta.markAllAsTouched();
+  protected abrirCambioPassword(): void {
+    this.reiniciarFormulario();
+    this.cambiandoPassword.set(true);
+  }
+
+  /** Cancelar, el aspa, pulsar fuera o Escape: lo tecleado no se conserva. */
+  @HostListener('document:keydown.escape')
+  protected cerrarCambioPassword(): void {
+    if (this.guardandoPassword()) {
       return;
     }
-
-    const valores = this.formCuenta.getRawValue();
-    this.guardandoCuenta.set(true);
-    this.sesion
-      .cambiarCredenciales({
-        username: valores.username.trim(),
-        correo: valores.correo.trim(),
-        passwordActual: valores.passwordActual,
-      })
-      .subscribe({
-        next: () => {
-          this.guardandoCuenta.set(false);
-          this.formCuenta.controls.passwordActual.reset('');
-          this.notificaciones.exito('Sus datos de acceso se actualizaron.');
-        },
-        error: (err) => {
-          this.guardandoCuenta.set(false);
-          this.erroresCuenta.set(erroresDeCampo(err));
-          this.notificaciones.error(mensajeError(err, 'No se pudieron actualizar sus datos.'));
-        },
-      });
+    this.cambiandoPassword.set(false);
+    this.reiniciarFormulario();
   }
 
   protected guardarPassword(): void {
@@ -101,8 +92,9 @@ export class Perfil implements OnInit {
     this.sesion.cambiarPassword(this.formPassword.getRawValue()).subscribe({
       next: () => {
         this.guardandoPassword.set(false);
-        this.formPassword.reset({ passwordActual: '', passwordNueva: '', confirmacion: '' });
-        this.notificaciones.exito('Su contraseña se actualizo correctamente.');
+        this.cambiandoPassword.set(false);
+        this.reiniciarFormulario();
+        this.notificaciones.exito('Su contraseña se actualizó correctamente.');
       },
       error: (err) => {
         this.guardandoPassword.set(false);
@@ -112,12 +104,12 @@ export class Perfil implements OnInit {
     });
   }
 
-  protected invalidoCuenta(campo: string): boolean {
-    const control = this.formCuenta.get(campo);
-    if (!control) {
-      return false;
-    }
-    return (control.invalid || !!this.erroresCuenta()[campo]) && (control.touched || control.dirty);
+  private reiniciarFormulario(): void {
+    this.formPassword.reset({ passwordActual: '', passwordNueva: '', confirmacion: '' });
+    this.erroresPassword.set({});
+    this.verActual = false;
+    this.verNueva = false;
+    this.verConfirmacion = false;
   }
 
   protected invalidoPassword(campo: string): boolean {
@@ -128,36 +120,23 @@ export class Perfil implements OnInit {
     return (control.invalid || !!this.erroresPassword()[campo]) && (control.touched || control.dirty);
   }
 
-  protected mensajeCuenta(campo: string): string {
-    return this.mensaje(this.formCuenta.get(campo), this.erroresCuenta()[campo], campo);
-  }
-
   protected mensajePassword(campo: string): string {
-    return this.mensaje(this.formPassword.get(campo), this.erroresPassword()[campo], campo);
+    return this.mensaje(this.formPassword.get(campo), this.erroresPassword()[campo]);
   }
 
   protected get noCoinciden(): boolean {
     return this.formPassword.hasError('noCoinciden') && this.formPassword.controls.confirmacion.touched;
   }
 
-  private mensaje(control: AbstractControl | null, delServidor: string | undefined, campo: string): string {
+  private mensaje(control: AbstractControl | null, delServidor: string | undefined): string {
     if (delServidor) {
       return delServidor;
     }
     if (control?.hasError('required')) {
       return 'Este dato es obligatorio.';
     }
-    if (campo === 'username' && control?.hasError('pattern')) {
-      return 'Solo se admiten letras, numeros, punto, guion y guion bajo.';
-    }
-    if (control?.hasError('minlength')) {
-      return 'Debe tener al menos 4 caracteres.';
-    }
-    if (control?.hasError('email')) {
-      return 'El correo institucional no tiene un formato valido.';
-    }
     if (control?.hasError('passwordSeguro')) {
-      return 'Mínimo 8 caracteres, con letras, numeros y al menos un caracter especial.';
+      return 'Mínimo 8 caracteres, con letras, números y al menos un carácter especial.';
     }
     return '';
   }

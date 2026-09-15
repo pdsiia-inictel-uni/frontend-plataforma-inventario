@@ -3,11 +3,15 @@
 } @else if (equipo(); as bien) {
   <div class="pagina-cabecera">
     <div>
-      <h1>{{ bien.nombre }}</h1>
-      <p class="descripcion">
-        {{ bien.marca }} {{ bien.modelo }} &middot; {{ bien.coordinacion }}
-      </p>
-      <div class="fila-acciones mt-1">
+      <!-- El Administrador no ve titulo ni descripcion de pagina; el nombre del
+           equipo lo lee en "Datos del equipo". La condicion se queda. -->
+      @if (!esAdmin()) {
+        <h1>{{ bien.nombre }}</h1>
+        <p class="descripcion">
+          {{ bien.marca }} {{ bien.modelo }} &middot; {{ bien.coordinacion }}
+        </p>
+      }
+      <div class="fila-acciones" [class.mt-1]="!esAdmin()">
         <app-condicion [condicion]="bien.condicion" />
         @if (bien.revisionPendiente) {
           <app-revision-pendiente />
@@ -28,7 +32,7 @@
              bien, y la propia ventana lo recuerda (RN-36, RF-79). -->
         <button type="button" class="btn btn-secundario" (click)="abrirFormatoDeUso()">
           <app-icono nombre="descargar" tamano="sm" />
-          <span>Registrar salida</span>
+          <span>Préstamo</span>
         </button>
       }
       @if (puedeMantenimiento) {
@@ -73,6 +77,10 @@
         </div>
         <div class="tarjeta-cuerpo">
           <div class="lista-datos">
+            @if (esAdmin()) {
+              <div class="dato"><div class="clave">Equipo</div><div class="valor">{{ bien.nombre }}</div></div>
+              <div class="dato"><div class="clave">Coordinación</div><div class="valor">{{ bien.coordinacion }}</div></div>
+            }
             <div class="dato"><div class="clave">Marca</div><div class="valor">{{ bien.marca }}</div></div>
             <div class="dato"><div class="clave">Modelo</div><div class="valor">{{ bien.modelo }}</div></div>
             <div class="dato"><div class="clave">Categoría</div><div class="valor">{{ bien.categoria || '—' }}</div></div>
@@ -141,31 +149,32 @@
               {{ historialPrestamos().length === 1 ? 'préstamo' : 'préstamos' }}
             </span>
           </div>
-          <div class="tabla-contenedor">
-            <table class="tabla">
+          <!-- tabla-tarjetas: en el telefono cada fila se lee como tarjeta. -->
+          <div class="tabla-contenedor tabla-tarjetas">
+            <table class="tabla tabla-equilibrada">
               <thead>
                 <tr>
-                  <th>Persona</th>
-                  <th>Salida</th>
-                  <th>Devolución</th>
-                  <th>Situacion</th>
-                  <th class="celda-acciones">Acciones</th>
+                  <th class="col-principal">Persona</th>
+                  <th class="col-fecha-hora">Salida</th>
+                  <th class="col-fecha-hora">Devolución</th>
+                  <th class="col-estado">Situación</th>
+                  <th class="celda-acciones col-acciones">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 @for (prestamo of historialPrestamos(); track prestamo.id) {
                   <tr [class.fila-vencida]="prestamo.vencido">
                     <td>
-                      <div>{{ prestamo.nombrePersona }}</div>
+                      <div class="truncar" [title]="prestamo.nombrePersona">{{ prestamo.nombrePersona }}</div>
                       <div class="texto-secundario texto-pequeno texto-mono">{{ prestamo.dniPersona }}</div>
                     </td>
-                    <td>{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td>
+                    <td data-etiqueta="Salida">{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td data-etiqueta="Devolución">
                       {{ prestamo.fechaDevolucion
                         ? (prestamo.fechaDevolucion | date: 'dd/MM/yyyy HH:mm')
                         : 'Pendiente' }}
                     </td>
-                    <td>
+                    <td data-etiqueta="Situación">
                       <span
                         class="insignia"
                         [class.insignia-prestado]="prestamo.estado === 'ACTIVO' && !prestamo.vencido"
@@ -369,7 +378,7 @@
   <app-confirmacion
     [titulo]="tituloAccion"
     [mensaje]="mensajeAccion"
-    detalle="Esta accion queda registrada a su nombre en el historial del equipo."
+    detalle="Esta acción queda registrada a su nombre en el historial del equipo."
     [peligrosa]="accionEsPeligrosa"
     [procesando]="procesando()"
     [requiereMotivo]="true"

@@ -17,13 +17,13 @@ import { SesionStore } from '../../contextos/iam/aplicacion/sesion.store';
     <div class="pantalla-mensaje">
       <div class="caja-mensaje">
         <div class="codigo-error">404</div>
-        <h1>Pagina no encontrada</h1>
+        <h1>Página no encontrada</h1>
         <p class="texto-secundario">
-          La direccion que abrio no corresponde a ninguna pantalla del sistema. Puede que el
+          La dirección que abrió no corresponde a ninguna pantalla del sistema. Puede que el
           enlace sea antiguo o que tenga un error de escritura.
         </p>
         <a class="btn btn-primario" [routerLink]="destino()">{{ textoBoton() }}</a>
-        <div class="pie-mensaje">{{ entorno.institucion }} &middot; {{ entorno.nombreSistema }}</div>
+        <div class="pie-mensaje">{{ entorno.credito }} &middot; {{ entorno.nombreSistema }}</div>
       </div>
     </div>
   `,

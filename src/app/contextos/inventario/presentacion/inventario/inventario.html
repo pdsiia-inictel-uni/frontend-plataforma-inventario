@@ -1,89 +1,25 @@
-<div class="pagina-cabecera">
-  <div>
-    <h1>Inventario</h1>
-    <p class="descripcion">
-      @if (esAdmin()) {
-        Consulta de los equipos de cada coordinación. El Administrador no registra ni modifica bienes.
-      } @else {
-        Equipos a cargo de su coordinación.
-      }
-    </p>
-  </div>
-  <div class="acciones-cabecera">
-    <!-- RF-84: el atajo que responde a "¿qué tengo yo a mi cargo?". Es la
-         pregunta que trae aquí a un operador, y merece un botón y no solo una
-         opción escondida en un desplegable (RNF-22). -->
-    @if (miIdentificador) {
-      <button type="button" class="btn btn-secundario" (click)="verMisEquipos()">
-        <app-icono nombre="ver" tamano="sm" />
-        <span>Mis equipos ({{ misEquipos }})</span>
-      </button>
-    }
-    @if (esAdmin()) {
-      <!-- RF-31: el catalogo de categorias se administra desde aqui, que es
-           donde se usa y donde se echa en falta al registrar un equipo. -->
-      <button type="button" class="btn btn-secundario" (click)="gestionarCategorias()">
-        <app-icono nombre="categorias" tamano="sm" />
-        <span>Gestionar categorías</span>
-      </button>
-    }
-    <button
-      type="button"
-      class="btn btn-secundario"
-      [disabled]="exportando()"
-      (click)="exportar('xlsx')">
-      <app-icono nombre="descargar" tamano="sm" />
-      <span>Excel</span>
-    </button>
-    <button
-      type="button"
-      class="btn btn-secundario"
-      [disabled]="exportando()"
-      (click)="exportar('csv')">
-      <app-icono nombre="descargar" tamano="sm" />
-      <span>CSV</span>
-    </button>
-    <button
-      type="button"
-      class="btn btn-secundario"
-      [disabled]="exportando()"
-      (click)="exportar('pdf')">
-      <app-icono nombre="descargar" tamano="sm" />
-      <span>PDF</span>
-    </button>
-    @if (esOperativo()) {
-      <!-- RNF-27: la accion principal, siempre en la misma posicion. -->
-      <button type="button" class="btn btn-primario" (click)="registrarBien()">
-        <app-icono nombre="agregar" tamano="sm" />
-        <span>Nuevo equipo</span>
-      </button>
-    }
-  </div>
-</div>
+<!-- Sin titulo ni descripcion de pagina, para ningun rol: la barra superior dice
+     donde se trabaja y el menu, en que pantalla.
 
+     Una sola fila de consulta: a la izquierda la busqueda, que es lo que mas se
+     usa, y el boton "Filtros"; a la derecha Exportar y la accion principal. Los
+     filtros secundarios se despliegan debajo y, cerrados, no ocupan sitio; lo
+     aplicado queda a la vista en indicadores que se quitan uno a uno. -->
 <div class="tarjeta">
-  <!-- RF-47: pestanas de condicion; "Todos" es la primera y viene activa al
-       entrar, de modo que la pantalla no empieza escondiendo nada (v3.9). -->
-  <div class="pestanas" role="tablist">
-    @for (pestana of pestanas; track pestana.clave) {
-      <button
-        type="button"
-        class="pestana"
-        role="tab"
-        [class.activa]="pestanaActiva().clave === pestana.clave"
-        [attr.aria-selected]="pestanaActiva().clave === pestana.clave"
-        (click)="elegirPestana(pestana)">
-        {{ pestana.etiqueta }}
-      </button>
-    }
-  </div>
-
-  <div class="filtros">
-    @if (esAdmin()) {
-      <div class="campo">
-        <label for="inv-coordinacion">Coordinación<span class="obligatorio">*</span></label>
+  <app-barra-filtros
+    [activos]="filtrosActivos"
+    (aplicado)="aplicarFiltros()"
+    (limpiado)="limpiarFiltros()"
+    (descartado)="descartarFiltros()"
+    (quitado)="quitarFiltro($event)">
+    <div barraBusqueda class="busqueda-principal">
+      @if (esAdmin()) {
+        <!-- RF-49: sin coordinacion no hay inventario que mostrar, asi que su
+             selector no es un filtro secundario y queda a la vista. -->
         <select
           id="inv-coordinacion"
+          class="selector-ambito"
+          aria-label="Coordinación"
           [(ngModel)]="coordinacionElegida"
           (ngModelChange)="cambiarCoordinacion()">
           <option [ngValue]="null">Seleccione una coordinación</option>
@@ -91,22 +27,69 @@
             <option [ngValue]="c.id">{{ c.nombre }} - {{ c.direccionNombre }}</option>
           }
         </select>
-      </div>
-    }
-
-    <div class="campo">
-      <label for="inv-buscar">Buscar</label>
+      }
       <input
         id="inv-buscar"
         type="search"
+        aria-label="Buscar equipos"
         [(ngModel)]="texto"
         (keyup.enter)="aplicarFiltros()"
-        placeholder="Nombre, marca, modelo, serie o código" />
+        placeholder="Buscar por nombre, marca, modelo, serie o código" />
+      <button type="button" class="btn btn-secundario" (click)="aplicarFiltros()">
+        <app-icono nombre="buscar" tamano="sm" />
+        <span>Buscar</span>
+      </button>
     </div>
 
+    <div barraAcciones class="acciones-cabecera">
+      @if (esAdmin()) {
+        <!-- RF-31: el catalogo de categorias se administra desde aqui, que es
+             donde se usa y donde se echa en falta al registrar un equipo. -->
+        <button type="button" class="btn btn-secundario" (click)="gestionarCategorias()">
+          <app-icono nombre="categorias" tamano="sm" />
+          <span>Gestionar categorías</span>
+        </button>
+      }
+      <!-- RF-52: un solo boton "Exportar" con los tres formatos dentro. -->
+      <div class="menu-exportar">
+        <button
+          type="button"
+          class="btn btn-secundario"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="menuExportar()"
+          aria-controls="menu-exportar-opciones"
+          [disabled]="exportando()"
+          (click)="alternarMenuExportar($event)">
+          <app-icono nombre="descargar" tamano="sm" />
+          <span>{{ exportando() ? 'Exportando...' : 'Exportar' }}</span>
+        </button>
+        @if (menuExportar()) {
+          <div id="menu-exportar-opciones" class="menu-desplegable" role="menu">
+            <button type="button" class="menu-opcion" role="menuitem" (click)="exportar('xlsx')">
+              Excel <span class="menu-opcion-extension">.xlsx</span>
+            </button>
+            <button type="button" class="menu-opcion" role="menuitem" (click)="exportar('csv')">
+              CSV <span class="menu-opcion-extension">.csv</span>
+            </button>
+            <button type="button" class="menu-opcion" role="menuitem" (click)="exportar('pdf')">
+              PDF <span class="menu-opcion-extension">.pdf</span>
+            </button>
+          </div>
+        }
+      </div>
+      @if (esOperativo()) {
+        <!-- RNF-27: la accion principal, siempre en la misma posicion. -->
+        <button type="button" class="btn btn-primario" (click)="registrarBien()">
+          <app-icono nombre="agregar" tamano="sm" />
+          <span>Nuevo equipo</span>
+        </button>
+      }
+    </div>
+
+    <!-- Panel de filtros: borrador hasta pulsar Aplicar. -->
     <div class="campo">
       <label for="inv-categoria">Categoría</label>
-      <select id="inv-categoria" [(ngModel)]="categoriaId" (ngModelChange)="aplicarFiltros()">
+      <select id="inv-categoria" [(ngModel)]="categoriaId">
         <option [ngValue]="null">Todas</option>
         @for (categoria of categorias(); track categoria.id) {
           <option [ngValue]="categoria.id">{{ categoria.nombre }}</option>
@@ -114,59 +97,38 @@
       </select>
     </div>
 
+    <!-- RF-47: "Todos" es la opcion de partida, de modo que la pantalla no
+         empieza escondiendo nada. -->
     <div class="campo">
-      <label for="inv-laboratorio">Laboratorio</label>
-      <select id="inv-laboratorio" [(ngModel)]="laboratorioId" (ngModelChange)="aplicarFiltros()">
-        <option [ngValue]="null">Todos</option>
-        @for (lab of laboratorios(); track lab.id) {
-          <option [ngValue]="lab.id">{{ lab.nombre }}</option>
+      <label for="inv-estado">Estado</label>
+      <select id="inv-estado" [(ngModel)]="estadoElegido">
+        @for (pestana of pestanas; track pestana.clave) {
+          <option [ngValue]="pestana">{{ pestana.etiqueta }}</option>
         }
       </select>
     </div>
 
-    <!-- RF-84: el listado por responsable de equipo. Cada opción viene con su
-         recuento, de modo que se ve el reparto antes de elegir y nadie acaba en
-         una lista vacía por haber elegido a ciegas (RNF-23). -->
+    <!-- RF-84: solo los nombres de quienes llevan equipos en la coordinacion. -->
     <div class="campo">
       <label for="inv-responsable">Responsable de equipo</label>
-      <select
-        id="inv-responsable"
-        [(ngModel)]="responsableEquipoElegido"
-        (ngModelChange)="aplicarFiltros()">
+      <select id="inv-responsable" [(ngModel)]="responsableEquipoElegido">
         <option [ngValue]="null">Todos</option>
-        @if (miIdentificador) {
-          <option [ngValue]="miIdentificador">Mis equipos ({{ misEquipos }})</option>
-        }
-        @for (persona of otrosResponsables; track persona.usuarioId ?? 0) {
-          @if (persona.esResponsableCoordinacion) {
-            <!-- RN-37: los que no están asignados a ningún operador los lleva el
-                 Responsable, que es lo que significa no tener asignación. -->
-            <option [ngValue]="'responsable'">
-              {{ persona.nombreCompleto }} — responsable ({{ persona.cantidad }})
-            </option>
-          } @else {
-            <option [ngValue]="persona.usuarioId">
-              {{ persona.nombreCompleto }} ({{ persona.cantidad }})
-            </option>
-          }
+        @for (persona of responsablesEquipo(); track persona.usuarioId ?? 0) {
+          <!-- RN-37: los que no están asignados a ningún operador los lleva el
+               Responsable; por eso su opción filtra por "sin asignar". -->
+          <option [ngValue]="persona.esResponsableCoordinacion ? 'responsable' : persona.usuarioId">
+            {{ persona.nombreCompleto }}
+          </option>
         }
       </select>
     </div>
-
-    <div class="filtros-acciones">
-      <button type="button" class="btn btn-secundario" (click)="aplicarFiltros()">
-        <app-icono nombre="buscar" tamano="sm" />
-        <span>Buscar</span>
-      </button>
-      <button type="button" class="btn btn-secundario" (click)="limpiarFiltros()">Limpiar</button>
-    </div>
-  </div>
+  </app-barra-filtros>
 
   @if (faltaElegirCoordinacion()) {
     <app-estado-vacio
       icono="estructura"
       titulo="Elija una coordinación"
-      mensaje="Cada coordinacion administra su propio inventario. Seleccione arriba cual desea
+      mensaje="Cada coordinación administra su propio inventario. Seleccione arriba cuál desea
                consultar." />
   } @else if (cargando()) {
     <div class="cargando"><span class="girador"></span> Cargando el inventario...</div>
@@ -186,35 +148,37 @@
     <!-- tabla-tarjetas: bajo 900px cada fila se muestra como tarjeta y cada
          celda toma su rotulo de data-etiqueta (ver styles.css). -->
     <div class="tabla-contenedor tabla-tarjetas">
-      <table class="tabla">
+      <table class="tabla tabla-equilibrada">
         <thead>
           <tr>
-            <th class="ordenable" (click)="ordenarPorColumna('nombre')">Equipo</th>
+            <th class="ordenable col-principal" (click)="ordenarPorColumna('nombre')">Equipo</th>
             <!-- RF-47b: la fila se identifica por el código de inventario y nada
                  más. La categoría, el laboratorio y la fecha de adquisición se
                  leen en la ficha; en la tabla estrechaban las columnas que sí
                  se buscan de un vistazo. Los dos filtros siguen arriba. -->
-            <th class="ordenable" (click)="ordenarPorColumna('codigoInventario')">Códigos</th>
+            <th class="ordenable col-codigos" (click)="ordenarPorColumna('codigoInventario')">Códigos</th>
             <!-- RF-83, RF-84: de quién es cada equipo. Con esta columna el
                  listado deja de ser un catálogo y pasa a ser un reparto. -->
-            <th>A cargo de</th>
-            <th>Condición</th>
-            <th class="celda-acciones">Acciones</th>
+            <th class="col-persona">A cargo de</th>
+            <th class="col-estado">Condición</th>
+            <th class="celda-acciones col-acciones">Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (equipo of pagina().contenido; track equipo.id) {
             <tr [class.fila-baja]="equipo.condicion === 'BAJA'">
               <td class="celda-principal">
-                <div><strong>{{ equipo.nombre }}</strong></div>
-                <div class="texto-secundario texto-pequeno">
+                <!-- Truncado con su texto completo en el titulo: un nombre largo
+                     no ensancha la columna ni empuja a las demas. -->
+                <div class="truncar" [title]="equipo.nombre"><strong>{{ equipo.nombre }}</strong></div>
+                <div class="texto-secundario texto-pequeno truncar" [title]="equipo.marca + ' ' + equipo.modelo">
                   {{ equipo.marca }} {{ equipo.modelo }}
                 </div>
               </td>
               <td class="texto-mono texto-pequeno celda-codigos" data-etiqueta="Códigos">
-                <div><span class="clave">Inv.</span> {{ equipo.codigoInventario }}</div>
-                <div class="texto-secundario">Pat. {{ equipo.codigoPatrimonial }}</div>
-                <div class="texto-secundario">Serie {{ equipo.numeroSerie }}</div>
+                <div class="truncar" [title]="'Inventario ' + equipo.codigoInventario"><span class="clave">Inv.</span> {{ equipo.codigoInventario }}</div>
+                <div class="texto-secundario truncar" [title]="'Patrimonial ' + equipo.codigoPatrimonial">Pat. {{ equipo.codigoPatrimonial }}</div>
+                <div class="texto-secundario truncar" [title]="'Serie ' + equipo.numeroSerie">Serie {{ equipo.numeroSerie }}</div>
               </td>
               <td data-etiqueta="A cargo de">
                 {{ equipo.responsableEquipo || '—' }}

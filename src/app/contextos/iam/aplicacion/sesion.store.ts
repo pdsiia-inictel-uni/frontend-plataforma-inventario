@@ -4,7 +4,6 @@ import { Observable, tap } from 'rxjs';
 
 import { AutenticacionPuerto } from '../dominio/puertos';
 import {
-  CambioCredencialesPeticion,
   CambioPasswordPeticion,
   LoginPeticion,
   PrimerIngresoPeticion,
@@ -41,6 +40,8 @@ export class SesionStore {
   /** Responsable y Operador: los dos roles que trabajan dentro del inventario. */
   readonly esOperativo = computed(() => this.esResponsable() || this.esOperador());
   readonly debeCambiarPassword = computed(() => this._usuario()?.debeCambiarPassword === true);
+  /** RF-06b: la cuenta inicial todavia debe declarar su identidad real. */
+  readonly debeCompletarIdentidad = computed(() => this._usuario()?.debeCompletarIdentidad === true);
 
   /**
    * RN-05: coordinacion asignada, si tiene alguna.
@@ -123,11 +124,6 @@ export class SesionStore {
     return this.autenticacion
       .completarPrimerIngreso(peticion)
       .pipe(tap((sesion) => this.guardarSesion(sesion)));
-  }
-
-  /** Cambio del propio nombre de usuario y correo institucional. */
-  cambiarCredenciales(peticion: CambioCredencialesPeticion): Observable<Sesion> {
-    return this.autenticacion.cambiarCredenciales(peticion).pipe(tap((sesion) => this.guardarSesion(sesion)));
   }
 
   refrescarPerfil(): Observable<Usuario> {

@@ -11,16 +11,12 @@ export interface Direccion {
   id: number;
   nombre: string;
   sigla?: string;
-  descripcion?: string;
-  activa: boolean;
-  fechaCreacion: string;
 }
 
-/** Alta y edicion de una direccion. */
+/** Correccion de los datos de una direccion. */
 export interface DireccionPeticion {
   nombre: string;
   sigla?: string | null;
-  descripcion?: string | null;
 }
 
 /**
@@ -35,7 +31,6 @@ export interface Coordinacion {
   direccionNombre: string;
   nombre: string;
   descripcion?: string;
-  activa: boolean;
   responsableId?: number;
   responsable?: string;
   operadores: number;
@@ -72,8 +67,14 @@ export interface Laboratorio {
   coordinacionId: number;
   nombre: string;
   ubicacion?: string;
-  activo: boolean;
+  /** Todos los bienes ubicados en el, dados de baja incluidos. */
   bienesUbicados: number;
+  /** Los que siguen en servicio: operativos, prestados y en mantenimiento. */
+  bienesVigentes: number;
+  bienesOperativos: number;
+  bienesPrestados: number;
+  bienesEnMantenimiento: number;
+  bienesDadosDeBaja: number;
 }
 
 /** Alta y edicion de un laboratorio. */

@@ -5,7 +5,7 @@
       @if (esEdicion()) {
         Los códigos y la condición del equipo se conservan en su historial.
       } @else {
-        Complete los datos del bien. Al terminar quedara en condición Operativo.
+        Complete los datos del bien. Al terminar quedará en condición Operativo.
       }
     </p>
   </div>
@@ -201,7 +201,7 @@
               <span class="error-campo">El costo no puede ser negativo.</span>
             } @else {
               <span class="ayuda-campo">
-                Valor de compra. Escriba el punto para los centimos: 18789.5 queda como 18,789.50.
+                Valor de compra. Escriba el punto para los céntimos: 18789.5 queda como 18,789.50.
               </span>
             }
           </div>
@@ -295,7 +295,7 @@
       @if (paso() > 0) {
         <button type="button" class="btn btn-secundario" (click)="anterior()">
           <app-icono nombre="atras" tamano="sm" />
-          <span>Atras</span>
+          <span>Atrás</span>
         </button>
       }
       @if (paso() < titulos.length - 1) {

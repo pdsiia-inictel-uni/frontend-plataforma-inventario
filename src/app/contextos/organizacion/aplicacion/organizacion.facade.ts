@@ -35,14 +35,14 @@ export class OrganizacionFacade {
   readonly coordinaciones = this._coordinaciones.asReadonly();
   private consulta?: Observable<Coordinacion[]>;
 
-  estructura(soloActivas = false): Observable<Estructura> {
-    return this.organizacion.estructura(soloActivas);
+  estructura(): Observable<Estructura> {
+    return this.organizacion.estructura();
   }
 
   // ------------------------------------------------------------ Direcciones
 
-  listarDirecciones(soloActivas = true): Observable<Direccion[]> {
-    return this.organizacion.listarDirecciones(soloActivas);
+  listarDirecciones(): Observable<Direccion[]> {
+    return this.organizacion.listarDirecciones();
   }
 
   editarDireccion(id: number, peticion: DireccionPeticion): Observable<Direccion> {
@@ -66,7 +66,7 @@ export class OrganizacionFacade {
    */
   coordinacionesDisponibles(): Observable<Coordinacion[]> {
     if (!this.consulta) {
-      this.consulta = this.organizacion.listarCoordinaciones(null, true).pipe(
+      this.consulta = this.organizacion.listarCoordinaciones(null).pipe(
         tap((lista) => this._coordinaciones.set(lista)),
         catchError((error: unknown) => {
           this.olvidarCoordinaciones();
@@ -104,14 +104,10 @@ export class OrganizacionFacade {
     return this.organizacion.editarCoordinacion(id, peticion).pipe(tap(() => this.olvidarCoordinaciones()));
   }
 
-  cambiarEstadoCoordinacion(id: number, activo: boolean): Observable<Coordinacion> {
-    return this.organizacion.cambiarEstadoCoordinacion(id, activo).pipe(tap(() => this.olvidarCoordinaciones()));
-  }
-
   // ----------------------------------------------------------- Laboratorios
 
-  listarLaboratorios(coordinacionId: number, soloActivos = true): Observable<Laboratorio[]> {
-    return this.organizacion.listarLaboratorios(coordinacionId, soloActivos);
+  listarLaboratorios(coordinacionId: number): Observable<Laboratorio[]> {
+    return this.organizacion.listarLaboratorios(coordinacionId);
   }
 
   crearLaboratorio(peticion: LaboratorioPeticion): Observable<Laboratorio> {
@@ -120,10 +116,6 @@ export class OrganizacionFacade {
 
   editarLaboratorio(id: number, peticion: LaboratorioPeticion): Observable<Laboratorio> {
     return this.organizacion.editarLaboratorio(id, peticion);
-  }
-
-  cambiarEstadoLaboratorio(id: number, activo: boolean): Observable<Laboratorio> {
-    return this.organizacion.cambiarEstadoLaboratorio(id, activo);
   }
 
   /** Invalida la memoria tras un cambio en la estructura. */

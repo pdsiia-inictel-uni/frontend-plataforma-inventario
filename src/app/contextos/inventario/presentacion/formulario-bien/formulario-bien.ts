@@ -122,7 +122,7 @@ export class FormularioBien {
 
     const coordinacionId = this.sesion.coordinacionId();
     if (coordinacionId) {
-      this.organizacion.listarLaboratorios(coordinacionId, true).subscribe({
+      this.organizacion.listarLaboratorios(coordinacionId).subscribe({
         next: (lista) => this.laboratorios.set(lista),
         error: () => this.laboratorios.set([]),
       });
@@ -307,7 +307,7 @@ export class FormularioBien {
         this.notificaciones.exito(
           this.id
             ? `${equipo.nombre} se actualizo correctamente.`
-            : `Equipo registrado. Quedo en condicion ${equipo.condicionEtiqueta}.`,
+            : `Equipo registrado. Quedo en condición ${equipo.condicionEtiqueta}.`,
         );
         void this.router.navigate(['/inventario', equipo.id]);
       },
@@ -343,8 +343,8 @@ export class FormularioBien {
         this.guardando.set(false);
         this.notificaciones.exito(
           esEdicion
-            ? `${equipo.nombre} se actualizo, con su fotografia.`
-            : `Equipo registrado con su fotografia. Quedo en condicion ${equipo.condicionEtiqueta}.`,
+            ? `${equipo.nombre} se actualizo, con su fotografía.`
+            : `Equipo registrado con su fotografía. Quedo en condición ${equipo.condicionEtiqueta}.`,
         );
         void this.router.navigate(['/inventario', equipo.id]);
       },
@@ -352,10 +352,10 @@ export class FormularioBien {
         this.guardando.set(false);
         const salida = this.sesion.esResponsable()
           ? 'vuelva a intentarlo desde Editar.'
-          : 'pidasela al responsable de su coordinacion, que es quien la adjunta despues del alta.';
+          : 'pidasela al responsable de su coordinación, que es quien la adjunta después del alta.';
         this.notificaciones.alerta(
           `${equipo.nombre} ${esEdicion ? 'se actualizo' : 'quedo registrado'}, pero la ` +
-            `fotografia no se pudo guardar: ` +
+            `fotografía no se pudo guardar: ` +
             `${mensajeError(error, salida)}`,
         );
         void this.router.navigate(['/inventario', equipo.id]);

@@ -17,12 +17,14 @@ type CampoIdentidad = 'nombres' | 'primerApellido' | 'segundoApellido' | 'dni';
  * <p>Todo usuario debe definir su contrasena antes de operar: la que trae es
  * la que le entrego el Administrador (o la de la cuenta inicial del sistema).</p>
  *
- * <p>El Administrador ademas confirma quien es. La cuenta inicial nace con un
+ * <p>La cuenta administradora inicial ademas confirma quien es. Nace con un
  * nombre y un DNI de relleno, y el sistema identifica a las personas por su
  * DNI: dejarlos como estan seria arrancar con una identidad falsa. Por eso a
- * el se le presenta en dos pasos —primero quien es, luego su contrasena— y a
- * los demas, que llegan con sus datos ya cargados por quien los dio de alta,
- * un solo formulario.</p>
+ * ella se le presenta en dos pasos —primero quien es, luego su contrasena— y a
+ * todos los demas, que llegan con sus datos ya cargados por quien los dio de
+ * alta, un solo formulario. Eso incluye a cualquier otro Administrador: lo
+ * registro una persona con su nombre y su DNI reales, igual que a los demas
+ * roles. Lo decide el servidor (debeCompletarIdentidad), no el rol.</p>
  *
  * <p>Su nombre se pide entero, segundo apellido incluido: es la identidad con
  * la que queda registrada la primera persona del sistema. El cargo no se
@@ -42,7 +44,8 @@ export class CambiarPassword {
 
   protected readonly entorno = environment;
   protected readonly usuario = this.sesion.usuario;
-  protected readonly esAdmin = this.sesion.esAdmin;
+  /** RF-06b: solo la cuenta inicial con datos de relleno pasa por "Sus datos". */
+  protected readonly pideIdentidad = this.sesion.debeCompletarIdentidad;
 
   protected readonly titulos = ['Sus datos', 'Su contraseña'];
   protected readonly paso = signal(0);
@@ -51,7 +54,7 @@ export class CambiarPassword {
   protected readonly error = signal<string | null>(null);
   protected readonly erroresServidor = signal<Record<string, string>>({});
 
-  /** RF-06b: solo lo completa el Administrador de la cuenta inicial. */
+  /** RF-06b: solo lo completa la cuenta administradora inicial. */
   protected readonly formIdentidad = this.fb.nonNullable.group({
     nombres: ['', [Validators.required, Validators.maxLength(100)]],
     primerApellido: ['', [Validators.required, Validators.maxLength(100)]],
@@ -68,8 +71,8 @@ export class CambiarPassword {
     { validators: [coincidenPasswords] },
   );
 
-  /** El paso de identidad solo existe para el Administrador. */
-  protected readonly enPasoIdentidad = computed(() => this.esAdmin() && this.paso() === 0);
+  /** El paso de identidad solo existe para la cuenta inicial. */
+  protected readonly enPasoIdentidad = computed(() => this.pideIdentidad() && this.paso() === 0);
 
   /**
    * RNF-25: ver lo que se escribe, campo por campo.
@@ -106,7 +109,7 @@ export class CambiarPassword {
       this.formulario.markAllAsTouched();
       return;
     }
-    if (this.esAdmin() && this.formIdentidad.invalid) {
+    if (this.pideIdentidad() && this.formIdentidad.invalid) {
       this.formIdentidad.markAllAsTouched();
       this.paso.set(0);
       return;
@@ -114,11 +117,14 @@ export class CambiarPassword {
 
     this.enviando.set(true);
     const credenciales = this.formulario.getRawValue();
+    // Se toma antes de enviar: la sesion renovada ya no pide identidad, y el
+    // mensaje debe describir lo que se acaba de hacer.
+    const completaIdentidad = this.pideIdentidad();
 
     const alTerminar = () => {
       this.enviando.set(false);
       this.notificaciones.exito(
-        this.esAdmin()
+        completaIdentidad
           ? 'Sus datos y su contraseña quedaron registrados.'
           : 'Su contraseña se actualizo correctamente.',
       );
@@ -130,13 +136,13 @@ export class CambiarPassword {
       this.erroresServidor.set(campos);
       // El servidor puede rechazar un dato del primer paso (un DNI repetido):
       // volver al paso donde esta el error evita el mensaje que no se ve.
-      if (this.esAdmin() && this.tieneErrorDeIdentidad(campos)) {
+      if (this.pideIdentidad() && this.tieneErrorDeIdentidad(campos)) {
         this.paso.set(0);
       }
       this.error.set(mensajeError(err, 'No se pudo completar el ingreso.'));
     };
 
-    if (!this.esAdmin()) {
+    if (!this.pideIdentidad()) {
       this.sesion.cambiarPassword(credenciales).subscribe({ next: alTerminar, error: alFallar });
       return;
     }
@@ -174,7 +180,7 @@ export class CambiarPassword {
       return 'Este dato es obligatorio.';
     }
     if (control.hasError('passwordSeguro')) {
-      return 'Mínimo 8 caracteres, con letras, numeros y al menos un caracter especial.';
+      return 'Mínimo 8 caracteres, con letras, números y al menos un carácter especial.';
     }
     return '';
   }
@@ -194,7 +200,7 @@ export class CambiarPassword {
       return 'Este dato es obligatorio.';
     }
     if (control.hasError('pattern')) {
-      return 'El DNI debe tener exactamente 8 digitos numericos.';
+      return 'El DNI debe tener exactamente 8 dígitos numericos.';
     }
     if (control.hasError('maxlength')) {
       return 'El texto es demasiado largo.';
