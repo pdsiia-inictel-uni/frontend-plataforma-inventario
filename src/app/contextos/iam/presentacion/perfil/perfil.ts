@@ -27,8 +27,12 @@ export class Perfil implements OnInit {
   private readonly notificaciones = inject(NotificacionStore);
 
   protected readonly usuario = this.sesion.usuario;
-  /** El Administrador no ve titulo ni descripcion de pagina. */
-  protected readonly esAdmin = this.sesion.esAdmin;
+
+  /** Iniciales del nombre y del primer apellido, para el distintivo de la cabecera. */
+  protected get iniciales(): string {
+    const u = this.usuario();
+    return u ? `${u.nombres.trim().charAt(0)}${u.primerApellido.trim().charAt(0)}`.toUpperCase() : '';
+  }
 
   /** RN-05: cada persona pertenece a una sola coordinacion. */
   protected get nombreDeSuCoordinacion(): string {

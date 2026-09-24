@@ -71,12 +71,9 @@ export class InventarioFacade {
     return this.equipos.asignarResponsableDeEquipo(id, operadorId);
   }
 
-  darDeBaja(id: number, motivo: string): Observable<Equipo> {
-    return this.equipos.darDeBaja(id, motivo);
-  }
-
-  reincorporar(id: number, motivo: string): Observable<Equipo> {
-    return this.equipos.reincorporar(id, motivo);
+  /** RF-42: baja definitiva, sustentada con un PDF. */
+  darDeBaja(id: number, documento: File): Observable<Equipo> {
+    return this.equipos.darDeBaja(id, documento);
   }
 
   subirFoto(id: number, archivo: File): Observable<Equipo> {
@@ -84,6 +81,11 @@ export class InventarioFacade {
   }
 
   descargarFoto(ruta: string): Observable<Blob> {
+    return this.equipos.descargarFoto(ruta);
+  }
+
+  /** El PDF de la baja, protegido por JWT, para verlo en la ficha. */
+  descargarDocumento(ruta: string): Observable<Blob> {
     return this.equipos.descargarFoto(ruta);
   }
 

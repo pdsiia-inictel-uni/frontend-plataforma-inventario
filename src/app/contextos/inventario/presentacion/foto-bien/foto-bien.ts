@@ -31,6 +31,23 @@ import { Equipo } from '../../dominio/equipo.model';
   selector: 'app-foto-bien',
   standalone: false,
   template: `
+    @if (miniatura) {
+      <!-- Miniatura de la cabecera de la ficha: identifica el equipo de un
+           vistazo y se amplia al pulsarla. -->
+      @if (url(); as imagen) {
+        <button
+          type="button"
+          class="foto-miniatura"
+          [attr.aria-label]="'Ver más grande la fotografía de ' + equipo.nombre"
+          (click)="ampliar($event)">
+          <img [src]="imagen" [alt]="'Fotografía de ' + equipo.nombre" />
+        </button>
+      } @else {
+        <div class="foto-miniatura foto-miniatura-vacia" role="img" aria-label="Equipo sin fotografía">
+          <app-icono nombre="foto" tamano="lg" />
+        </div>
+      }
+    } @else {
     <div class="tarjeta">
       <div class="tarjeta-cabecera">
         <h2>Fotografía</h2>
@@ -65,6 +82,7 @@ import { Equipo } from '../../dominio/equipo.model';
         }
       </div>
     </div>
+    }
 
     @if (ampliada()) {
       @if (url(); as imagen) {
@@ -98,6 +116,8 @@ import { Equipo } from '../../dominio/equipo.model';
 })
 export class FotoBien implements OnChanges, OnDestroy {
   @Input({ required: true }) equipo!: Equipo;
+  /** Solo la imagen, pequeña y cuadrada: la cabecera de la ficha del equipo. */
+  @Input() miniatura = false;
 
   private readonly inventario = inject(InventarioFacade);
   private readonly sesion = inject(SesionStore);

@@ -189,7 +189,7 @@ export class FormularioBien {
           this.categoriaId !== null &&
           !!this.numeroSerie.trim() &&
           !!this.codigoInventario.trim() &&
-          !!this.codigoPatrimonial.trim()
+          this.patrimonialValido
         );
       // De donde viene, donde esta y que aspecto tiene. Lo unico obligatorio
       // es la adquisicion: laboratorio, observaciones y fotografia son
@@ -220,6 +220,22 @@ export class FormularioBien {
   /** RN-25: el costo no puede ser negativo. */
   protected get costoValido(): boolean {
     return this.costo !== null && this.costo >= 0;
+  }
+
+  /** El código patrimonial tiene exactamente 12 caracteres: letras y/o números. */
+  protected get patrimonialValido(): boolean {
+    return /^[A-Z0-9]{12}$/.test(this.codigoPatrimonial.trim());
+  }
+
+  /**
+   * Solo admite letras y números, en mayúsculas y como máximo doce: espacios,
+   * guiones y demás signos no llegan al campo.
+   */
+  protected alEscribirPatrimonial(evento: Event): void {
+    const campo = evento.target as HTMLInputElement;
+    const limpio = campo.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
+    campo.value = limpio;
+    this.codigoPatrimonial = limpio;
   }
 
   protected get sinSerie(): boolean {

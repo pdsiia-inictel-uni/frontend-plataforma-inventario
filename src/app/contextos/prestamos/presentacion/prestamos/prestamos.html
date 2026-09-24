@@ -101,8 +101,6 @@
           <tr>
             <th class="col-principal">Equipo</th>
             <th class="col-persona">Prestado a</th>
-            <th class="col-fecha">Salida</th>
-            <th class="col-fecha">Devolución</th>
             <th class="col-estado">Situación</th>
             <th class="celda-acciones" [class.col-acciones-amplia]="hayDevolucionesPendientes" [class.col-acciones-icono]="!hayDevolucionesPendientes">Acciones</th>
           </tr>
@@ -121,26 +119,6 @@
                 <div class="texto-secundario texto-pequeno texto-mono">{{ prestamo.dniPersona }}</div>
                 @if (prestamo.destino) {
                   <div class="texto-secundario texto-pequeno truncar" [title]="prestamo.destino">{{ prestamo.destino }}</div>
-                }
-              </td>
-              <td data-etiqueta="Salida">
-                <div>{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</div>
-                @if (prestamo.usuarioPrestaNombre) {
-                  <div class="texto-secundario texto-pequeno truncar" [title]="'Entregó ' + prestamo.usuarioPrestaNombre">
-                    Entregó {{ prestamo.usuarioPrestaNombre }}
-                  </div>
-                }
-              </td>
-              <td data-etiqueta="Devolución">
-                @if (prestamo.fechaEstimadaDevolucion) {
-                  {{ prestamo.fechaEstimadaDevolucion | date: 'dd/MM/yyyy' }}
-                } @else {
-                  <span class="texto-secundario">Sin fecha</span>
-                }
-                @if (prestamo.fechaDevolucion) {
-                  <div class="texto-secundario texto-pequeno">
-                    Devuelto {{ prestamo.fechaDevolucion | date: 'dd/MM/yyyy HH:mm' }}
-                  </div>
                 }
               </td>
               <td data-etiqueta="Situación">

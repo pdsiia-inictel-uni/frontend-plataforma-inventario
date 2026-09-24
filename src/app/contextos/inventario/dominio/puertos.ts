@@ -30,7 +30,6 @@ export abstract class EquiposPuerto {
   /** RF-41: envio a mantenimiento y retorno a condicion operativa. */
   abstract enviarAMantenimiento(id: number, motivo: string): Observable<Equipo>;
   abstract devolverAOperativo(id: number, motivo: string): Observable<Equipo>;
-  /** RF-42, RF-43: baja logica y reincorporacion, ambas con motivo. */
   /**
    * RF-83: pone el bien a cargo de un operador de la coordinacion.
    *
@@ -38,10 +37,10 @@ export abstract class EquiposPuerto {
    * que es lo que la pantalla ofrece como "queda a mi nombre".</p>
    */
   abstract asignarResponsableDeEquipo(id: number, operadorId: number | null): Observable<Equipo>;
-  abstract darDeBaja(id: number, motivo: string): Observable<Equipo>;
-  abstract reincorporar(id: number, motivo: string): Observable<Equipo>;
+  /** RF-42: baja lógica y definitiva, con motivo. Un bien dado de baja no se reincorpora. */
+  abstract darDeBaja(id: number, documento: File): Observable<Equipo>;
   abstract subirFoto(id: number, archivo: File): Observable<Equipo>;
-  /** Descarga una imagen protegida por JWT para mostrarla como blob (RF-51). */
+  /** Descarga un archivo protegido por JWT (foto o PDF de baja) para mostrarlo como blob. */
   abstract descargarFoto(ruta: string): Observable<Blob>;
 }
 

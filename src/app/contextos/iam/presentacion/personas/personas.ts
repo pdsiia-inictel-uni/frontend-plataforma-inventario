@@ -20,6 +20,7 @@ import {
   Usuario,
   claseEstadoCuenta,
   claseRol,
+  rolVisible,
   coordinacionDe,
 } from '../../dominio/usuario.model';
 
@@ -229,8 +230,8 @@ export class Personas {
   }
 
   /** RNF-30: el rol se distingue por color Y por texto, nunca solo por color. */
-  protected claseDelRol(rol: Rol | null): string {
-    return claseRol(rol);
+  protected claseDelRol(persona: Usuario): string {
+    return claseRol(rolVisible(persona));
   }
 
   /** RF-22b, RNF-30: y el estado de la cuenta, que ahora tiene tres valores. */

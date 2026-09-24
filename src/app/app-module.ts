@@ -17,6 +17,7 @@ import { Icono } from './compartido/presentacion/icono/icono';
 import { Importe } from './compartido/presentacion/importe/importe';
 import { Notificaciones } from './compartido/presentacion/notificaciones/notificaciones';
 import { Paginador } from './compartido/presentacion/paginador/paginador';
+import { Pestanas } from './compartido/presentacion/pestanas/pestanas';
 import { Pasos } from './compartido/presentacion/pasos/pasos';
 
 // -------------------------------------------------------------------- Diseno
@@ -96,6 +97,7 @@ import { Panel } from './contextos/reportes/presentacion/panel/panel';
     Icono,
     Notificaciones,
     Paginador,
+    Pestanas,
     Pasos,
     RevisionPendiente,
     // organizacion

@@ -1,86 +1,58 @@
-@if (!esAdmin()) {
-  <div class="pagina-cabecera">
-    <div>
-      <h1>Mi cuenta</h1>
-      <p class="descripcion">Datos personales y credenciales de acceso al sistema.</p>
-    </div>
-  </div>
-}
-
 @if (usuario(); as u) {
-  <div class="tarjeta">
-    <div class="tarjeta-cabecera">
-      <h2>Datos personales</h2>
-      <span
-        class="insignia"
-        [class.insignia-admin]="u.rol === 'ADMIN'"
-        [class.insignia-responsable]="u.rol === 'RESPONSABLE'"
-        [class.insignia-operador]="u.rol === 'OPERADOR'">
-        {{ u.rolEtiqueta }}
-      </span>
+  <!-- Quién es y con qué rol; a la derecha, lo único que cada persona cambia
+       por sí misma: su contraseña (RF-06, RF-21c). -->
+  <header class="cuenta-cabecera">
+    <span class="cuenta-avatar" aria-hidden="true">{{ iniciales }}</span>
+    <div class="cuenta-identidad">
+      <h2 class="cuenta-nombre">{{ u.nombreCompleto }}</h2>
+      <span class="cuenta-usuario texto-mono">{{ u.username }}</span>
     </div>
-    <div class="tarjeta-cuerpo">
-      <div class="lista-datos">
-        <div class="dato"><div class="clave">Nombre completo</div><div class="valor">{{ u.nombreCompleto }}</div></div>
-        <div class="dato"><div class="clave">DNI</div><div class="valor texto-mono">{{ u.dni }}</div></div>
-        <div class="dato"><div class="clave">Cargo</div><div class="valor">{{ u.cargo || '—' }}</div></div>
-        <div class="dato">
-          <!-- RN-05: cada persona pertenece a una sola coordinacion, y el
-               Administrador a ninguna: su ambito es toda la institucion. -->
-          <div class="clave">Coordinación</div>
-          <div class="valor">
-            @if (u.rol === 'ADMIN') {
-              Toda la institución
-            } @else if (u.coordinaciones.length > 0) {
-              {{ nombreDeSuCoordinacion }}
-            } @else {
-              Todavía ninguna
-            }
-          </div>
-        </div>
-      </div>
-    </div>
+    <span
+      class="insignia"
+      [class.insignia-admin]="u.rol === 'ADMIN'"
+      [class.insignia-responsable]="u.rol === 'RESPONSABLE'"
+      [class.insignia-operador]="u.rol === 'OPERADOR'">
+      {{ u.rolEtiqueta }}
+    </span>
+    <button type="button" class="btn btn-secundario btn-sm" (click)="abrirCambioPassword()">
+      <app-icono nombre="candado" tamano="sm" />
+      <span>Cambiar contraseña</span>
+    </button>
+  </header>
 
-    <!-- RF-21c: el nombre de usuario y el correo institucional son datos de la
-         cuenta, igual que el nombre y el DNI: se leen aqui y los modifica quien
-         gestiona la cuenta. Lo unico que cada persona cambia por si misma es su
-         contrasena, que solo ella debe conocer (RF-06). -->
-    <div class="tarjeta-cabecera">
-      <h2>Acceso al sistema</h2>
+  <!-- RF-21c: todos los datos de la cuenta, en una sola vista y de lectura:
+       los modifica quien gestiona la cuenta. -->
+  <div class="lista-datos">
+    <!-- Mismos rótulos y mismo orden que la ficha de la persona en Personas. -->
+    <div class="dato"><div class="clave">Nombre completo</div><div class="valor">{{ u.nombreCompleto }}</div></div>
+    <div class="dato"><div class="clave">DNI</div><div class="valor texto-mono">{{ u.dni }}</div></div>
+    <div class="dato"><div class="clave">Cargo</div><div class="valor">{{ u.cargo || 'Sin cargo registrado' }}</div></div>
+    <div class="dato"><div class="clave">Correo institucional</div><div class="valor">{{ u.correo }}</div></div>
+    <div class="dato"><div class="clave">Nombre de usuario</div><div class="valor texto-mono">{{ u.username }}</div></div>
+    <div class="dato">
+      <!-- RN-05: cada persona pertenece a una sola coordinacion, y el
+           Administrador a ninguna: su ambito es toda la institucion. -->
+      <div class="clave">Coordinación</div>
+      <div class="valor">
+        @if (u.rol === 'ADMIN') {
+          Toda la institución
+        } @else if (u.coordinaciones.length > 0) {
+          {{ nombreDeSuCoordinacion }}
+        } @else {
+          Todavía ninguna
+        }
+      </div>
     </div>
-    <div class="tarjeta-cuerpo">
-      <div class="lista-datos">
-        <div class="dato"><div class="clave">Nombre de usuario</div><div class="valor texto-mono">{{ u.username }}</div></div>
-        <div class="dato"><div class="clave">Correo institucional</div><div class="valor">{{ u.correo }}</div></div>
-        <div class="dato">
-          <div class="clave">Último acceso</div>
-          <div class="valor">{{ u.ultimoAcceso ? (u.ultimoAcceso | date: 'dd/MM/yyyy HH:mm') : '—' }}</div>
-        </div>
-        <div class="dato">
-          <div class="clave">Cuenta creada</div>
-          <div class="valor">{{ u.fechaCreacion | date: 'dd/MM/yyyy' }}</div>
-        </div>
-      </div>
-      <p class="texto-secundario texto-pequeno mt-1 mb-0">{{ quienModifica }}</p>
-
-      <!-- La contrasena es lo unico de la pantalla que cada persona cambia por
-           si misma: por eso su accion se destaca en su propio bloque, con
-           icono, explicacion y el boton en color principal. -->
-      <div class="bloque-seguridad">
-        <span class="bloque-seguridad-icono">
-          <app-icono nombre="candado" />
-        </span>
-        <div class="bloque-seguridad-texto">
-          <strong>Contraseña</strong>
-          <span>Solo usted la conoce. Cámbiela periódicamente o si sospecha que otra persona la sabe.</span>
-        </div>
-        <button type="button" class="btn btn-primario" (click)="abrirCambioPassword()">
-          <app-icono nombre="llave" tamano="sm" />
-          <span>Cambiar contraseña</span>
-        </button>
-      </div>
+    <div class="dato">
+      <div class="clave">Último acceso</div>
+      <div class="valor">{{ u.ultimoAcceso ? (u.ultimoAcceso | date: 'dd/MM/yyyy HH:mm') : 'Nunca ha ingresado' }}</div>
+    </div>
+    <div class="dato">
+      <div class="clave">Fecha de registro</div>
+      <div class="valor">{{ u.fechaCreacion | date: 'dd/MM/yyyy' }}</div>
     </div>
   </div>
+  <p class="texto-secundario texto-pequeno mt-1 mb-0">{{ quienModifica }}</p>
 }
 
 @if (cambiandoPassword()) {

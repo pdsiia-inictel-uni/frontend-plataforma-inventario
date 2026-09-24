@@ -10,31 +10,33 @@
 
 /* ---------------------------------------------------------------- Tipografia
 
-   Instrument Sans, auto-alojada en public/fonts/. La CSP fija font-src 'self'
-   (RNF-07), de modo que no se puede servir desde un CDN de fuentes: los
-   archivos viajan con la aplicacion. Es una fuente variable, asi que un unico
-   woff2 por rango unicode cubre los pesos 400 a 700 en 41 KB en total.
+   Inter, auto-alojada en public/fonts/. Es la tipografia de referencia para
+   interfaces con muchos datos: legible en tamanos pequenos y con cifras de
+   igual ancho, que alinean codigos, costos y fechas. La CSP fija
+   font-src 'self' (RNF-07), de modo que no se sirve desde un CDN: los
+   archivos viajan con la aplicacion. Es variable: un woff2 por rango unicode
+   cubre los pesos 100 a 900.
 
-   SIL Open Font License 1.1.
+   SIL Open Font License 1.1 (public/fonts/INTER-OFL.txt).
    -------------------------------------------------------------------------- */
 
 @font-face {
-  font-family: 'Instrument Sans';
+  font-family: 'Inter';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/instrument-sans-latin.woff2') format('woff2');
+  src: url('/fonts/inter-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
                  U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
                  U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'Instrument Sans';
+  font-family: 'Inter';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/instrument-sans-latin-ext.woff2') format('woff2');
+  src: url('/fonts/inter-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
                  U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
                  U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
@@ -97,7 +99,7 @@
   --alto-control-sm: 30px;
   --alto-control-lg: 40px;
 
-  --fuente: 'Instrument Sans', 'Segoe UI', Roboto, system-ui, sans-serif;
+  --fuente: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
   --fuente-mono: ui-monospace, 'Cascadia Mono', 'Consolas', 'Courier New', monospace;
 
   /* ---------------------------------------------------------- Tipografia
@@ -130,6 +132,16 @@ html, body {
   padding: 0;
   min-height: 100%;
 }
+
+/* Responsivo sin excepciones: el navegador del telefono no reescala la letra
+   por su cuenta (la escala es una sola, la de abajo), ningun medio desborda
+   su contenedor y un dato largo —un correo, un codigo, un nombre sin
+   espacios— se parte antes que empujar la pagina hacia un lado. 'clip' y no
+   'hidden': no crea contenedor de desplazamiento y no rompe los 'sticky'. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overflow-x: clip; }
+img, video, canvas, iframe { max-width: 100%; }
+.lista-datos .valor, .lista-atributos .valor { overflow-wrap: anywhere; min-width: 0; }
 
 body {
   font-family: var(--fuente);
@@ -460,22 +472,20 @@ table.tabla tr.fila-vencida .celda-acciones { background: var(--rojo-suave); }
 
 /* ------------------------------------------------ Columnas proporcionadas
 
-   Con el reparto automatico del navegador, la columna con el texto mas largo
-   se quedaba con casi toda la tabla: el nombre del equipo ocupaba media
-   pantalla y los codigos, un pasillo. En las tablas marcadas con
-   .tabla-equilibrada el ancho lo decide la naturaleza de cada columna:
+   Estándar de todas las tablas marcadas con .tabla-equilibrada: cada columna
+   de datos lleva un peso según lo que contiene —la principal también— y las
+   acciones, el ancho de sus botones.
 
-   - la principal (nombre del equipo, de la persona) no lleva ancho y se queda
-     con lo que sobra, que es su parte justa y no mas;
-   - las demas, un porcentaje segun lo que contienen: una fecha pide menos que
-     un nombre, un DNI menos que un usuario;
-   - las acciones, el ancho de sus botones, que no depende de la pantalla.
+   Con table-layout fixed, el navegador reserva primero el ancho fijo de las
+   acciones y reparte el resto entre las demás en proporción a su peso. Los
+   pesos de cada listado deben sumar 100: si suman menos, el navegador reparte
+   el sobrante también entre las acciones y las ensancha sin motivo. Así ninguna columna se queda con todo el sobrante: antes la
+   principal no llevaba ancho y en préstamos ocupaba la mitad de la tabla,
+   con un hueco enorme hasta "Prestado a" y las otras apretadas.
 
-   Lo que no cabe se recorta con puntos suspensivos y su texto completo en el
-   titulo (.truncar), o se reparte en dos lineas cuando partirlo no estorba
-   (.recortar-2). Solo por debajo del ancho minimo de la tabla aparece el
-   desplazamiento horizontal, y con las acciones fijas a la derecha. Bajo 900 px
-   la tabla pasa a tarjetas y nada de esto aplica. */
+   Lo que no cabe se recorta con puntos suspensivos y su texto completo
+   en el título (.truncar), o se reparte en dos líneas (.recortar-2). Bajo
+   900 px la tabla pasa a tarjetas y nada de esto aplica. */
 @media (min-width: 901px) {
   table.tabla-equilibrada { table-layout: fixed; min-width: 40rem; }
   table.tabla-equilibrada th { overflow: hidden; text-overflow: ellipsis; }
@@ -484,42 +494,55 @@ table.tabla tr.fila-vencida .celda-acciones { background: var(--rojo-suave); }
   table.tabla-equilibrada td .insignia { white-space: nowrap; }
   table.tabla-equilibrada .celda-codigos { white-space: normal; width: auto; }
 
-  .tabla-equilibrada .col-codigos { width: 22%; }
-  .tabla-equilibrada .col-persona { width: 22%; }
-  .tabla-equilibrada .col-fecha { width: 14%; }
-  .tabla-equilibrada .col-fecha-hora { width: 17%; }
-  .tabla-equilibrada .col-estado { width: 15%; }
-  .tabla-equilibrada .col-rol { width: 15%; }
-  .tabla-equilibrada .col-cuenta { width: 18%; }
-  .tabla-equilibrada .col-usuario { width: 17%; }
-  .tabla-equilibrada .col-dni { width: 10%; }
-  .tabla-equilibrada .col-cifra { width: 9%; }
+  /* Reparto por defecto; cada listado fija el suyo abajo, sumando 100. */
+  .tabla-equilibrada .col-principal { width: 30%; }
+  .tabla-equilibrada .col-persona { width: 26%; }
+  .tabla-equilibrada .col-codigos { width: 24%; }
   .tabla-equilibrada .col-nombre-corto { width: 24%; }
+  .tabla-equilibrada .col-usuario { width: 20%; }
+  .tabla-equilibrada .col-fecha-hora { width: 17%; }
+  .tabla-equilibrada .col-estado { width: 16%; }
+  .tabla-equilibrada .col-rol { width: 16%; }
+  .tabla-equilibrada .col-cuenta { width: 16%; }
+  .tabla-equilibrada .col-fecha { width: 14%; }
+  .tabla-equilibrada .col-dni { width: 11%; }
+  .tabla-equilibrada .col-cifra { width: 10%; }
+
+  /* Préstamos: equipo 40 · prestado a 36 · situación 24. */
+  .tabla-prestamos .col-principal { width: 40%; }
+  .tabla-prestamos .col-persona { width: 36%; }
+  .tabla-prestamos .col-estado { width: 24%; }
+  /* Inventario: equipo 32 · códigos 26 · a cargo de 26 · condición 16. */
+  .tabla-inventario .col-principal { width: 32%; }
+  .tabla-inventario .col-codigos { width: 26%; }
+  .tabla-inventario .col-persona { width: 26%; }
+  .tabla-inventario .col-estado { width: 16%; }
+  /* Personas y Mi equipo humano: persona 36 · rol 20 · usuario 24 · cuenta 20. */
+  .tabla-personas .col-principal { width: 36%; }
+  .tabla-personas .col-rol { width: 20%; }
+  .tabla-personas .col-usuario { width: 24%; }
+  .tabla-personas .col-cuenta { width: 20%; }
+  /* Categorías: nombre 30 · descripción 50 · estado 20. */
+  .tabla-categorias .col-nombre-corto { width: 30%; }
+  .tabla-categorias .col-principal { width: 50%; }
+  .tabla-categorias .col-estado { width: 20%; }
 
   .tabla-equilibrada .col-acciones { width: 8rem; }
   .tabla-equilibrada .col-acciones-icono { width: 5.5rem; }
   .tabla-equilibrada .col-acciones-media { width: 11.5rem; }
   .tabla-equilibrada .col-acciones-amplia { width: 13.5rem; }
 
-  /* En prestamos la columna de acciones es ancha ("Registrar devolucion") y
-     hay dos fechas: la persona cede un poco para que el equipo no se estreche. */
+  /* "Registrar devolución" pide una columna de acciones ancha: la tabla no
+     baja de este mínimo para que las demás no se estrechen. */
   table.tabla-prestamos:has(.col-acciones-amplia) { min-width: 50rem; }
-  .tabla-prestamos .col-persona { width: 18%; }
 }
 
-/* Tablet y portatil pequeno: menos aire entre columnas y algo mas de ancho
-   para las que no pueden partirse (insignias, fechas), a costa de la
-   principal, que es la que mejor soporta el recorte. */
+/* Tablet y portátil pequeño: menos aire entre columnas antes de recortar;
+   los pesos se mantienen, de modo que el reparto es el mismo que en escritorio. */
 @media (min-width: 901px) and (max-width: 1200px) {
   table.tabla-equilibrada th, table.tabla-equilibrada td { padding-inline: .5rem; }
   table.tabla-equilibrada th:first-child, table.tabla-equilibrada td:first-child { padding-left: 0; }
   table.tabla-equilibrada th:last-child, table.tabla-equilibrada td:last-child { padding-right: 0; }
-  .tabla-equilibrada .col-estado, .tabla-equilibrada .col-rol { width: 17%; }
-  .tabla-equilibrada .col-cuenta { width: 19%; }
-  .tabla-equilibrada .col-fecha { width: 15%; }
-  .tabla-equilibrada .col-dni { width: 11%; }
-  .tabla-equilibrada .col-cifra { width: 12%; }
-  .tabla-equilibrada .col-usuario { width: 14%; }
 }
 
 .truncar {
@@ -857,6 +880,69 @@ table.tabla tr.fila-vencida .celda-acciones { background: var(--rojo-suave); }
   gap: .3rem;
 }
 
+/* Barra superior de la ficha: el regreso a la izquierda, discreto, y las
+   acciones sobre el equipo a la derecha. Queda por encima del nombre para que
+   el nombre y los datos se lean de corrido, sin botones en medio. */
+.ficha-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin: 0 0 1rem;
+}
+.ficha-barra .acciones-cabecera { justify-content: flex-end; }
+.btn-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .25rem 0;
+  border: 0;
+  background: none;
+  color: var(--texto-secundario);
+  font: inherit;
+  font-size: var(--texto-sm);
+  cursor: pointer;
+}
+.btn-volver:hover { color: var(--marca-700); }
+.btn-volver:focus-visible { outline: 2px solid var(--marca-600); outline-offset: 2px; border-radius: var(--radio-sm); }
+@media (max-width: 560px) {
+  .ficha-barra .acciones-cabecera { width: 100%; justify-content: stretch; }
+}
+
+/* Ficha de un bien: el nombre del equipo y, junto a él a la izquierda, su
+   condición y sus avisos, siempre a la vista en los tres roles; debajo, sus
+   acciones. Marca,
+   modelo y coordinacion no se repiten aqui: viven en "Datos del equipo". */
+.ficha-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: .4rem .75rem;
+  margin: 0;
+}
+.ficha-titulo {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+  /* Título sobrio: apenas un paso por encima de los datos que encabeza. */
+  font-size: var(--texto-xl);
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.ficha-estado {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: .35rem;
+}
+@media (max-width: 560px) {
+  .ficha-cabecera { align-items: flex-start; }
+}
+
 /* Boton "Exportar" con sus formatos en un menu (RF-52). */
 .menu-exportar { position: relative; }
 .menu-desplegable {
@@ -1035,7 +1121,7 @@ app-barra-filtros { display: block; }
   border-radius: 999px;
   background: var(--marca-700);
   color: var(--blanco);
-  font-size: .6875rem;
+  font-size: var(--texto-xs);
   font-weight: 600;
   line-height: 1;
 }
@@ -1103,33 +1189,40 @@ app-barra-filtros { display: block; }
 
 /* La unica accion propia de la pantalla. Una banda con el tono de la marca,
    sin sombra ni relieve, que se distingue de los datos de lectura. */
-.bloque-seguridad {
+/* Mi cuenta: quién es la persona, siempre a la vista sobre las pestañas. */
+.cuenta-cabecera {
   display: flex;
   align-items: center;
-  gap: .9rem;
-  margin-top: 1.25rem;
-  padding: .9rem 1rem;
-  border: 1px solid var(--marca-100);
-  border-radius: var(--radio-md);
-  background: var(--marca-50);
+  gap: .85rem;
+  padding-bottom: .75rem;
 }
-.bloque-seguridad-icono {
+.cuenta-avatar {
   display: grid;
   place-items: center;
   flex: none;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--marca-100);
-  color: var(--marca-700);
+  color: var(--marca-800);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  letter-spacing: .02em;
 }
-.bloque-seguridad-icono .icono { width: 1.25rem; height: 1.25rem; }
-.bloque-seguridad-texto { display: flex; flex-direction: column; gap: .1rem; flex: 1; min-width: 0; }
-.bloque-seguridad-texto strong { font-size: var(--texto-base); color: var(--texto-principal); }
-.bloque-seguridad-texto span { font-size: var(--texto-sm); color: var(--texto-secundario); }
-/* Mismo tamano que los botones de accion del resto de pantallas
-   (.acciones-cabecera .btn). */
-.bloque-seguridad .btn {
+.cuenta-identidad { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.cuenta-nombre {
+  margin: 0;
+  font-size: var(--texto-lg);
+  color: var(--texto-principal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cuenta-usuario { font-size: var(--texto-xs); color: var(--texto-tenue); }
+
+/* Cambiar contraseña: el botón más pequeño del sistema, al final de la
+   cabecera (mismo tamaño que .acciones-cabecera .btn). */
+.cuenta-cabecera .btn {
   flex: none;
   min-height: var(--alto-control-sm);
   padding: .2rem .65rem;
@@ -1137,9 +1230,10 @@ app-barra-filtros { display: block; }
   border-radius: var(--radio-sm);
   gap: .3rem;
 }
+.cuenta-cabecera { border-bottom: 1px solid var(--gris-200); margin-bottom: 1rem; }
 @media (max-width: 560px) {
-  .bloque-seguridad { flex-wrap: wrap; }
-  .bloque-seguridad .btn { margin-left: auto; }
+  .cuenta-cabecera { flex-wrap: wrap; }
+  .cuenta-cabecera .btn { margin-left: auto; }
 }
 /* Cada campo mide lo mismo y no se estira: Limpiar y Aplicar van en la misma
    fila, pegados al ultimo desplegable y alineados con su borde inferior. Solo
@@ -1446,19 +1540,35 @@ button.pnl-fila:focus-visible { outline: 2px solid var(--marca-600); outline-off
 .lista-atributos li {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 1rem;
   padding: .45rem 0;
   border-bottom: 1px solid var(--gris-100);
   font-size: var(--texto-base);
 }
 .lista-atributos li:last-child { border-bottom: none; }
-.lista-atributos .clave { color: var(--texto-tenue); }
+.lista-atributos .clave { color: var(--texto-secundario); font-size: var(--texto-sm); }
 span.clave + strong { margin-left: .4rem; }
 .lista-atributos .valor { font-weight: 500; text-align: right; }
 
 .lista-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: .9rem 1.5rem; }
-.dato .clave { font-size: var(--texto-xs); color: var(--texto-tenue); margin-bottom: .1rem; }
+.dato .clave { font-size: var(--texto-sm); color: var(--texto-secundario); margin-bottom: .1rem; }
 .dato .valor { font-weight: 500; word-break: break-word; }
+
+/* Estándar de los datos de una ficha, en todo el sistema (Mi cuenta, ficha de
+   la persona, ficha del equipo, detalle de préstamos): el rótulo a 13 px en
+   tono secundario y el valor a 15 px, peso 500, tono principal y la misma
+   letra que el resto. Un DNI, un usuario o una fecha no cambian de fuente ni
+   de tamaño: las cifras solo se vuelven de ancho fijo para leerse en columna.
+   Antes el DNI y el usuario iban en letra monoespaciada a 13 px y la fecha de
+   al lado a 15 px, y parecían de dos pantallas distintas. */
+.dato .valor, .lista-atributos .valor, .ficha-filas dd, .ficha-franja dd {
+  font-family: inherit;
+  font-size: var(--texto-base);
+  font-weight: 500;
+  color: var(--texto-principal);
+  font-variant-numeric: tabular-nums;
+}
 
 .foto-bien {
   width: 100%;
@@ -1504,7 +1614,7 @@ span.clave + strong { margin-left: .4rem; }
 .texto-secundario { color: var(--texto-tenue); }
 .texto-pequeno { font-size: var(--texto-sm); }
 .texto-centrado { text-align: center; }
-.texto-mono { font-family: var(--fuente-mono); font-size: var(--texto-sm); }
+.texto-mono { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
 .mb-0 { margin-bottom: 0; }
 .mb-1 { margin-bottom: .75rem; }
 .mt-1 { margin-top: .75rem; }
@@ -1566,7 +1676,7 @@ span.clave + strong { margin-left: .4rem; }
   .tarjeta-cabecera { padding: 0 0 .5rem; }
   .tarjeta-cuerpo { padding: 0; }
   .filtros { padding: .9rem 1rem; }
-  .pestanas { padding: .85rem 1rem; scroll-snap-type: x proximity; }
+  .pestanas { scroll-snap-type: x proximity; }
   .pestana { scroll-snap-align: start; }
   .paginador { justify-content: center; text-align: center; padding: .75rem 1rem; }
 }
@@ -2042,43 +2152,89 @@ span.clave + strong { margin-left: .4rem; }
 /* RN-19: alerta del bien devuelto con dano. */
 .insignia-revision { background: var(--rojo-suave); color: var(--rojo); }
 
-/* ------------------------------------------------------- Pestanas (RF-47) */
+/* ------------------------------------------------------------- Pestañas */
 
-/* Fichas de condicion en lugar de pestanas de carpeta: son objetivos tactiles
-   de 44 px, se leen como botones y sobreviven al desplazamiento horizontal en
-   movil sin romper el borde inferior. */
+/* Sistema único de pestañas (app-pestanas): la misma letra, el mismo tamaño y
+   el mismo comportamiento en toda pantalla que reparte su contenido por temas.
+   Cada pestaña lleva icono, nombre y recuento. La activa se marca con color,
+   fondo y una barra que crece desde el centro —no solo con color (RNF-30)—, y
+   al pasar el cursor se ilumina, de modo que se nota que responde. */
 .pestanas {
   display: flex;
-  gap: .5rem;
-  padding: 1.15rem 1.15rem;
+  gap: .25rem;
   border-bottom: 1px solid var(--gris-200);
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 .pestana {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: .45rem;
-  min-height: var(--alto-control);
-  padding: 0 1.05rem;
-  border: 1px solid var(--gris-200);
-  border-radius: var(--radio-md);
-  background: var(--blanco);
+  flex: none;
+  padding: .6rem .9rem;
+  margin: .25rem 0 -1px;
+  border: 0;
+  border-radius: var(--radio-sm) var(--radio-sm) 0 0;
+  background: none;
   color: var(--texto-secundario);
   font: inherit;
   font-size: var(--texto-sm);
   font-weight: 500;
+  line-height: 1.4rem;
   cursor: pointer;
   white-space: nowrap;
-  flex: none;
-  transition: border-color .15s, background .15s, color .15s;
+  transition: color .18s ease, background-color .18s ease;
 }
-.pestana:hover { background: var(--gris-50); color: var(--texto-principal); }
-.pestana.activa {
-  background: var(--marca-100);
-  border-color: var(--marca-700);
-  color: var(--marca-800);
+.pestana::after {
+  content: '';
+  position: absolute;
+  left: .5rem;
+  right: .5rem;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--marca-700);
+  transform: scaleX(0);
+  transition: transform .22s ease;
+}
+.pestana .icono { opacity: .7; transition: opacity .18s ease, transform .18s ease; }
+.pestana:hover { color: var(--texto-principal); background: var(--gris-50); }
+.pestana:hover .icono { opacity: 1; }
+.pestana:active .icono { transform: scale(.9); }
+.pestana.activa { color: var(--marca-700); font-weight: 600; background: var(--marca-50); }
+.pestana.activa::after { transform: scaleX(1); }
+.pestana.activa .icono { opacity: 1; }
+.pestana:focus-visible { outline: 2px solid var(--marca-600); outline-offset: -2px; }
+.pestana-contador {
+  min-width: 1.4rem;
+  padding: 0 .4rem;
+  border-radius: 999px;
+  background: var(--gris-100);
+  color: var(--texto-secundario);
+  font-size: var(--texto-xs);
   font-weight: 600;
+  line-height: 1.4rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transition: background-color .18s ease, color .18s ease;
+}
+/* Un cero no llama la atención: se sabe que no hay nada sin tener que abrirla. */
+.pestana-contador.vacio { background: transparent; color: var(--texto-tenue); font-weight: 500; }
+.pestana.activa .pestana-contador { background: var(--marca-100); color: var(--marca-800); }
+.pestana.activa .pestana-contador.vacio { background: transparent; color: var(--marca-700); }
+
+.pestanas-panel { padding-top: 1.25rem; }
+.pestanas-panel:focus-visible { outline: 2px solid var(--marca-600); outline-offset: 4px; border-radius: var(--radio-sm); }
+/* El contenido entra con un leve desplazamiento: se ve que cambió sin que el
+   salto desoriente. */
+.pestanas-panel > * { animation: entrar-pestana .22s ease both; }
+@keyframes entrar-pestana { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* En el teléfono el icono sobra: el nombre y el recuento caben mejor sin él. */
+@media (max-width: 600px) {
+  .pestana { padding: .6rem .7rem; }
+  .pestana .icono { display: none; }
 }
 
 /* -------------------------------------------- Formularios por pasos (RNF-28) */
@@ -2583,3 +2739,345 @@ fieldset.campo > legend {
   cursor: pointer;
 }
 .btn-enlace:hover { color: var(--marca-800); }
+
+
+/* ------------------------------------------------ Uso externo (RF-78)
+   Los diez puntos del formato como bloques sobrios: su título numerado y,
+   debajo, sus campos o sus datos en filas "rótulo | valor". */
+.uso-externo .modal-cabecera { align-items: flex-start; }
+.uso-externo .modal-cabecera .insignia { margin-left: auto; margin-top: .15rem; }
+.ue-cabecera { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.ue-subtitulo { font-size: var(--texto-sm); color: var(--texto-tenue); overflow-wrap: anywhere; }
+
+.ue-bloque { padding: .85rem 0; border-top: 1px solid var(--gris-100); }
+.ue-bloque:first-of-type { border-top: 0; }
+.ue-titulo {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 .6rem;
+  font-size: var(--texto-base);
+  font-weight: 600;
+}
+.ue-campos { display: grid; gap: 0 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ue-campos-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Filas rótulo | valor: se leen de arriba abajo, sin rejilla desordenada. */
+.ue-datos { margin: 0; display: grid; gap: 0; }
+.ue-datos > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 34%) 1fr;
+  gap: 1rem;
+  padding: .4rem 0;
+  border-bottom: 1px dashed var(--gris-100);
+}
+.ue-datos > div:last-child { border-bottom: 0; }
+.ue-datos dt { margin: 0; font-size: var(--texto-sm); color: var(--texto-secundario); }
+.ue-datos dd { margin: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+/* Datos que pone el sistema: fondo suave y dos columnas en pantalla ancha. */
+.ue-datos-auto {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.5rem;
+  padding: .35rem .85rem;
+  border-radius: var(--radio);
+  background: var(--gris-50);
+}
+.ue-datos-auto > div:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
+.ue-resumen { margin-bottom: .5rem; }
+
+.ue-texto { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.ue-nota { margin: 0; font-size: var(--texto-sm); color: var(--texto-tenue); }
+
+.ue-parte + .ue-parte { margin-top: 1rem; }
+.ue-parte-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .25rem 1rem;
+  padding-bottom: .4rem;
+  border-bottom: 2px solid var(--gris-200);
+}
+.ue-parte-cabecera h4 { margin: 0; font-size: var(--texto-lg); }
+.ue-meta { font-size: var(--texto-sm); color: var(--texto-tenue); }
+.ue-pendiente {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: .75rem;
+  padding: .75rem .9rem;
+  border: 1px dashed var(--gris-300);
+  border-radius: var(--radio);
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+@media (max-width: 900px) {
+  .ue-campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .ue-campos, .ue-campos-2, .ue-datos-auto { grid-template-columns: 1fr; }
+  .ue-datos > div { grid-template-columns: 1fr; gap: .1rem; }
+  .ue-datos-auto > div:nth-last-child(2):nth-child(odd) { border-bottom: 1px dashed var(--gris-100); }
+}
+
+/* Tablas de la ficha del bien (usos externos y préstamos): tres columnas del
+   mismo ancho que caben en la columna de la ficha, sin barra de desplazamiento.
+   Anulan el ancho mínimo de .tabla-equilibrada, pensado para los listados a
+   pantalla completa. */
+@media (min-width: 901px) {
+  table.tabla.tabla-ficha { table-layout: fixed; width: 100%; min-width: 0; }
+  table.tabla.tabla-ficha th,
+  table.tabla.tabla-ficha td { width: 33.333%; padding-inline: .5rem; vertical-align: middle; }
+  table.tabla.tabla-ficha th:first-child, table.tabla.tabla-ficha td:first-child { padding-left: 0; }
+  table.tabla.tabla-ficha th:last-child, table.tabla.tabla-ficha td:last-child { padding-right: 0; }
+}
+table.tabla.tabla-ficha td { overflow-wrap: anywhere; }
+/* Las insignias se apilan si no caben juntas, en vez de ensanchar la tabla. */
+table.tabla.tabla-ficha td .insignia { display: inline-flex; margin: .1rem .25rem .1rem 0; }
+/* Nada que desplazar: la columna de acciones no necesita quedar fija. */
+table.tabla.tabla-ficha .celda-acciones { position: static; white-space: normal; }
+.tabla-contenedor:has(> table.tabla-ficha) { overflow-x: visible; }
+
+/* "Cerrar uso externo": el equipo está fuera, y la acción pendiente se ve con
+   el azul de "Prestado", distinto del resto de botones de la ficha. */
+.btn-en-uso {
+  background: var(--azul-prestado);
+  border-color: var(--azul-prestado);
+  color: #fff;
+  font-weight: 600;
+}
+.btn-en-uso:hover:not(:disabled) { background: #0b4a6c; border-color: #0b4a6c; }
+
+/* "Anular uso": acción destructiva secundaria, en rojo pero sin relleno. */
+.btn-anular {
+  background: var(--blanco);
+  border-color: var(--rojo);
+  color: var(--rojo);
+}
+.btn-anular:hover:not(:disabled) { background: var(--rojo-suave); }
+.modal-pie .pie-izquierda { margin-right: auto; }
+.ue-consecuencias { margin: 0; padding-left: 1.1rem; color: var(--texto-secundario); }
+.ue-consecuencias li + li { margin-top: .25rem; }
+@media (max-width: 560px) {
+  .modal-pie .pie-izquierda { margin-right: 0; }
+}
+
+/* ------------------------------------------------ Ficha del equipo
+   Ficha de activo: cabecera con la fotografía, el nombre, la condición y los
+   tres datos con que se busca el equipo; debajo, pestañas para ver un tema a
+   la vez. Todos los valores usan la misma letra y el mismo tamaño, con cifras
+   de igual ancho. */
+.ficha-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding-bottom: 1.25rem;
+}
+
+.foto-miniatura {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  padding: 0;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio);
+  background: var(--gris-50);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.foto-miniatura img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.foto-miniatura:focus-visible { outline: 2px solid var(--marca-600); outline-offset: 2px; }
+.foto-miniatura-vacia { display: grid; place-items: center; color: var(--texto-tenue); cursor: default; }
+
+/* Equipo: la fotografía a la izquierda y los datos a la derecha. */
+.ficha-general {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+.ficha-foto .foto-miniatura { width: 100%; height: auto; aspect-ratio: 1 / 1; }
+.ficha-foto .foto-miniatura-vacia { min-height: 240px; }
+.ficha-foto-ayuda { margin: .5rem 0 0; font-size: var(--texto-xs); color: var(--texto-tenue); text-align: center; }
+/* Codigos y adquisicion, apilados en la columna derecha. */
+.ficha-columna { display: flex; flex-direction: column; gap: 1.75rem; min-width: 0; }
+/* Parte inferior a todo el ancho de la pestana, tambien bajo la foto. */
+.ficha-inferior { display: flex; flex-direction: column; gap: 1.75rem; margin-top: 1.75rem; }
+.ficha-observaciones {
+  padding: .65rem 0;
+  border-top: 1px solid var(--gris-100);
+  border-bottom: 1px solid var(--gris-100);
+}
+/* "Nombre (Marca)": la marca en el mismo renglon, un tono mas suave. */
+.ficha-titulo-marca { font-weight: 500; color: var(--texto-secundario); }
+.ficha-dos-grupos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 1.75rem 2.5rem;
+  align-items: start;
+}
+/* Ubicación y custodia en una sola franja: rótulo arriba, valor abajo. */
+.ficha-franja {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0;
+  border-top: 1px solid var(--gris-100);
+  border-bottom: 1px solid var(--gris-100);
+}
+.ficha-franja > div { padding: .65rem 1rem; min-width: 0; }
+.ficha-franja > div:first-child { padding-left: 0; }
+.ficha-franja > div + div { border-left: 1px solid var(--gris-100); }
+.ficha-franja dt { margin: 0 0 .2rem; font-size: var(--texto-sm); color: var(--texto-secundario); }
+.ficha-franja dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem .6rem;
+  overflow-wrap: anywhere;
+  font-size: var(--texto-base);
+  font-weight: 500;
+  color: var(--texto-principal);
+}
+@media (max-width: 900px) {
+  .ficha-general { grid-template-columns: 1fr; }
+  .ficha-foto { max-width: 260px; }
+}
+@media (max-width: 700px) {
+  .ficha-franja { grid-auto-flow: row; grid-template-columns: 1fr; }
+  .ficha-franja > div { padding-left: 0; }
+  .ficha-franja > div + div { border-left: 0; border-top: 1px solid var(--gris-100); }
+}
+.ficha-grupo-titulo {
+  margin: 0 0 .35rem;
+  font-size: var(--texto-xs);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+.ficha-filas { margin: 0; }
+.ficha-filas > div {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: 1rem;
+  align-items: baseline;
+  padding: .55rem 0;
+  border-bottom: 1px solid var(--gris-100);
+}
+.ficha-filas > div:last-child { border-bottom: 0; }
+.ficha-filas dt { margin: 0; font-size: var(--texto-sm); color: var(--texto-secundario); }
+.ficha-filas dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem .6rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--texto-base);
+  font-weight: 500;
+  color: var(--texto-principal);
+  font-variant-numeric: tabular-nums;
+}
+.ficha-texto { margin: 0; white-space: pre-line; overflow-wrap: anywhere; color: var(--texto-principal); }
+
+@media (max-width: 560px) {
+  .ficha-filas > div { grid-template-columns: 1fr; gap: .1rem; }
+}
+
+/* Baja: vista previa del PDF elegido, bajo el campo, antes de confirmar. */
+.previa-baja-aviso { margin: 1rem 0 .5rem; font-size: var(--texto-sm); color: var(--texto-secundario); }
+
+/* Ventana de baja: la cabecera y el resumen en tamaño compacto, para que la
+   vista se la lleve el documento que se adjunta. */
+.modal-baja .modal-cabecera h3 { font-size: var(--texto-base); }
+.baja-resumen {
+  margin: 0 0 .9rem;
+  font-size: var(--texto-sm);
+  line-height: 1.5;
+  color: var(--texto-secundario);
+}
+.baja-resumen strong { color: var(--texto-principal); font-weight: 600; }
+.etiqueta-campo {
+  font-size: var(--texto-sm);
+  font-weight: 500;
+  color: var(--texto-secundario);
+  margin-bottom: .25rem;
+}
+
+/* Selector de archivo del sistema: el input nativo queda oculto
+   (.campo-oculto) y lo abre esta zona, que también acepta el archivo
+   arrastrado. Cambia de aspecto al pasar el cursor, al arrastrar encima y al
+   recibir el foco del teclado. */
+.zona-archivo {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: .9rem 1rem;
+  border: 1.5px dashed var(--gris-300);
+  border-radius: var(--radio-md);
+  background: var(--gris-50);
+  color: var(--texto-secundario);
+  cursor: pointer;
+  transition: border-color .18s ease, background-color .18s ease;
+}
+.zona-archivo:hover, .zona-archivo.activa { border-color: var(--marca-600); background: var(--marca-50); }
+.zona-archivo.activa { border-style: solid; }
+.campo-oculto:focus-visible + .zona-archivo { outline: 2px solid var(--marca-600); outline-offset: 2px; }
+.campo.invalido .zona-archivo { border-color: var(--rojo); }
+.zona-archivo-icono {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--blanco);
+  border: 1px solid var(--gris-200);
+  color: var(--marca-700);
+  transition: transform .18s ease;
+}
+.zona-archivo:hover .zona-archivo-icono, .zona-archivo.activa .zona-archivo-icono { transform: translateY(-2px); }
+.zona-archivo-texto { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.zona-archivo-texto strong { font-size: var(--texto-sm); font-weight: 600; color: var(--marca-700); }
+.zona-archivo-texto span { font-size: var(--texto-xs); color: var(--texto-tenue); }
+
+/* El archivo ya elegido se lee como una ficha: qué es, cuánto pesa, y sus
+   dos salidas, cambiarlo o quitarlo. */
+.archivo-elegido {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio-md);
+  background: var(--blanco);
+}
+.archivo-elegido-icono {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radio-sm);
+  background: var(--rojo-suave);
+  color: var(--rojo);
+}
+.archivo-elegido-datos { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.archivo-elegido-nombre {
+  font-size: var(--texto-sm);
+  font-weight: 500;
+  color: var(--texto-principal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.archivo-elegido-tamano { font-size: var(--texto-xs); color: var(--texto-tenue); }
+.archivo-elegido .btn { flex: none; }
+.archivo-elegido .btn-icono { flex: none; border-color: transparent; background: transparent; }
+.archivo-elegido .btn-icono:hover:not(:disabled) { background: var(--gris-100); color: var(--rojo); }
+.zona-archivo.deshabilitado, .archivo-elegido label.deshabilitado { opacity: .55; pointer-events: none; }
+.previa-documento.previa-baja { height: 55vh; min-height: 320px; }

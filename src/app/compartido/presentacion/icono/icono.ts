@@ -28,6 +28,7 @@ export type NombreIcono =
   | 'cerrar'
   | 'correcto'
   | 'descargar'
+  | 'subir'
   | 'reiniciar'
   | 'candado'
   | 'llave'
@@ -193,6 +194,11 @@ export type NombreIcono =
         @case ('descargar') {
           <path d="M12 4v11" />
           <path d="M7.5 10.5L12 15l4.5-4.5" />
+          <path d="M4 19h16" />
+        }
+        @case ('subir') {
+          <path d="M12 15V4" />
+          <path d="M7.5 8.5L12 4l4.5 4.5" />
           <path d="M4 19h16" />
         }
         @case ('reiniciar') {

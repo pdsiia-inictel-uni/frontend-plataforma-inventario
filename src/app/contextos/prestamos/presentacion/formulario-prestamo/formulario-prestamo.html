@@ -1,7 +1,7 @@
 <div class="pagina-cabecera">
   <div>
     <h1>Registrar préstamo</h1>
-    <p class="descripcion">Entregue un equipo disponible y deje constancia de quien se lo lleva.</p>
+    <p class="descripcion">Entregue un equipo disponible a una persona registrada de cualquier coordinación.</p>
   </div>
   <div class="acciones-cabecera">
     <button type="button" class="btn btn-secundario" (click)="cancelar()">
@@ -79,53 +79,58 @@
 
     <form (ngSubmit)="registrar()">
       <div class="tarjeta-cuerpo">
-        @if (equipoElegido; as elegido) {
-        } @else {
-        }
-
-        <div class="campo" [class.invalido]="errores()['nombrePersona']">
-          <label for="pn-persona">Nombre completo de quien lo lleva<span class="obligatorio">*</span></label>
-          <input
-            id="pn-persona"
-            type="text"
-            name="nombrePersona"
-            [(ngModel)]="nombrePersona"
-            maxlength="200"
-            autocomplete="off" />
-          @if (errores()['nombrePersona']) {
-            <span class="error-campo">{{ errores()['nombrePersona'] }}</span>
-          }
-        </div>
-
-        <div class="campo" [class.invalido]="errores()['dniPersona'] || (dniPersona && !dniValido)">
-          <label for="pn-dni">DNI<span class="obligatorio">*</span></label>
-          <input
-            id="pn-dni"
-            type="text"
-            name="dniPersona"
-            [(ngModel)]="dniPersona"
-            inputmode="numeric"
-            maxlength="8"
-            autocomplete="off" />
-          @if (errores()['dniPersona']) {
-            <span class="error-campo">{{ errores()['dniPersona'] }}</span>
-          } @else if (dniPersona && !dniValido) {
-            <span class="error-campo">El DNI debe tener exactamente 8 dígitos numericos.</span>
+        <!-- RF-59: el equipo se entrega a una persona registrada. Primero la
+             coordinacion de destino —cualquiera de la institucion— y despues,
+             dentro de ella, su Responsable o uno de sus Operadores. -->
+        <div class="campo" [class.invalido]="errores()['coordinacionDestinoId']">
+          <label for="pn-coordinacion">Coordinación de destino<span class="obligatorio">*</span></label>
+          <select
+            id="pn-coordinacion"
+            name="coordinacionDestinoId"
+            [(ngModel)]="coordinacionDestinoId"
+            (ngModelChange)="alElegirCoordinacion()"
+            [disabled]="cargandoCoordinaciones()">
+            <option [ngValue]="null">
+              {{ cargandoCoordinaciones() ? 'Cargando coordinaciones...' : 'Seleccione una coordinación' }}
+            </option>
+            @for (grupo of gruposDestino(); track grupo.direccion) {
+              <optgroup [label]="grupo.direccion">
+                @for (coordinacion of grupo.coordinaciones; track coordinacion.id) {
+                  <option [ngValue]="coordinacion.id">{{ coordinacion.nombre }}</option>
+                }
+              </optgroup>
+            }
+          </select>
+          @if (errores()['coordinacionDestinoId']) {
+            <span class="error-campo">{{ errores()['coordinacionDestinoId'] }}</span>
+          } @else if (!cargandoCoordinaciones() && coordinaciones().length === 0) {
+            <span class="error-campo">No hay coordinaciones registradas.</span>
           } @else {
-            <span class="ayuda-campo">Permite consultar después todo lo que esa persona se llevó.</span>
+            <span class="ayuda-campo">Cualquier coordinación, de esta u otra dirección.</span>
           }
         </div>
 
-        <div class="campo" [class.invalido]="errores()['destino']">
-          <label for="pn-destino">Destino o área de uso</label>
-          <input
-            id="pn-destino"
-            type="text"
-            name="destino"
-            [(ngModel)]="destino"
-            maxlength="200"
-            placeholder="Salida de campo, aula 201..." />
-          <span class="ayuda-campo">Opcional.</span>
+        <div class="campo" [class.invalido]="errores()['personaUsuarioId']">
+          <label for="pn-persona">Persona que recibe el equipo<span class="obligatorio">*</span></label>
+          <select
+            id="pn-persona"
+            name="personaUsuarioId"
+            [(ngModel)]="personaUsuarioId"
+            [disabled]="coordinacionDestinoId === null || cargandoDestinatarios() || destinatarios().length === 0">
+            <option [ngValue]="null">{{ textoSinPersona }}</option>
+            @for (persona of destinatarios(); track persona.id) {
+              <option [ngValue]="persona.id">{{ persona.nombreCompleto }} ({{ persona.rolEtiqueta }})</option>
+            }
+          </select>
+          @if (errores()['personaUsuarioId']) {
+            <span class="error-campo">{{ errores()['personaUsuarioId'] }}</span>
+          } @else if (coordinacionDestinoId !== null && !cargandoDestinatarios() && destinatarios().length === 0) {
+            <span class="error-campo">
+              Esta coordinación no tiene responsable ni operadores activos. Elija otra.
+            </span>
+          } @else {
+            <span class="ayuda-campo">Solo el responsable y los operadores activos de esa coordinación.</span>
+          }
         </div>
 
         <div class="campo" [class.invalido]="errores()['fechaEstimadaDevolucion'] || !fechaValida">

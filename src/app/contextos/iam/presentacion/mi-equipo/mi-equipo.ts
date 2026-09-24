@@ -19,6 +19,8 @@ import {
   UsuarioPeticion,
   claseEstadoCuenta,
   claseRol,
+  esOperadorDeBaja,
+  rolVisible,
 } from '../../dominio/usuario.model';
 
 /**
@@ -77,7 +79,9 @@ export class MiEquipo {
   // —una sola consulta— y de ella se toman los operadores.
 
   protected readonly operadores = computed(() =>
-    this.integrantes().filter((u) => u.rol === 'OPERADOR'),
+    // RN-34: el operador que se dio de baja sigue en la lista, como dado de
+    // baja, para que su Responsable pueda verlo y reincorporarlo.
+    this.integrantes().filter((u) => u.rol === 'OPERADOR' || esOperadorDeBaja(u)),
   );
 
   // ------------------------------------------------------------------ Filtros
@@ -352,7 +356,7 @@ export class MiEquipo {
   /** RF-22b, RNF-30: el estado de la cuenta, por color Y por texto. */
   /** RNF-30: el rol, por color Y por texto, igual que en Personas. */
   protected claseDelRol(operador: Usuario): string {
-    return claseRol(operador.rol);
+    return claseRol(rolVisible(operador));
   }
 
   protected claseDelEstado(estado: EstadoCuenta): string {

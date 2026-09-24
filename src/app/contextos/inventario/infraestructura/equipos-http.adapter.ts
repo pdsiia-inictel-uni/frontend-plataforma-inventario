@@ -69,13 +69,13 @@ export class EquiposHttpAdapter extends EquiposPuerto {
     });
   }
 
-  override darDeBaja(id: number, motivo: string): Observable<Equipo> {
-    return this.http.post<Equipo>(`${this.url}/${id}/baja`, { motivo });
+  /** RF-42: la baja viaja como multipart, con el PDF en la parte "archivo". */
+  override darDeBaja(id: number, documento: File): Observable<Equipo> {
+    const datos = new FormData();
+    datos.append('archivo', documento);
+    return this.http.post<Equipo>(`${this.url}/${id}/baja`, datos);
   }
 
-  override reincorporar(id: number, motivo: string): Observable<Equipo> {
-    return this.http.post<Equipo>(`${this.url}/${id}/reincorporar`, { motivo });
-  }
 
   override subirFoto(id: number, archivo: File): Observable<Equipo> {
     const datos = new FormData();

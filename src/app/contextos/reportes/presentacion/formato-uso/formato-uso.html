@@ -1,302 +1,424 @@
 <div class="modal-fondo">
-  <div class="modal modal-ancho">
+  <div class="modal modal-ancho uso-externo">
+    <!-- Cabecera: qué es, de qué equipo y en qué situación está. -->
     <div class="modal-cabecera">
-      <h3>Registrar salida &middot; Formato de uso del equipo</h3>
+      <div class="ue-cabecera">
+        <h3>{{ titulo }}</h3>
+        <span class="ue-subtitulo">
+          {{ equipo.nombre }} &middot; <span class="texto-mono">{{ equipo.codigoInventario }}</span>
+        </span>
+      </div>
+      @if (registro(); as uso) {
+        <span
+          class="insignia"
+          [class.insignia-prestado]="uso.estado === 'ABIERTO'"
+          [class.insignia-disponible]="uso.estado === 'CERRADO'">
+          {{ uso.estadoEtiqueta }}
+        </span>
+      }
       <button type="button" class="btn-icono" (click)="cerrar()" aria-label="Cerrar">
         <app-icono nombre="cerrar" tamano="sm" />
       </button>
     </div>
 
-    @if (!previa()) {
-      <!-- Paso 1: lo que el sistema no sabe. Nada es obligatorio: el formato se
-           imprime y se acaba de rellenar a mano, delante del equipo. -->
-      <form (ngSubmit)="verVistaPrevia()">
-        <div class="modal-cuerpo">
-          <div class="aviso aviso-alerta mb-1">
-            Este documento <strong>no registra el préstamo</strong> ni cambia la condición del
-            equipo: es el formato que se imprime y se firma. La salida se registra aparte, en
-            Préstamos.
-          </div>
-
-          <h4 class="titulo-seccion">1. Responsable del equipamiento</h4>
-          <p class="texto-secundario texto-pequeno">
-            El responsable del equipamiento es el <strong>Coordinador</strong>. Los demás datos
-            se completan aquí.
-          </p>
-          <div class="rejilla">
-            <div class="campo">
-              <label for="fu-encargado">Investigador encargado</label>
-              <input
-                id="fu-encargado"
-                type="text"
-                name="investigadorEncargado"
-                [(ngModel)]="investigadorEncargado"
-                maxlength="150"
-                autocomplete="off" />
-            </div>
-            <div class="campo">
-              <label for="fu-correo-encargado">Correo</label>
-              <input
-                id="fu-correo-encargado"
-                type="email"
-                name="correoEncargado"
-                [(ngModel)]="correoEncargado"
-                maxlength="150"
-                autocomplete="off" />
-            </div>
-            <div class="campo">
-              <label for="fu-celular">Celular</label>
-              <input
-                id="fu-celular"
-                type="tel"
-                name="celularEncargado"
-                [(ngModel)]="celularEncargado"
-                maxlength="30"
-                autocomplete="off" />
-            </div>
-          </div>
-
-          <h4 class="titulo-seccion">2. Identificación del equipo</h4>
-          <!-- Estos datos no se preguntan: los tiene el sistema, y volver a
-               pedirlos es pedir que se copien mal. El estado es el que el bien
-               tiene ahora mismo, no el que se suponga. -->
-          <div class="datos-automaticos mb-1">
-            <div class="lista-datos">
-              <div class="dato">
-                <div class="clave">Descripción</div>
-                <div class="valor">{{ equipo.nombre }}</div>
-              </div>
-              <div class="dato">
-                <div class="clave">Código patrimonial</div>
-                <div class="valor texto-mono">{{ equipo.codigoPatrimonial }}</div>
-              </div>
-              <div class="dato">
-                <div class="clave">Marca y modelo</div>
-                <div class="valor">{{ equipo.marca }} {{ equipo.modelo }}</div>
-              </div>
-              <div class="dato">
-                <div class="clave">Número de serie</div>
-                <div class="valor texto-mono">{{ equipo.numeroSerie }}</div>
-              </div>
-              <div class="dato">
-                <div class="clave">Valor de compra</div>
-                <div class="valor">S/ {{ equipo.costo | number: '1.2-2' }}</div>
-              </div>
-              <div class="dato">
-                <div class="clave">Fecha de adquisición</div>
-                <div class="valor">{{ equipo.fechaAdquisicion | date: 'dd/MM/yyyy' }}</div>
-              </div>
-              <div class="dato">
-                <div class="clave">Área o línea de investigación</div>
-                <div class="valor">{{ equipo.coordinacion }}</div>
-              </div>
-              <div class="dato">
-                <div class="clave">Estado del equipo</div>
-                <div class="valor"><app-condicion [condicion]="equipo.condicion" /></div>
-              </div>
-            </div>
-          </div>
-
-          <h4 class="titulo-seccion">3. Datos del usuario</h4>
-          <div class="rejilla">
-            <div class="campo">
-              <label for="fu-investigador">Nombre del investigador</label>
-              <input
-                id="fu-investigador"
-                type="text"
-                name="nombreInvestigador"
-                [(ngModel)]="nombreInvestigador"
-                maxlength="150"
-                autocomplete="off" />
-            </div>
-            <div class="campo">
-              <label for="fu-correo-investigador">Correo institucional</label>
-              <input
-                id="fu-correo-investigador"
-                type="email"
-                name="correoInvestigador"
-                [(ngModel)]="correoInvestigador"
-                maxlength="150"
-                autocomplete="off" />
-            </div>
-            <div class="campo">
-              <label for="fu-telefono">Teléfono de contacto</label>
-              <input
-                id="fu-telefono"
-                type="tel"
-                name="telefonoInvestigador"
-                [(ngModel)]="telefonoInvestigador"
-                maxlength="30"
-                autocomplete="off" />
-            </div>
-          </div>
-
-          <h4 class="titulo-seccion">4. Proyecto asociado y actividad</h4>
-          <div class="campo">
-            <label for="fu-proyecto">Proyecto de investigación (PAO – Prociencia u otro)</label>
-            <textarea
-              id="fu-proyecto"
-              name="proyecto"
-              rows="3"
-              maxlength="1000"
-              [(ngModel)]="proyecto"></textarea>
-          </div>
-
-          <h4 class="titulo-seccion">5. Registro de uso del equipo</h4>
-          <p class="texto-secundario texto-pequeno">
-            El uso empieza al generar este documento: la fecha y la hora de inicio las pone el
-            sistema. Indique hasta cuándo lo va a tener.
-          </p>
-          <div class="rejilla">
-            <div class="campo">
-              <label for="fu-fecha-fin">Fecha de fin del uso</label>
-              <input
-                id="fu-fecha-fin"
-                type="date"
-                name="fechaFinUso"
-                [(ngModel)]="fechaFinUso" />
-            </div>
-            <div class="campo">
-              <label for="fu-hora-fin">Hora</label>
-              <input id="fu-hora-fin" type="time" name="horaFinUso" [(ngModel)]="horaFinUso" />
-            </div>
-          </div>
-          <div class="campo">
-            <label for="fu-actividad">Actividad realizada</label>
-            <textarea
-              id="fu-actividad"
-              name="actividadRealizada"
-              rows="3"
-              maxlength="1000"
-              [(ngModel)]="actividadRealizada"></textarea>
-          </div>
-
-          <h4 class="titulo-seccion">6. ¿El equipo fue entregado en condiciones operativas?</h4>
-          <div class="opciones-si-no">
-            <label class="opcion-conformidad" [class.elegida]="entregadoOperativo === true">
-              <input
-                type="radio"
-                name="entregadoOperativo"
-                [value]="true"
-                [(ngModel)]="entregadoOperativo" />
-              <span><strong>Sí</strong></span>
-            </label>
-            <label class="opcion-conformidad" [class.elegida]="entregadoOperativo === false">
-              <input
-                type="radio"
-                name="entregadoOperativo"
-                [value]="false"
-                [(ngModel)]="entregadoOperativo" />
-              <span><strong>No</strong></span>
-            </label>
-          </div>
-
-          <h4 class="titulo-seccion mt-1">7. ¿El equipo fue devuelto en condiciones operativas?</h4>
-          <p class="texto-secundario texto-pequeno">
-            Se responde cuando el equipo vuelve. Si aún no ha vuelto, déjelo sin marcar: las dos
-            casillas salen en blanco para marcarlas a mano.
-          </p>
-          <div class="opciones-si-no">
-            <label class="opcion-conformidad" [class.elegida]="devueltoOperativo === true">
-              <input
-                type="radio"
-                name="devueltoOperativo"
-                [value]="true"
-                [(ngModel)]="devueltoOperativo" />
-              <span><strong>Sí</strong></span>
-            </label>
-            <label class="opcion-conformidad" [class.elegida]="devueltoOperativo === false">
-              <input
-                type="radio"
-                name="devueltoOperativo"
-                [value]="false"
-                [(ngModel)]="devueltoOperativo" />
-              <span><strong>No</strong></span>
-            </label>
-          </div>
-
-          <h4 class="titulo-seccion mt-1">8. Incidentes, fallas o daños</h4>
-          <p class="texto-secundario texto-pequeno">
-            Si aplica. Indique la fecha, la hora y el nombre de la persona a quien se reportó.
-          </p>
-          <div class="campo">
-            <label for="fu-incidente">Descripción del incidente o falla</label>
-            <textarea
-              id="fu-incidente"
-              name="incidente"
-              rows="3"
-              maxlength="1000"
-              [(ngModel)]="incidente"></textarea>
-          </div>
-          <div class="campo">
-            <label for="fu-correctiva">Acción correctiva realizada</label>
-            <textarea
-              id="fu-correctiva"
-              name="accionCorrectiva"
-              rows="3"
-              maxlength="1000"
-              [(ngModel)]="accionCorrectiva"></textarea>
-          </div>
-
-          <h4 class="titulo-seccion">10. Observaciones generales</h4>
-          <div class="campo mb-0">
-            <label for="fu-observaciones">Observaciones</label>
-            <textarea
-              id="fu-observaciones"
-              name="observaciones"
-              rows="3"
-              maxlength="1000"
-              [(ngModel)]="observaciones"></textarea>
-          </div>
-
-          <p class="texto-secundario texto-pequeno mt-1 mb-0">
-            El punto 9, las firmas, sale en blanco para firmarse sobre el papel impreso.
-          </p>
-        </div>
-
-        <div class="modal-pie">
-          <button type="button" class="btn btn-secundario" (click)="cerrar()">Cancelar</button>
-          <button type="submit" class="btn btn-primario" [disabled]="generando()">
-            {{ generando() ? 'Generando...' : 'Ver vista previa' }}
-          </button>
-        </div>
-      </form>
-    } @else {
-      <!-- Paso 2: el documento entero, antes de descargarlo. Un papel que se
-           firma no se descarga a ciegas (RF-79). -->
+    @if (previa(); as fuente) {
+      <!-- ======================================================= VISTA PDF -->
       <div class="modal-cuerpo">
-        <div class="aviso aviso-alerta mb-1">
-          <strong>Recuerde registrar el préstamo del equipo.</strong>
-          Este formato no lo registra: {{ equipo.nombre }} sigue figurando como
-          {{ equipo.condicionEtiqueta | lowercase }} en el inventario y la salida no consta en
-          ninguna parte hasta que registre el préstamo.
-        </div>
-
-        @if (previa(); as fuente) {
-          <iframe
-            class="previa-documento"
-            [src]="fuente"
-            title="Vista previa del formato de registro de uso"></iframe>
-        }
+        <iframe
+          class="previa-documento"
+          [src]="fuente"
+          title="Vista previa del formato de registro de uso"></iframe>
       </div>
-
       <div class="modal-pie">
-        <button type="button" class="btn btn-secundario" (click)="volverAEditar()">
+        <button type="button" class="btn btn-secundario" (click)="volverDelPdf()">
           <app-icono nombre="atras" tamano="sm" />
-          <span>Volver a editar</span>
+          <span>Volver</span>
         </button>
-        @if (descargado()) {
-          <button type="button" class="btn btn-secundario" (click)="irARegistrarPrestamo()">
-            <app-icono nombre="prestamos" tamano="sm" />
-            <span>Registrar el préstamo</span>
-          </button>
-        }
-        <button type="button" class="btn btn-secundario" (click)="cerrar()">Cerrar</button>
         <button type="button" class="btn btn-primario" (click)="descargar()">
           <app-icono nombre="descargar" tamano="sm" />
           <span>Descargar PDF</span>
         </button>
       </div>
+    } @else if (modo() === 'abrir') {
+      <!-- ============================================= PARTE 1: puntos 1 a 5 -->
+      <form (ngSubmit)="abrir()">
+        <div class="modal-cuerpo">
+          <section class="ue-bloque">
+            <h4 class="ue-titulo">1. Responsable del equipamiento: Coordinador</h4>
+            <div class="ue-campos">
+              <div class="campo" [class.invalido]="errores()['encargadoNombre']">
+                <label for="ue-encargado">Investigador encargado<span class="obligatorio">*</span></label>
+                <input id="ue-encargado" type="text" name="encargadoNombre" [(ngModel)]="encargadoNombre" maxlength="150" autocomplete="off" />
+                @if (errores()['encargadoNombre']) {
+                  <span class="error-campo">{{ errores()['encargadoNombre'] }}</span>
+                }
+              </div>
+              <div class="campo" [class.invalido]="errores()['encargadoCorreo']">
+                <label for="ue-correo-encargado">Correo</label>
+                <input id="ue-correo-encargado" type="email" name="encargadoCorreo" [(ngModel)]="encargadoCorreo" maxlength="150" autocomplete="off" />
+                @if (errores()['encargadoCorreo']) {
+                  <span class="error-campo">{{ errores()['encargadoCorreo'] }}</span>
+                }
+              </div>
+              <div class="campo">
+                <label for="ue-celular">Celular</label>
+                <input id="ue-celular" type="tel" name="encargadoCelular" [(ngModel)]="encargadoCelular" maxlength="30" autocomplete="off" />
+              </div>
+            </div>
+          </section>
+
+          <section class="ue-bloque">
+            <h4 class="ue-titulo">2. Identificación del equipo</h4>
+            <dl class="ue-datos ue-datos-auto">
+              <div><dt>Descripción</dt><dd>{{ equipo.nombre }}</dd></div>
+              <div><dt>Código patrimonial</dt><dd class="texto-mono">{{ equipo.codigoPatrimonial }}</dd></div>
+              <div><dt>Código de inventario</dt><dd class="texto-mono">{{ equipo.codigoInventario }}</dd></div>
+              <div><dt>Marca y modelo</dt><dd>{{ equipo.marca }} {{ equipo.modelo }}</dd></div>
+              <div><dt>Número de serie</dt><dd class="texto-mono">{{ equipo.numeroSerie }}</dd></div>
+              <div><dt>Valor de compra</dt><dd>S/ {{ equipo.costo | number: '1.2-2' }}</dd></div>
+              <div><dt>Fecha de adquisición</dt><dd>{{ equipo.fechaAdquisicion | date: 'dd/MM/yyyy' }}</dd></div>
+              <div><dt>Estado</dt><dd><app-condicion [condicion]="equipo.condicion" /></dd></div>
+            </dl>
+          </section>
+
+          <section class="ue-bloque">
+            <h4 class="ue-titulo">3. Datos del usuario</h4>
+            <div class="ue-campos">
+              <div class="campo" [class.invalido]="errores()['usuarioNombre']">
+                <label for="ue-usuario">Nombre del investigador<span class="obligatorio">*</span></label>
+                <input id="ue-usuario" type="text" name="usuarioNombre" [(ngModel)]="usuarioNombre" maxlength="150" autocomplete="off" />
+                @if (errores()['usuarioNombre']) {
+                  <span class="error-campo">{{ errores()['usuarioNombre'] }}</span>
+                }
+              </div>
+              <div class="campo" [class.invalido]="errores()['usuarioCorreo']">
+                <label for="ue-correo-usuario">Correo institucional</label>
+                <input id="ue-correo-usuario" type="email" name="usuarioCorreo" [(ngModel)]="usuarioCorreo" maxlength="150" autocomplete="off" />
+                @if (errores()['usuarioCorreo']) {
+                  <span class="error-campo">{{ errores()['usuarioCorreo'] }}</span>
+                }
+              </div>
+              <div class="campo">
+                <label for="ue-telefono">Teléfono de contacto</label>
+                <input id="ue-telefono" type="tel" name="usuarioTelefono" [(ngModel)]="usuarioTelefono" maxlength="30" autocomplete="off" />
+              </div>
+            </div>
+          </section>
+
+          <section class="ue-bloque">
+            <h4 class="ue-titulo">4. Proyecto asociado y actividad</h4>
+            <div class="campo mb-0">
+              <label for="ue-proyecto">Proyecto de investigación (PAO – Prociencia u otro)</label>
+              <textarea id="ue-proyecto" name="proyecto" rows="2" maxlength="1000" [(ngModel)]="proyecto"></textarea>
+            </div>
+          </section>
+
+          <section class="ue-bloque">
+            <h4 class="ue-titulo">5. Registro de uso del equipo</h4>
+            <!-- Inicio y fin en dos filas iguales: fecha y hora, lado a lado. -->
+            <div class="ue-campos ue-campos-2">
+              <div class="campo" [class.invalido]="errores()['fechaInicio']">
+                <label for="ue-fecha-inicio">Fecha de inicio del uso<span class="obligatorio">*</span></label>
+                <input id="ue-fecha-inicio" type="date" name="fechaInicio" [(ngModel)]="fechaInicio" />
+                @if (errores()['fechaInicio']) {
+                  <span class="error-campo">{{ errores()['fechaInicio'] }}</span>
+                }
+              </div>
+              <div class="campo" [class.invalido]="errores()['horaInicio']">
+                <label for="ue-hora-inicio">Hora de inicio<span class="obligatorio">*</span></label>
+                <input id="ue-hora-inicio" type="time" name="horaInicio" [(ngModel)]="horaInicio" />
+                @if (errores()['horaInicio']) {
+                  <span class="error-campo">{{ errores()['horaInicio'] }}</span>
+                }
+              </div>
+              <div class="campo" [class.invalido]="errores()['fechaFinPrevista'] || !finValido">
+                <label for="ue-fecha-fin">Fecha de fin prevista</label>
+                <input id="ue-fecha-fin" type="date" name="fechaFinPrevista" [min]="fechaInicio" [(ngModel)]="fechaFinPrevista" />
+                @if (errores()['fechaFinPrevista']) {
+                  <span class="error-campo">{{ errores()['fechaFinPrevista'] }}</span>
+                } @else if (!finValido) {
+                  <span class="error-campo">No puede ser anterior al inicio.</span>
+                }
+              </div>
+              <div class="campo">
+                <label for="ue-hora-fin">Hora de fin prevista</label>
+                <input id="ue-hora-fin" type="time" name="horaFinPrevista" [(ngModel)]="horaFinPrevista" />
+              </div>
+            </div>
+            <div class="campo mb-0">
+              <label for="ue-actividad">Actividad a realizar</label>
+              <textarea id="ue-actividad" name="actividad" rows="2" maxlength="1000" [(ngModel)]="actividad"></textarea>
+            </div>
+          </section>
+        </div>
+
+        <div class="modal-pie">
+          <button type="button" class="btn btn-secundario" (click)="cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn-primario" [disabled]="!aperturaValida || guardando()">
+            {{ guardando() ? 'Registrando...' : 'Registrar uso' }}
+          </button>
+        </div>
+      </form>
+    } @else if (registro(); as uso) {
+      @if (modo() === 'anular') {
+        <!-- ================================================ ANULAR (confirmar)
+             Solo para un uso con su primera parte: se canceló y el equipo no
+             llegó a usarse. El registro se borra. -->
+        <div class="modal-cuerpo">
+          <p class="mb-1">
+            Se anulará el uso externo N.º {{ uso.id }} de <strong>{{ uso.equipoNombre }}</strong>,
+            a cargo de {{ uso.encargadoNombre }}.
+          </p>
+          <ul class="ue-consecuencias">
+            <li>El registro se borra y no aparecerá en la lista de usos externos.</li>
+            <li>El equipo vuelve a estar <strong>disponible</strong>.</li>
+            <li>El historial del equipo conserva una anotación de la salida anulada.</li>
+          </ul>
+        </div>
+        <div class="modal-pie">
+          <button type="button" class="btn btn-secundario" [disabled]="guardando()" (click)="modo.set('ver')">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-peligro" [disabled]="guardando()" (click)="anularRegistro()">
+            {{ guardando() ? 'Anulando...' : 'Anular uso' }}
+          </button>
+        </div>
+      } @else if (modo() === 'cerrar') {
+        <!-- ========================================== PARTE 2: puntos 6 a 10 -->
+        <form (ngSubmit)="cerrarRegistro()">
+          <div class="modal-cuerpo">
+            <!-- Recordatorio compacto de la parte 1. -->
+            <dl class="ue-datos ue-datos-auto ue-resumen">
+              <div><dt>Investigador encargado</dt><dd>{{ uso.encargadoNombre }}</dd></div>
+              <div><dt>Usuario</dt><dd>{{ uso.usuarioNombre }}</dd></div>
+              <div><dt>Inicio del uso</dt><dd>{{ uso.fechaInicio | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+            </dl>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">6. ¿Fue entregado en condiciones operativas?<span class="obligatorio">*</span></h4>
+              <div class="opciones-si-no">
+                <label class="opcion-conformidad" [class.elegida]="entregadoOperativo === true">
+                  <input type="radio" name="entregadoOperativo" [value]="true" [(ngModel)]="entregadoOperativo" />
+                  <span><strong>Sí</strong></span>
+                </label>
+                <label class="opcion-conformidad" [class.elegida]="entregadoOperativo === false">
+                  <input type="radio" name="entregadoOperativo" [value]="false" [(ngModel)]="entregadoOperativo" />
+                  <span><strong>No</strong></span>
+                </label>
+              </div>
+            </section>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">7. ¿Fue devuelto en condiciones operativas?<span class="obligatorio">*</span></h4>
+              <div class="opciones-si-no">
+                <label class="opcion-conformidad" [class.elegida]="devueltoOperativo === true">
+                  <input type="radio" name="devueltoOperativo" [value]="true" [(ngModel)]="devueltoOperativo" />
+                  <span><strong>Sí</strong></span>
+                </label>
+                <label class="opcion-conformidad" [class.elegida]="devueltoOperativo === false">
+                  <input type="radio" name="devueltoOperativo" [value]="false" [(ngModel)]="devueltoOperativo" />
+                  <span><strong>No</strong></span>
+                </label>
+              </div>
+              @if (devueltoOperativo === false) {
+                <span class="ayuda-campo">El equipo quedará pendiente de revisión.</span>
+              }
+            </section>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">8. Incidentes, fallas o daños</h4>
+              <div class="ue-campos ue-campos-2">
+                <div class="campo mb-0" [class.invalido]="errores()['incidente'] || (devueltoOperativo === false && !incidente.trim())">
+                  <label for="ue-incidente">
+                    Descripción del incidente o falla
+                    @if (devueltoOperativo === false) {
+                      <span class="obligatorio">*</span>
+                    }
+                  </label>
+                  <textarea id="ue-incidente" name="incidente" rows="3" maxlength="1000" [(ngModel)]="incidente"></textarea>
+                  @if (errores()['incidente']) {
+                    <span class="error-campo">{{ errores()['incidente'] }}</span>
+                  } @else {
+                    <span class="ayuda-campo">Fecha, hora y a quién se reportó.</span>
+                  }
+                </div>
+                <div class="campo mb-0">
+                  <label for="ue-correctiva">Acción correctiva realizada</label>
+                  <textarea id="ue-correctiva" name="accionCorrectiva" rows="3" maxlength="1000" [(ngModel)]="accionCorrectiva"></textarea>
+                </div>
+              </div>
+            </section>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">9. Autorizaciones y firmas</h4>
+              <p class="ue-nota">Se firman a mano sobre el PDF impreso.</p>
+            </section>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">10. Observaciones generales</h4>
+              <div class="campo mb-0">
+                <label for="ue-observaciones">Observaciones</label>
+                <textarea id="ue-observaciones" name="observaciones" rows="2" maxlength="1000" [(ngModel)]="observaciones"></textarea>
+              </div>
+            </section>
+          </div>
+
+          <div class="modal-pie">
+            <button type="button" class="btn btn-anular pie-izquierda" (click)="pedirAnulacion()">
+              <app-icono nombre="baja" tamano="sm" />
+              <span>Anular uso</span>
+            </button>
+            <button type="button" class="btn btn-secundario" (click)="modo.set('ver')">Cancelar</button>
+            <button type="submit" class="btn btn-primario" [disabled]="!cierreValido || guardando()">
+              {{ guardando() ? 'Guardando...' : 'Cerrar registro' }}
+            </button>
+          </div>
+        </form>
+      } @else {
+        <!-- ===================================================== VER REGISTRO
+             Los diez puntos en el orden del formato, cada uno con sus datos
+             en filas "rótulo | valor". -->
+        <div class="modal-cuerpo">
+          <div class="ue-parte">
+            <div class="ue-parte-cabecera">
+              <h4>Apertura</h4>
+              <span class="ue-meta">
+                {{ uso.fechaInicio | date: 'dd/MM/yyyy HH:mm' }}
+                @if (uso.registradoPorNombre) {
+                  &middot; {{ uso.registradoPorNombre }}
+                }
+              </span>
+            </div>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">1. Responsable del equipamiento: Coordinador</h4>
+              <dl class="ue-datos">
+                <div><dt>Investigador encargado</dt><dd>{{ uso.encargadoNombre }}</dd></div>
+                <div><dt>Correo</dt><dd>{{ uso.encargadoCorreo || '—' }}</dd></div>
+                <div><dt>Celular</dt><dd>{{ uso.encargadoCelular || '—' }}</dd></div>
+              </dl>
+            </section>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">2. Identificación del equipo</h4>
+              <dl class="ue-datos">
+                <div><dt>Equipo</dt><dd>{{ uso.equipoNombre }} <span class="texto-mono texto-secundario">{{ uso.equipoCodigoInventario }}</span></dd></div>
+                <div><dt>Fecha de adquisición</dt><dd>{{ equipo.fechaAdquisicion | date: 'dd/MM/yyyy' }}</dd></div>
+                <div><dt>Estado al salir</dt><dd>{{ uso.estadoEquipoInicio }}</dd></div>
+              </dl>
+            </section>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">3. Datos del usuario</h4>
+              <dl class="ue-datos">
+                <div><dt>Nombre del investigador</dt><dd>{{ uso.usuarioNombre }}</dd></div>
+                <div><dt>Correo institucional</dt><dd>{{ uso.usuarioCorreo || '—' }}</dd></div>
+                <div><dt>Teléfono</dt><dd>{{ uso.usuarioTelefono || '—' }}</dd></div>
+              </dl>
+            </section>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">4. Proyecto asociado y actividad</h4>
+              <p class="ue-texto">{{ uso.proyecto || '—' }}</p>
+            </section>
+
+            <section class="ue-bloque">
+              <h4 class="ue-titulo">5. Registro de uso del equipo</h4>
+              <dl class="ue-datos">
+                <div><dt>Inicio</dt><dd>{{ uso.fechaInicio | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+                <div>
+                  <dt>{{ uso.fechaCierre ? 'Fin' : 'Fin previsto' }}</dt>
+                  <dd>
+                    @if (uso.fechaCierre) {
+                      {{ uso.fechaCierre | date: 'dd/MM/yyyy HH:mm' }}
+                    } @else if (uso.fechaFinPrevista) {
+                      {{ uso.fechaFinPrevista | date: 'dd/MM/yyyy' }} {{ uso.horaFinPrevista ? uso.horaFinPrevista.slice(0, 5) : '' }}
+                    } @else {
+                      —
+                    }
+                  </dd>
+                </div>
+                <div><dt>Actividad</dt><dd>{{ uso.actividad || '—' }}</dd></div>
+              </dl>
+            </section>
+          </div>
+
+          <div class="ue-parte">
+            <div class="ue-parte-cabecera">
+              <h4>Cierre</h4>
+              @if (uso.fechaCierre) {
+                <span class="ue-meta">
+                  {{ uso.fechaCierre | date: 'dd/MM/yyyy HH:mm' }}
+                  @if (uso.cerradoPorNombre) {
+                    &middot; {{ uso.cerradoPorNombre }}
+                  }
+                </span>
+              }
+            </div>
+
+            @if (uso.estado === 'ABIERTO') {
+              <div class="ue-pendiente">
+                <app-icono nombre="prestamos" tamano="sm" />
+                <span>El equipo sigue en uso. Cierre el registro cuando vuelva.</span>
+              </div>
+            } @else {
+              <section class="ue-bloque">
+                <h4 class="ue-titulo">6 y 7. Condiciones de entrega y devolución</h4>
+                <dl class="ue-datos">
+                  <div><dt>Entregado operativo</dt><dd>{{ siNo(uso.entregadoOperativo) }}</dd></div>
+                  <div>
+                    <dt>Devuelto operativo</dt>
+                    <dd>
+                      {{ siNo(uso.devueltoOperativo) }}
+                      @if (uso.devueltoOperativo === false) {
+                        <span class="insignia insignia-revision">Pendiente de revisión</span>
+                      }
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section class="ue-bloque">
+                <h4 class="ue-titulo">8. Incidentes, fallas o daños</h4>
+                <dl class="ue-datos">
+                  <div><dt>Incidente</dt><dd>{{ uso.incidente || 'Sin incidentes' }}</dd></div>
+                  <div><dt>Acción correctiva</dt><dd>{{ uso.accionCorrectiva || '—' }}</dd></div>
+                </dl>
+              </section>
+
+              <section class="ue-bloque">
+                <h4 class="ue-titulo">9. Autorizaciones y firmas</h4>
+                <p class="ue-nota">Se firman a mano sobre el PDF impreso.</p>
+              </section>
+
+              <section class="ue-bloque">
+                <h4 class="ue-titulo">10. Observaciones generales</h4>
+                <p class="ue-texto">{{ uso.observaciones || '—' }}</p>
+              </section>
+            }
+          </div>
+        </div>
+
+        <div class="modal-pie">
+          @if (uso.estado === 'ABIERTO' && puedeGestionar) {
+            <button type="button" class="btn btn-anular pie-izquierda" (click)="pedirAnulacion()">
+              <app-icono nombre="baja" tamano="sm" />
+              <span>Anular uso</span>
+            </button>
+          }
+          <button type="button" class="btn btn-secundario" (click)="cerrar()">Cerrar</button>
+          <button type="button" class="btn btn-secundario" [disabled]="generando()" (click)="verPdf()">
+            <app-icono nombre="descargar" tamano="sm" />
+            <span>{{ generando() ? 'Generando...' : 'Ver PDF para firmar' }}</span>
+          </button>
+          @if (uso.estado === 'ABIERTO' && puedeGestionar) {
+            <button type="button" class="btn btn-primario" (click)="irACerrar()">
+              <app-icono nombre="correcto" tamano="sm" />
+              <span>Cerrar uso externo</span>
+            </button>
+          }
+        </div>
+      }
     }
   </div>
 </div>

@@ -8,6 +8,7 @@ import {
   claseEstadoCuenta,
   claseRol,
   coordinacionDe,
+  rolVisible,
 } from '../../dominio/usuario.model';
 
 /**
@@ -118,7 +119,7 @@ export class DetallePersona {
 
   /** RNF-30: el rol se distingue por color Y por texto. */
   protected get claseDelRol(): string {
-    return claseRol(this.persona.rol);
+    return claseRol(rolVisible(this.persona));
   }
 
   /** RNF-30: y el estado de la cuenta, tambien. */

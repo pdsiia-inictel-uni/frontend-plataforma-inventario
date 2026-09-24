@@ -48,6 +48,14 @@ export interface Usuario {
   coordinaciones: CoordinacionAsignada[];
   estado: EstadoCuenta;
   estadoEtiqueta: string;
+  /**
+   * RN-34: la baja borra el rol y la coordinacion. Estos dos campos recuerdan
+   * el puesto que tenia al irse, para que siga apareciendo —como dada de baja—
+   * en la lista de su coordinacion y en los filtros por rol. Solo llegan con
+   * la cuenta de baja.
+   */
+  ultimoRol?: Rol | null;
+  ultimaCoordinacion?: CoordinacionAsignada | null;
   debeCambiarPassword: boolean;
   /**
    * RF-06b: solo la cuenta administradora inicial, que nace con datos de
@@ -172,8 +180,23 @@ export function normalizarUsuario(crudo: Usuario): Usuario {
   return {
     ...crudo,
     rol: crudo.rol ?? null,
+    ultimoRol: crudo.ultimoRol ?? null,
+    ultimaCoordinacion: crudo.ultimaCoordinacion ?? null,
     coordinaciones: crudo.coordinaciones ?? [],
   };
+}
+
+/**
+ * El rol con que se nombra a la persona en las listas: el que tiene o, si
+ * esta de baja, el que tenia al irse (RN-34).
+ */
+export function rolVisible(usuario: Usuario): Rol | null {
+  return usuario.rol ?? usuario.ultimoRol ?? null;
+}
+
+/** La persona era Operador y se dio de baja (RN-34). */
+export function esOperadorDeBaja(usuario: Usuario): boolean {
+  return usuario.estado === 'BAJA' && usuario.ultimoRol === 'OPERADOR';
 }
 
 
@@ -218,8 +241,14 @@ export function puedeEntrar(usuario: Usuario): boolean {
  */
 export function coordinacionDe(usuario: Usuario): string {
   const asignada = usuario.coordinaciones?.[0];
-  if (!asignada) {
-    return '';
+  if (asignada) {
+    return asignada.nombre ?? `#${asignada.id}`;
   }
-  return asignada.nombre ?? `#${asignada.id}`;
+  // RN-34: quien esta de baja ya no tiene coordinacion, pero se dice en cual
+  // trabajaba al irse.
+  const ultima = usuario.estado === 'BAJA' ? usuario.ultimaCoordinacion : null;
+  if (ultima) {
+    return `${ultima.nombre ?? '#' + ultima.id} (hasta su baja)`;
+  }
+  return '';
 }

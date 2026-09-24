@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { NotificacionStore } from '../../../../compartido/aplicacion/notificacion.store';
@@ -8,7 +8,12 @@ import {
 } from '../../../../compartido/infraestructura/http/error.interceptor';
 import { EquipoResumen } from '../../../inventario/dominio/equipo.model';
 import { PrestamosFacade } from '../../aplicacion/prestamos.facade';
-import { PrestamoPeticion } from '../../dominio/prestamo.model';
+import {
+  CoordinacionDestino,
+  Destinatario,
+  GrupoDestino,
+  PrestamoPeticion,
+} from '../../dominio/prestamo.model';
 
 /**
  * Registro de una salida (RF-58, RF-59).
@@ -17,6 +22,11 @@ import { PrestamoPeticion } from '../../dominio/prestamo.model';
  * usuario, presentados con la etiqueta "Disponible" (RNF-29). Un bien que no
  * se puede prestar no aparece en la lista, en lugar de aparecer y fallar al
  * confirmar (RNF-23).</p>
+ *
+ * <p>El equipo se entrega a una persona <b>registrada</b>: primero se elige la
+ * coordinacion de destino —cualquiera de la institucion— y despues, dentro de
+ * ella, a su Responsable o a uno de sus Operadores activos. El nombre y el DNI
+ * los pone el servidor a partir de esa persona.</p>
  *
  * <p>La fecha y hora de salida y el usuario que entrega los pone el servidor
  * (RN-21); el formulario no los pregunta.</p>
@@ -39,16 +49,76 @@ export class FormularioPrestamo {
   /** RF-59: la fecha estimada no puede ser anterior a hoy. */
   protected readonly hoy = new Date().toISOString().slice(0, 10);
 
+  protected readonly coordinaciones = signal<CoordinacionDestino[]>([]);
+
+  /**
+   * Las coordinaciones agrupadas por Dirección: el destino puede estar en la
+   * misma Dirección o en otra, y el selector lo deja a la vista.
+   */
+  protected readonly gruposDestino = computed<GrupoDestino[]>(() => {
+    const grupos = new Map<string, CoordinacionDestino[]>();
+    for (const coordinacion of this.coordinaciones()) {
+      const direccion = coordinacion.direccionNombre ?? 'Sin dirección';
+      grupos.set(direccion, [...(grupos.get(direccion) ?? []), coordinacion]);
+    }
+    return [...grupos.entries()].map(([direccion, coordinaciones]) => ({ direccion, coordinaciones }));
+  });
+  protected readonly cargandoCoordinaciones = signal(true);
+  protected readonly destinatarios = signal<Destinatario[]>([]);
+  protected readonly cargandoDestinatarios = signal(false);
+
   protected busqueda = '';
   protected equipoId: number | null = null;
-  protected nombrePersona = '';
-  protected dniPersona = '';
-  protected destino = '';
+  protected coordinacionDestinoId: number | null = null;
+  protected personaUsuarioId: number | null = null;
   protected fechaEstimadaDevolucion = '';
   protected observacionesSalida = '';
 
   constructor() {
     this.cargarDisponibles();
+    this.cargarCoordinaciones();
+  }
+
+  private cargarCoordinaciones(): void {
+    this.cargandoCoordinaciones.set(true);
+    // Lista propia de los préstamos: la general de coordinaciones solo trae la
+    // del usuario (RN-23), y el destino puede ser cualquiera de la institución.
+    this.prestamos.coordinacionesDestino().subscribe({
+      next: (lista) => {
+        this.coordinaciones.set(lista);
+        this.cargandoCoordinaciones.set(false);
+      },
+      error: (error) => {
+        this.notificaciones.error(mensajeError(error, 'No se pudieron cargar las coordinaciones.'));
+        this.cargandoCoordinaciones.set(false);
+      },
+    });
+  }
+
+  /** Al cambiar de coordinación se limpia la persona: la lista es otra. */
+  protected alElegirCoordinacion(): void {
+    this.personaUsuarioId = null;
+    this.destinatarios.set([]);
+    const coordinacionId = this.coordinacionDestinoId;
+    if (coordinacionId === null) {
+      return;
+    }
+    this.cargandoDestinatarios.set(true);
+    this.prestamos.destinatarios(coordinacionId).subscribe({
+      next: (lista) => {
+        // La respuesta de una coordinación que ya no está elegida no pisa a la actual.
+        if (this.coordinacionDestinoId === coordinacionId) {
+          this.destinatarios.set(lista);
+        }
+        this.cargandoDestinatarios.set(false);
+      },
+      error: (error) => {
+        this.notificaciones.error(
+          mensajeError(error, 'No se pudo cargar el personal de la coordinación.'),
+        );
+        this.cargandoDestinatarios.set(false);
+      },
+    });
   }
 
   protected cargarDisponibles(): void {
@@ -73,8 +143,15 @@ export class FormularioPrestamo {
     return this.disponibles().find((e) => e.id === this.equipoId) ?? null;
   }
 
-  protected get dniValido(): boolean {
-    return /^[0-9]{8}$/.test(this.dniPersona.trim());
+  /** Texto de la opción vacía del selector de persona, según lo que falte. */
+  protected get textoSinPersona(): string {
+    if (this.coordinacionDestinoId === null) {
+      return 'Primero elija la coordinación';
+    }
+    if (this.cargandoDestinatarios()) {
+      return 'Cargando personal...';
+    }
+    return this.destinatarios().length === 0 ? 'Sin personal activo' : 'Seleccione a la persona';
   }
 
   protected get fechaValida(): boolean {
@@ -87,8 +164,8 @@ export class FormularioPrestamo {
   protected get valido(): boolean {
     return (
       this.equipoId !== null &&
-      this.nombrePersona.trim().length > 0 &&
-      this.dniValido &&
+      this.coordinacionDestinoId !== null &&
+      this.personaUsuarioId !== null &&
       this.fechaValida
     );
   }
@@ -102,9 +179,8 @@ export class FormularioPrestamo {
 
     const peticion: PrestamoPeticion = {
       equipoId: this.equipoId!,
-      nombrePersona: this.nombrePersona.trim(),
-      dniPersona: this.dniPersona.trim(),
-      destino: this.destino.trim() || null,
+      coordinacionDestinoId: this.coordinacionDestinoId!,
+      personaUsuarioId: this.personaUsuarioId!,
       fechaEstimadaDevolucion: this.fechaEstimadaDevolucion || null,
       observacionesSalida: this.observacionesSalida.trim() || null,
     };

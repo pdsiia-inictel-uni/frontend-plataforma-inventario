@@ -136,13 +136,21 @@
             <input
               id="bi-patrimonial"
               type="text"
-              [(ngModel)]="codigoPatrimonial"
-              maxlength="60"
+              [value]="codigoPatrimonial"
+              (input)="alEscribirPatrimonial($event)"
+              maxlength="12"
+              placeholder="12 letras y/o números"
+              autocapitalize="characters"
+              spellcheck="false"
               autocomplete="off" />
             @if (errores()['codigoPatrimonial']) {
               <span class="error-campo">{{ errores()['codigoPatrimonial'] }}</span>
+            } @else if (codigoPatrimonial && !patrimonialValido) {
+              <span class="error-campo">
+                Debe tener exactamente 12 caracteres ({{ codigoPatrimonial.length }} de 12).
+              </span>
             } @else {
-              <span class="ayuda-campo">El que asigna la oficina de patrimonio del Estado.</span>
+              <span class="ayuda-campo">12 caracteres, letras y/o números, el que asigna la oficina de patrimonio.</span>
             }
           </div>
         </div>

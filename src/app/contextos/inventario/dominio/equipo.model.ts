@@ -76,7 +76,10 @@ export interface Equipo {
   observaciones?: string;
   fotoUrl?: string;
   revisionPendiente: boolean;
+  /** Solo bajas anteriores al documento PDF. */
   motivoBaja?: string;
+  /** RF-42: ruta del PDF que sustenta la baja. */
+  documentoBajaUrl?: string;
   fechaBaja?: string;
   responsableId?: number;
   /** RF-36: el Responsable vigente al momento del alta. */
@@ -224,10 +227,6 @@ export function admiteMantenimiento(equipo: { condicion: CondicionEquipo }): boo
 
 export function admiteBaja(equipo: { condicion: CondicionEquipo }): boolean {
   return equipo.condicion === 'OPERATIVO' || equipo.condicion === 'MANTENIMIENTO';
-}
-
-export function admiteReincorporacion(equipo: { condicion: CondicionEquipo }): boolean {
-  return equipo.condicion === 'BAJA';
 }
 
 export function admiteRetornoOperativo(equipo: { condicion: CondicionEquipo }): boolean {

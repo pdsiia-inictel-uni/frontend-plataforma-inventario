@@ -5,11 +5,18 @@ import { CriterioPagina, Pagina } from '../../../compartido/dominio/pagina.model
 import { EquipoResumen, FiltroInventario } from '../../inventario/dominio/equipo.model';
 import { InventarioFacade } from '../../inventario/aplicacion/inventario.facade';
 import {
+  CoordinacionDestino,
+  Destinatario,
   DevolucionPeticion,
   FiltroPrestamos,
   Prestamo,
   PrestamoPeticion,
 } from '../dominio/prestamo.model';
+import {
+  AbrirUsoExternoPeticion,
+  CerrarUsoExternoPeticion,
+  UsoExterno,
+} from '../dominio/uso-externo.model';
 import { PrestamosPuerto } from '../dominio/puertos';
 
 /**
@@ -42,6 +49,36 @@ export class PrestamosFacade {
 
   registrar(peticion: PrestamoPeticion): Observable<Prestamo> {
     return this.prestamos.registrar(peticion);
+  }
+
+  /** RF-78: usos externos del equipo, el más reciente primero. */
+  usosExternos(equipoId: number): Observable<UsoExterno[]> {
+    return this.prestamos.usosExternos(equipoId);
+  }
+
+  /** RF-78: primera parte del registro (puntos 1 a 5). El equipo pasa a Prestado. */
+  abrirUsoExterno(equipoId: number, peticion: AbrirUsoExternoPeticion): Observable<UsoExterno> {
+    return this.prestamos.abrirUsoExterno(equipoId, peticion);
+  }
+
+  /** RF-78: parte final (puntos 6 a 10). El equipo vuelve al servicio. */
+  cerrarUsoExterno(id: number, peticion: CerrarUsoExternoPeticion): Observable<UsoExterno> {
+    return this.prestamos.cerrarUsoExterno(id, peticion);
+  }
+
+  /** Anula un uso que solo tiene su primera parte: el equipo no llegó a usarse. */
+  anularUsoExterno(id: number): Observable<void> {
+    return this.prestamos.anularUsoExterno(id);
+  }
+
+  /** RF-59: coordinaciones a las que puede ir un equipo, de cualquier Dirección. */
+  coordinacionesDestino(): Observable<CoordinacionDestino[]> {
+    return this.prestamos.coordinacionesDestino();
+  }
+
+  /** RF-59: a quién puede entregarse un equipo en esa coordinación de destino. */
+  destinatarios(coordinacionId: number): Observable<Destinatario[]> {
+    return this.prestamos.destinatarios(coordinacionId);
   }
 
   devolver(id: number, peticion: DevolucionPeticion): Observable<Prestamo> {

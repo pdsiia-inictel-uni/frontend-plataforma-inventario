@@ -4,7 +4,7 @@ import { Observable, catchError, from, map, switchMap, throwError } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { FiltroInventario } from '../../inventario/dominio/equipo.model';
-import { FormatoUsoGenerado, FormatoUsoPeticion } from '../dominio/formato-uso.model';
+import { FormatoUsoGenerado } from '../dominio/formato-uso.model';
 import { PanelControl } from '../dominio/panel.model';
 import {
   ArchivoExportado,
@@ -108,14 +108,14 @@ function conErrorLegible<T>(fuente: Observable<T>): Observable<T> {
 export class FormatoUsoHttpAdapter extends FormatoUsoPuerto {
   private readonly http = inject(HttpClient);
 
-  override generar(equipoId: number, datos: FormatoUsoPeticion): Observable<FormatoUsoGenerado> {
+  override generar(usoId: number): Observable<FormatoUsoGenerado> {
     return this.http
-      .post(`${environment.apiUrl}/reportes/equipos/${equipoId}/formato-uso`, datos, {
+      .get(`${environment.apiUrl}/reportes/usos-externos/${usoId}/formato`, {
         responseType: 'blob',
       })
       .pipe(
         map((contenido) => ({
-          nombre: `registro-uso-${equipoId}-${new Date().toISOString().slice(0, 10)}.pdf`,
+          nombre: `registro-uso-${usoId}.pdf`,
           contenido,
         })),
         conErrorLegible,

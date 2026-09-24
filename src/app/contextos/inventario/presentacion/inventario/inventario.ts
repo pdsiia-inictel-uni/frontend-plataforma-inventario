@@ -32,7 +32,7 @@ import {
  * (RF-49, RN-22).</p>
  *
  * <p>La unica accion de la fila es abrir la ficha. Editar, enviar a
- * mantenimiento, dar de baja y reincorporar viven en la ficha del bien, donde
+ * mantenimiento y dar de baja viven en la ficha del bien, donde
  * cada boton lleva su nombre escrito y hay sitio para explicar la consecuencia
  * antes de confirmarla (RNF-22, RNF-26).</p>
  */

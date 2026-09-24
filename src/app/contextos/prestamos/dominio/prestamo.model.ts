@@ -13,6 +13,10 @@ export interface Prestamo {
   equipoNumeroSerie: string;
   nombrePersona: string;
   dniPersona: string;
+  /** RF-59: usuario registrado que se lleva el bien (ausente en préstamos antiguos). */
+  personaUsuarioId?: number | null;
+  /** RF-59: coordinación de destino; su nombre viaja en {@code destino}. */
+  coordinacionDestinoId?: number | null;
   destino?: string;
   fechaPrestamo: string;
   fechaEstimadaDevolucion?: string;
@@ -41,11 +45,40 @@ export interface Prestamo {
  */
 export interface PrestamoPeticion {
   equipoId: number;
-  nombrePersona: string;
-  dniPersona: string;
-  destino?: string | null;
+  /** Primero se elige la coordinación de destino... */
+  coordinacionDestinoId: number;
+  /** ...y dentro de ella, al Responsable u Operador que recibe el equipo. */
+  personaUsuarioId: number;
   fechaEstimadaDevolucion?: string | null;
   observacionesSalida?: string | null;
+}
+
+/**
+ * Coordinación a la que puede ir un equipo prestado (RF-59): cualquiera de la
+ * institución, de su misma Dirección o de otra.
+ */
+export interface CoordinacionDestino {
+  id: number;
+  nombre: string;
+  direccionId: number;
+  direccionNombre?: string | null;
+}
+
+/** Las coordinaciones de destino agrupadas por su Dirección, para el selector. */
+export interface GrupoDestino {
+  direccion: string;
+  coordinaciones: CoordinacionDestino[];
+}
+
+/**
+ * Persona registrada a la que puede entregarse un equipo (RF-59): el
+ * Responsable o un Operador activo de la coordinación de destino.
+ */
+export interface Destinatario {
+  id: number;
+  nombreCompleto: string;
+  rolEtiqueta: string;
+  coordinacionId: number;
 }
 
 /**

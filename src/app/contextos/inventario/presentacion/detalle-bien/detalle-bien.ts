@@ -1,19 +1,22 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { NotificacionStore } from '../../../../compartido/aplicacion/notificacion.store';
+import { OpcionPestana } from '../../../../compartido/presentacion/pestanas/pestanas';
 import { RefrescoAutomatico } from '../../../../compartido/aplicacion/refresco-automatico';
 import { mensajeError } from '../../../../compartido/infraestructura/http/error.interceptor';
 import { SesionStore } from '../../../iam/aplicacion/sesion.store';
 import { PrestamosFacade } from '../../../prestamos/aplicacion/prestamos.facade';
 import { Prestamo } from '../../../prestamos/dominio/prestamo.model';
+import { UsoExterno } from '../../../prestamos/dominio/uso-externo.model';
+import { ModoUsoExterno } from '../../../reportes/presentacion/formato-uso/formato-uso';
 import { InventarioFacade } from '../../aplicacion/inventario.facade';
 import {
   Equipo,
   admiteBaja,
   admiteEdicion,
   admiteMantenimiento,
-  admiteReincorporacion,
   admiteRetornoOperativo,
 } from '../../dominio/equipo.model';
 import {
@@ -23,7 +26,10 @@ import {
   iconoMovimiento,
 } from '../../dominio/movimiento.model';
 
-type AccionCondicion = 'mantenimiento' | 'operativo' | 'baja' | 'reincorporar';
+type AccionCondicion = 'mantenimiento' | 'operativo' | 'baja';
+
+type PestanaFicha = 'equipo' | 'prestamos' | 'usos' | 'historial';
+
 
 /**
  * Movimientos que la linea de tiempo no repite (v3.9).
@@ -61,6 +67,7 @@ export class DetalleBien {
   private readonly refresco = inject(RefrescoAutomatico);
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly sanitizador = inject(DomSanitizer);
 
   protected readonly esResponsable = this.sesion.esResponsable;
   /** El Administrador no ve titulo ni descripcion de pagina. */
@@ -69,15 +76,53 @@ export class DetalleBien {
   protected readonly equipo = signal<Equipo | null>(null);
   protected readonly movimientos = signal<Movimiento[]>([]);
   protected readonly historialPrestamos = signal<Prestamo[]>([]);
+  /** RF-78: usos externos del equipo, el más reciente primero. */
+  protected readonly usosExternos = signal<UsoExterno[]>([]);
   protected readonly cargando = signal(true);
   protected readonly procesando = signal(false);
   protected readonly accionPendiente = signal<AccionCondicion | null>(null);
 
+  /** Pestaña visible de la ficha: un tema a la vez. */
+  protected readonly pestana = signal<PestanaFicha>('equipo');
+
+  /**
+   * Las pestañas de la ficha, en su orden. Cada una lleva su icono y, salvo la
+   * del equipo, cuántos registros tiene: se sabe si hay algo que mirar antes
+   * de abrirla.
+   */
+  protected readonly pestanas = computed<OpcionPestana<PestanaFicha>[]>(() => [
+    { id: 'equipo', etiqueta: 'Equipo', icono: 'inventario', contador: null },
+    { id: 'prestamos', etiqueta: 'Préstamos', icono: 'prestamos', contador: this.historialPrestamos().length },
+    { id: 'usos', etiqueta: 'Usos externos', icono: 'relevo', contador: this.usosExternos().length },
+    { id: 'historial', etiqueta: 'Historial', icono: 'reloj', contador: this.hitos().length },
+  ]);
+
   /** RF-66b: prestamo cuyo detalle se esta consultando. */
   protected readonly prestamoDetalle = signal<Prestamo | null>(null);
 
-  /** RF-78: formato de registro de uso, abierto sobre la ficha. */
+  /** RF-78: ventana del uso externo, abierta sobre la ficha. */
   protected readonly formatoAbierto = signal(false);
+  protected readonly usoElegido = signal<UsoExterno | null>(null);
+  protected readonly modoUso = signal<ModoUsoExterno>('abrir');
+
+  /** El uso externo en curso, si lo hay: mientras dure, el equipo está fuera. */
+  protected readonly usoAbierto = computed(
+    () => this.usosExternos().find((uso) => uso.estado === 'ABIERTO') ?? null,
+  );
+
+  /** RF-42: PDF elegido para sustentar la baja y su error de validación. */
+  protected readonly documentoBaja = signal<File | null>(null);
+  protected readonly errorDocumento = signal<string | null>(null);
+  /** Un archivo se está arrastrando sobre la zona del PDF. */
+  protected readonly arrastrandoDocumento = signal(false);
+  /** Vista previa del PDF elegido, antes de enviarlo: confirma que es el documento correcto. */
+  protected readonly previaBaja = signal<SafeResourceUrl | null>(null);
+  private urlPreviaBaja: string | null = null;
+
+  /** RF-42: vista previa del PDF de la baja. */
+  protected readonly previaDocumento = signal<SafeResourceUrl | null>(null);
+  protected readonly cargandoDocumento = signal(false);
+  private urlDocumento: string | null = null;
 
   /** RF-83: ventana de cambio del responsable del equipo. */
   protected readonly responsableAbierto = signal(false);
@@ -108,6 +153,7 @@ export class DetalleBien {
         this.prestamoDetalle() === null &&
         !this.responsableAbierto() &&
         !this.formatoAbierto() &&
+        this.previaDocumento() === null &&
         !this.procesando()
       ) {
         this.cargar(true);
@@ -150,6 +196,12 @@ export class DetalleBien {
       next: (lista) => this.historialPrestamos.set(lista),
       error: () => this.historialPrestamos.set([]),
     });
+
+    // RF-78: usos externos del bien, guardados como parte de su historia.
+    this.prestamos.usosExternos(this.id).subscribe({
+      next: (lista) => this.usosExternos.set(lista),
+      error: () => this.usosExternos.set([]),
+    });
   }
 
   protected volver(): void {
@@ -175,28 +227,55 @@ export class DetalleBien {
     this.prestamoDetalle.set(null);
   }
 
-  // ------------------------------------------- RF-78: formato de uso en PDF
+  // ------------------------------------------- RF-78: uso externo
 
   /**
-   * El formato de registro de uso que el laboratorio hace firmar.
-   *
-   * <p>Solo lo emite el Responsable, que es quien lo firma como coordinador.
-   * Genera un PDF y nada mas: no registra el prestamo, no deja movimiento en
-   * el historial y no cambia la condicion del bien (RN-36). La ventana lo
-   * recuerda al enseñar el documento y al descargarlo, porque el papel firmado
-   * y el registro del sistema son dos cosas distintas y hay que hacer las
-   * dos.</p>
+   * Uso externo: el equipo se presta para que lo use, dentro de la
+   * institución, personal de otra institución con su encargado. Se registra
+   * en dos partes y queda guardado; el PDF se imprime para firmarlo a mano.
+   * Lo gestiona el Responsable, que es quien responde por el equipo.
    */
-  protected get puedeEmitirFormato(): boolean {
+  protected get puedeGestionarUso(): boolean {
     return this.equipo() !== null && this.esResponsable();
   }
 
-  protected abrirFormatoDeUso(): void {
+  /** Abrir un uso nuevo exige un equipo disponible y ningún uso en curso. */
+  protected get puedeAbrirUso(): boolean {
+    const equipo = this.equipo();
+    return (
+      !!equipo &&
+      this.esResponsable() &&
+      equipo.condicion === 'OPERATIVO' &&
+      this.usoAbierto() === null
+    );
+  }
+
+  protected abrirUsoExterno(): void {
+    this.usoElegido.set(null);
+    this.modoUso.set('abrir');
+    this.formatoAbierto.set(true);
+  }
+
+  protected verUsoExterno(uso: UsoExterno, modo: ModoUsoExterno = 'ver'): void {
+    this.usoElegido.set(uso);
+    this.modoUso.set(modo);
     this.formatoAbierto.set(true);
   }
 
   protected cerrarFormatoDeUso(): void {
     this.formatoAbierto.set(false);
+    this.usoElegido.set(null);
+  }
+
+  /** El uso se anuló: se cierra la ventana y la ficha vuelve a su estado normal. */
+  protected alAnularUso(): void {
+    this.cerrarFormatoDeUso();
+    this.cargar(true);
+  }
+
+  /** Se abrió o se cerró un uso: cambian la condición y el historial del equipo. */
+  protected alCambiarUso(): void {
+    this.cargar(true);
   }
 
   // -------------------------------------- RF-83: responsable del equipo
@@ -252,13 +331,162 @@ export class DetalleBien {
     return !!equipo && this.esResponsable() && admiteBaja(equipo);
   }
 
-  protected get puedeReincorporar(): boolean {
-    const equipo = this.equipo();
-    return !!equipo && this.esResponsable() && admiteReincorporacion(equipo);
+  protected pedirAccion(accion: AccionCondicion): void {
+    this.limpiarDocumentoBaja();
+    this.accionPendiente.set(accion);
   }
 
-  protected pedirAccion(accion: AccionCondicion): void {
-    this.accionPendiente.set(accion);
+  // ------------------------------------------- RF-42: baja con documento PDF
+
+  /**
+   * Solo un PDF de hasta 10 MB; el servidor lo vuelve a comprobar. Si es
+   * válido, se muestra en la ventana para confirmar que es el documento
+   * correcto antes de dar de baja el equipo. Nada se envía hasta confirmar.
+   */
+  protected async alElegirDocumento(evento: Event): Promise<void> {
+    const campo = evento.target as HTMLInputElement;
+    await this.recibirDocumento(campo.files?.[0] ?? null);
+    // Se vacía siempre: así elegir otra vez el mismo archivo vuelve a disparar el cambio.
+    campo.value = '';
+  }
+
+  /** Arrastrar el PDF sobre la zona equivale a elegirlo. */
+  protected async alSoltarDocumento(evento: DragEvent): Promise<void> {
+    evento.preventDefault();
+    this.arrastrandoDocumento.set(false);
+    if (!this.procesando()) {
+      await this.recibirDocumento(evento.dataTransfer?.files?.[0] ?? null);
+    }
+  }
+
+  protected alArrastrarDocumento(evento: DragEvent, encima: boolean): void {
+    evento.preventDefault();
+    this.arrastrandoDocumento.set(encima && !this.procesando());
+  }
+
+  /** Retira el PDF elegido sin cerrar la ventana. */
+  protected quitarDocumento(): void {
+    if (!this.procesando()) {
+      this.limpiarDocumentoBaja();
+    }
+  }
+
+  private async recibirDocumento(archivo: File | null): Promise<void> {
+    this.limpiarDocumentoBaja();
+    if (!archivo) {
+      return;
+    }
+    const esPdf = archivo.type === 'application/pdf' || archivo.name.toLowerCase().endsWith('.pdf');
+    if (!esPdf) {
+      this.errorDocumento.set('Solo se admite un archivo PDF.');
+      return;
+    }
+    if (archivo.size > 10 * 1024 * 1024) {
+      this.errorDocumento.set('El PDF no puede superar los 10 MB.');
+      return;
+    }
+    // Un archivo renombrado a .pdf no es un PDF: se miran sus primeros bytes.
+    const cabecera = await archivo.slice(0, 5).text();
+    if (cabecera !== '%PDF-') {
+      this.errorDocumento.set('El archivo no es un PDF válido.');
+      return;
+    }
+    this.documentoBaja.set(archivo);
+    this.urlPreviaBaja = URL.createObjectURL(archivo);
+    // Blob local recién creado por esta pantalla: Angular exige declararlo para un marco.
+    this.previaBaja.set(this.sanitizador.bypassSecurityTrustResourceUrl(this.urlPreviaBaja));
+  }
+
+  /** Olvida el PDF elegido y libera su vista previa. */
+  private limpiarDocumentoBaja(): void {
+    if (this.urlPreviaBaja) {
+      URL.revokeObjectURL(this.urlPreviaBaja);
+      this.urlPreviaBaja = null;
+    }
+    this.previaBaja.set(null);
+    this.documentoBaja.set(null);
+    this.errorDocumento.set(null);
+  }
+
+  protected tamanoLegible(bytes: number): string {
+    return bytes >= 1024 * 1024
+      ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  protected confirmarBaja(): void {
+    const documento = this.documentoBaja();
+    if (!documento || this.procesando()) {
+      return;
+    }
+    this.procesando.set(true);
+    this.inventario.darDeBaja(this.id, documento).subscribe({
+      next: (actualizado) => {
+        this.notificaciones.exito(`${actualizado.nombre} quedó dado de baja.`);
+        this.procesando.set(false);
+        this.accionPendiente.set(null);
+        this.limpiarDocumentoBaja();
+        this.cargar();
+      },
+      error: (error) => {
+        this.procesando.set(false);
+        this.errorDocumento.set(mensajeError(error, 'No se pudo dar de baja el equipo.'));
+      },
+    });
+  }
+
+  protected cancelarBaja(): void {
+    if (!this.procesando()) {
+      this.accionPendiente.set(null);
+      this.limpiarDocumentoBaja();
+    }
+  }
+
+  /** Muestra el PDF de la baja dentro de la ficha, igual que el del uso externo. */
+  protected verDocumentoBaja(): void {
+    const ruta = this.equipo()?.documentoBajaUrl;
+    if (!ruta || this.cargandoDocumento()) {
+      return;
+    }
+    this.cargandoDocumento.set(true);
+    this.inventario.descargarDocumento(ruta).subscribe({
+      next: (blob) => {
+        this.liberarDocumento();
+        this.urlDocumento = URL.createObjectURL(blob);
+        // Blob del propio origen recién creado: Angular exige declararlo para un marco.
+        this.previaDocumento.set(this.sanitizador.bypassSecurityTrustResourceUrl(this.urlDocumento));
+        this.cargandoDocumento.set(false);
+      },
+      error: (error) => {
+        this.cargandoDocumento.set(false);
+        this.notificaciones.error(mensajeError(error, 'No se pudo abrir el documento de baja.'));
+      },
+    });
+  }
+
+  protected descargarDocumentoBaja(): void {
+    const equipo = this.equipo();
+    if (!this.urlDocumento || !equipo) {
+      return;
+    }
+    const enlace = document.createElement('a');
+    enlace.href = this.urlDocumento;
+    enlace.download = `baja-${equipo.codigoInventario.replace(/[^A-Za-z0-9._-]/g, '-')}.pdf`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+  }
+
+  protected cerrarDocumentoBaja(): void {
+    this.liberarDocumento();
+    this.previaDocumento.set(null);
+  }
+
+  private liberarDocumento(): void {
+    if (this.urlDocumento) {
+      URL.revokeObjectURL(this.urlDocumento);
+      this.urlDocumento = null;
+    }
   }
 
   protected get tituloAccion(): string {
@@ -267,10 +495,6 @@ export class DetalleBien {
         return 'Enviar a mantenimiento';
       case 'operativo':
         return 'Devolver a condición operativa';
-      case 'baja':
-        return 'Dar de baja el equipo';
-      case 'reincorporar':
-        return 'Reincorporar al inventario';
       default:
         return '';
     }
@@ -287,15 +511,9 @@ export class DetalleBien {
         return `${nombre} pasará a "En mantenimiento" y dejará de estar disponible para préstamo.`;
       case 'operativo':
         return `${nombre} volverá a estar disponible para préstamo.`;
-      case 'baja':
-        return `Se dará de baja ${nombre}. Dejará de aparecer en el inventario operativo, pero se conservará en el historial.`;
       default:
-        return `${nombre} volverá al inventario en condición Operativo.`;
+        return '';
     }
-  }
-
-  protected get accionEsPeligrosa(): boolean {
-    return this.accionPendiente() === 'baja';
   }
 
   protected confirmarAccion(motivo: string): void {
@@ -305,14 +523,11 @@ export class DetalleBien {
     }
     this.procesando.set(true);
 
+    // La baja no pasa por aqui: se sustenta con un PDF en su propia ventana.
     const peticion =
       accion === 'mantenimiento'
         ? this.inventario.enviarAMantenimiento(this.id, motivo)
-        : accion === 'operativo'
-          ? this.inventario.devolverAOperativo(this.id, motivo)
-          : accion === 'baja'
-            ? this.inventario.darDeBaja(this.id, motivo)
-            : this.inventario.reincorporar(this.id, motivo);
+        : this.inventario.devolverAOperativo(this.id, motivo);
 
     peticion.subscribe({
       next: (actualizado) => {

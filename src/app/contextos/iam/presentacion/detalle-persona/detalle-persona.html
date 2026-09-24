@@ -15,7 +15,7 @@
         @if (persona.bloqueado) {
           <span class="insignia insignia-vencido">Bloqueada por intentos fallidos</span>
         }
-        @if (persona.debeCambiarPassword && !persona.sinAsignar) {
+        @if (persona.debeCambiarPassword && !persona.sinAsignar && persona.estado === 'ACTIVA') {
           <span class="insignia insignia-neutra">Cambio de contraseña pendiente</span>
         }
       </div>
@@ -72,7 +72,7 @@
           </span>
         </li>
         <li>
-          <span class="clave">Registrada el</span>
+          <span class="clave">Fecha de registro</span>
           <span class="valor">{{ persona.fechaCreacion | date: 'dd/MM/yyyy' }}</span>
         </li>
       </ul>
@@ -107,9 +107,10 @@
         <span>Editar datos</span>
       </button>
 
-      @if (!persona.sinAsignar) {
+      @if (!persona.sinAsignar && persona.estado === 'ACTIVA') {
         <!-- RF-06: quien no tiene puesto todavia no tiene contrasena que
-             restablecer; nace al asignarlo. -->
+             restablecer; nace al asignarlo. Quien esta de baja no entra, asi
+             que tampoco hay contrasena que restablecer. -->
         <button
           type="button"
           class="btn btn-secundario"

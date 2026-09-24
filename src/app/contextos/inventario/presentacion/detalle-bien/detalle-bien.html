@@ -1,39 +1,30 @@
 @if (cargando()) {
   <div class="cargando"><span class="girador"></span> Cargando la ficha...</div>
 } @else if (equipo(); as bien) {
-  <div class="pagina-cabecera">
-    <div>
-      <!-- El Administrador no ve titulo ni descripcion de pagina; el nombre del
-           equipo lo lee en "Datos del equipo". La condicion se queda. -->
-      @if (!esAdmin()) {
-        <h1>{{ bien.nombre }}</h1>
-        <p class="descripcion">
-          {{ bien.marca }} {{ bien.modelo }} &middot; {{ bien.coordinacion }}
-        </p>
-      }
-      <div class="fila-acciones" [class.mt-1]="!esAdmin()">
-        <app-condicion [condicion]="bien.condicion" />
-        @if (bien.revisionPendiente) {
-          <app-revision-pendiente />
-        }
-      </div>
-    </div>
-    <!-- Todas las acciones sobre el bien viven aqui, cada una con su nombre
-         escrito: es la pantalla donde el usuario ya tiene delante el equipo
-         del que decide, y donde cabe explicar la consecuencia. -->
+  <!-- Barra de la ficha: el regreso a la izquierda y, a la derecha, lo que
+       se puede hacer con el equipo. Va arriba, separada del contenido, para
+       que el nombre y los datos se lean seguidos. -->
+  <div class="ficha-barra">
+    <button type="button" class="btn-volver" (click)="volver()">
+      <app-icono nombre="atras" tamano="sm" />
+      <span>Volver al inventario</span>
+    </button>
     <div class="acciones-cabecera">
-      <button type="button" class="btn btn-secundario" (click)="volver()">
-        <app-icono nombre="atras" tamano="sm" />
-        <span>Volver al inventario</span>
-      </button>
-      @if (puedeEmitirFormato) {
-        <!-- RF-78: el formato de uso que el laboratorio hace firmar. Genera un
-             PDF y nada mas: ni registra el prestamo ni cambia la condicion del
-             bien, y la propia ventana lo recuerda (RN-36, RF-79). -->
-        <button type="button" class="btn btn-secundario" (click)="abrirFormatoDeUso()">
-          <app-icono nombre="descargar" tamano="sm" />
-          <span>Préstamo</span>
+      @if (puedeAbrirUso) {
+        <!-- RF-78: préstamo del equipo para que lo use personal de otra
+             institución (UPC, UTEC...) con su encargado. Se registra en dos
+             partes y queda en la historia del equipo. -->
+        <button type="button" class="btn btn-secundario" (click)="abrirUsoExterno()">
+          <app-icono nombre="prestamos" tamano="sm" />
+          <span>Uso externo</span>
         </button>
+      } @else if (usoAbierto(); as enCurso) {
+        @if (puedeGestionarUso) {
+          <button type="button" class="btn btn-en-uso" (click)="verUsoExterno(enCurso, 'cerrar')">
+            <app-icono nombre="correcto" tamano="sm" />
+            <span>Cerrar uso externo</span>
+          </button>
+        }
       }
       @if (puedeMantenimiento) {
         <button type="button" class="btn btn-secundario" (click)="pedirAccion('mantenimiento')">
@@ -53,12 +44,6 @@
           <span>Dar de baja</span>
         </button>
       }
-      @if (puedeReincorporar) {
-        <button type="button" class="btn btn-secundario" (click)="pedirAccion('reincorporar')">
-          <app-icono nombre="restaurar" tamano="sm" />
-          <span>Reincorporar al inventario</span>
-        </button>
-      }
       @if (puedeEditar) {
         <!-- RNF-27: la accion principal, la unica dominante y siempre al final. -->
         <button type="button" class="btn btn-primario" (click)="editar()">
@@ -69,94 +54,158 @@
     </div>
   </div>
 
-  <div class="rejilla-2 con-espacio alinear-arriba">
-    <div>
-      <div class="tarjeta mb-1">
-        <div class="tarjeta-cabecera">
-          <h2>Datos del equipo</h2>
-        </div>
-        <div class="tarjeta-cuerpo">
-          <div class="lista-datos">
-            @if (esAdmin()) {
-              <div class="dato"><div class="clave">Equipo</div><div class="valor">{{ bien.nombre }}</div></div>
-              <div class="dato"><div class="clave">Coordinación</div><div class="valor">{{ bien.coordinacion }}</div></div>
-            }
-            <div class="dato"><div class="clave">Marca</div><div class="valor">{{ bien.marca }}</div></div>
-            <div class="dato"><div class="clave">Modelo</div><div class="valor">{{ bien.modelo }}</div></div>
-            <div class="dato"><div class="clave">Categoría</div><div class="valor">{{ bien.categoria || '—' }}</div></div>
-            <div class="dato"><div class="clave">Número de serie</div><div class="valor texto-mono">{{ bien.numeroSerie }}</div></div>
-            <div class="dato"><div class="clave">Código de inventario</div><div class="valor texto-mono">{{ bien.codigoInventario }}</div></div>
-            <div class="dato"><div class="clave">Código patrimonial</div><div class="valor texto-mono">{{ bien.codigoPatrimonial }}</div></div>
-            <div class="dato"><div class="clave">Fecha de adquisición</div><div class="valor">{{ bien.fechaAdquisicion | date: 'dd/MM/yyyy' }}</div></div>
-            <div class="dato">
-              <div class="clave">Costo</div>
-              <div class="valor">S/ {{ bien.costo | number: '1.2-2' }}</div>
-            </div>
-            <div class="dato">
-              <div class="clave">Laboratorio</div>
-              <div class="valor">{{ bien.laboratorio || 'Sin ubicar' }}</div>
-            </div>
-            <div class="dato"><div class="clave">Coordinación</div><div class="valor">{{ bien.coordinacion }}</div></div>
-            <!-- RF-83: quien tiene hoy el equipo a su cargo. Es lo primero que
-                 se busca cuando hay que ir a por un equipo, asi que lleva su
-                 accion al lado en vez de esconderla en la cabecera. -->
-            <div class="dato col-completa">
-              <div class="clave">Responsable del equipo</div>
-              <div class="valor fila-acciones">
-                <span>{{ bien.responsableEquipo || 'Sin responsable asignado' }}</span>
-                @if (!bien.responsableEquipoId) {
-                  <span class="insignia insignia-neutra">Responsable de la coordinación</span>
-                }
-                @if (puedeCambiarResponsable) {
-                  <button
-                    type="button"
-                    class="btn btn-secundario btn-sm"
-                    (click)="abrirResponsableDeEquipo()">
-                    <app-icono nombre="operadores" tamano="sm" />
-                    <span>Cambiar</span>
-                  </button>
-                }
-              </div>
-            </div>
-            <!-- La ficha ya no repite *Responsable a cargo* —el responsable
-                 vigente al dar de alta el bien— ni *Registrado por*: el primero
-                 es una foto del pasado que se confundía con el responsable del
-                 equipo de arriba, que es quien lo tiene hoy (RF-83); el segundo
-                 se lee en el historial, donde el hecho aparece fechado y
-                 rotulado "Registrado por:" (RF-56). -->
-            <div class="dato">
-              <div class="clave">Fecha de registro</div>
-              <div class="valor">{{ bien.fechaRegistro | date: 'dd/MM/yyyy HH:mm' }}</div>
-            </div>
-            @if (bien.observaciones) {
-              <div class="dato col-completa">
-                <div class="clave">Observaciones</div>
-                <div class="valor">{{ bien.observaciones }}</div>
-              </div>
-            }
-          </div>
-        </div>
+  <!-- Cabecera de la ficha: el equipo, "Nombre (Marca)", y su condición. -->
+  <header class="ficha-hero">
+    <div class="ficha-cabecera">
+      <h1 class="ficha-titulo">{{ bien.nombre }} <span class="ficha-titulo-marca">({{ bien.marca }})</span></h1>
+      <div class="ficha-estado">
+        <app-condicion [condicion]="bien.condicion" />
+        @if (bien.revisionPendiente) {
+          <app-revision-pendiente />
+        }
       </div>
+    </div>
+  </header>
 
-      <app-foto-bien [equipo]="bien" />
+  <!-- Un tema a la vez: los datos del equipo, sus préstamos, sus usos
+       externos o su historial. Cada pestaña dice cuántos registros tiene. -->
+  <app-pestanas
+    prefijo="ficha"
+    etiqueta="Secciones de la ficha"
+    [opciones]="pestanas()"
+    [activa]="pestana()"
+    (activaChange)="pestana.set($any($event))" />
 
-      @if (historialPrestamos().length > 0) {
-        <div class="tarjeta mt-1">
-          <div class="tarjeta-cabecera">
-            <h2>Préstamos de este equipo</h2>
-            <span class="texto-secundario texto-pequeno">
-              {{ historialPrestamos().length }}
-              {{ historialPrestamos().length === 1 ? 'préstamo' : 'préstamos' }}
-            </span>
+  <div class="pestanas-panel" role="tabpanel" id="panel-ficha" [attr.aria-labelledby]="'ficha-' + pestana()"
+       tabindex="0">
+    @switch (pestana()) {
+      @case ('equipo') {
+        <!-- Arriba, la fotografía y dos columnas: qué es el equipo, y sus
+             códigos con su adquisición. Abajo, a todo el ancho, dónde está y
+             quién lo tiene, las observaciones y, si la hay, la baja. -->
+        <div class="ficha-general">
+          <aside class="ficha-foto">
+            <app-foto-bien [equipo]="bien" [miniatura]="true" />
+            <p class="ficha-foto-ayuda">
+              {{ bien.fotoUrl ? 'Pulse la foto para ampliarla.' : 'Sin fotografía.' }}
+              @if (puedeEditar) {
+                {{ bien.fotoUrl ? 'Se cambia' : 'Se añade' }} desde Editar.
+              }
+            </p>
+          </aside>
+
+          <div class="ficha-dos-grupos">
+            <section class="ficha-grupo">
+              <h2 class="ficha-grupo-titulo">Identificación</h2>
+              <dl class="ficha-filas">
+                <div><dt>Nombre del equipo</dt><dd>{{ bien.nombre }}</dd></div>
+                <div><dt>Marca</dt><dd>{{ bien.marca }}</dd></div>
+                <div><dt>Modelo</dt><dd>{{ bien.modelo }}</dd></div>
+                <div><dt>Número de serie</dt><dd>{{ bien.numeroSerie }}</dd></div>
+                <div><dt>Categoría</dt><dd>{{ bien.categoria || '—' }}</dd></div>
+              </dl>
+            </section>
+
+            <div class="ficha-columna">
+              <section class="ficha-grupo">
+                <h2 class="ficha-grupo-titulo">Códigos</h2>
+                <dl class="ficha-filas">
+                  <div><dt>Código de inventario</dt><dd>{{ bien.codigoInventario }}</dd></div>
+                  <div><dt>Código patrimonial</dt><dd>{{ bien.codigoPatrimonial }}</dd></div>
+                </dl>
+              </section>
+
+              <section class="ficha-grupo">
+                <h2 class="ficha-grupo-titulo">Adquisición</h2>
+                <dl class="ficha-filas">
+                  <div><dt>Fecha de adquisición</dt><dd>{{ bien.fechaAdquisicion | date: 'dd/MM/yyyy' }}</dd></div>
+                  <div><dt>Costo</dt><dd>S/ {{ bien.costo | number: '1.2-2' }}</dd></div>
+                  <div><dt>Fecha de registro</dt><dd>{{ bien.fechaRegistro | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+                </dl>
+              </section>
+            </div>
           </div>
-          <!-- tabla-tarjetas: en el telefono cada fila se lee como tarjeta. -->
+        </div>
+
+        <div class="ficha-inferior">
+          <!-- RF-83: dónde está y quién lo tiene, en una franja a todo el ancho. -->
+          <section class="ficha-grupo">
+            <h2 class="ficha-grupo-titulo">Ubicación y Responsable</h2>
+            <dl class="ficha-franja">
+              <div>
+                <dt>Coordinación</dt>
+                <dd>{{ bien.coordinacion }}</dd>
+              </div>
+              <div>
+                <dt>Laboratorio</dt>
+                <dd>{{ bien.laboratorio || 'Sin ubicar' }}</dd>
+              </div>
+              <div>
+                <dt>Responsable del equipo</dt>
+                <dd>
+                  <span>{{ bien.responsableEquipo || 'Sin responsable asignado' }}</span>
+                  @if (!bien.responsableEquipoId) {
+                    <span class="insignia insignia-neutra">Responsable de la coordinación</span>
+                  }
+                  @if (puedeCambiarResponsable) {
+                    <button type="button" class="btn btn-secundario btn-sm" (click)="abrirResponsableDeEquipo()">
+                      <app-icono nombre="operadores" tamano="sm" />
+                      <span>Cambiar</span>
+                    </button>
+                  }
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          @if (bien.observaciones) {
+            <section class="ficha-grupo">
+              <h2 class="ficha-grupo-titulo">Observaciones</h2>
+              <p class="ficha-texto ficha-observaciones">{{ bien.observaciones }}</p>
+            </section>
+          }
+
+          @if (bien.fechaBaja || bien.documentoBajaUrl || bien.motivoBaja) {
+            <!-- RF-42: la baja y el PDF que la sustenta. -->
+            <section class="ficha-grupo">
+              <h2 class="ficha-grupo-titulo">Baja</h2>
+              <dl class="ficha-franja">
+                @if (bien.fechaBaja) {
+                  <div><dt>Fecha de baja</dt><dd>{{ bien.fechaBaja | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+                }
+                @if (bien.documentoBajaUrl) {
+                  <div>
+                    <dt>Documento de baja</dt>
+                    <dd>
+                      <button type="button" class="btn btn-secundario btn-sm" [disabled]="cargandoDocumento()"
+                              (click)="verDocumentoBaja()">
+                        <app-icono nombre="ver" tamano="sm" />
+                        <span>{{ cargandoDocumento() ? 'Abriendo...' : 'Ver PDF' }}</span>
+                      </button>
+                    </dd>
+                  </div>
+                } @else if (bien.motivoBaja) {
+                  <div><dt>Motivo de baja</dt><dd>{{ bien.motivoBaja }}</dd></div>
+                }
+              </dl>
+            </section>
+          }
+        </div>
+      }
+
+      @case ('prestamos') {
+        @if (historialPrestamos().length === 0) {
+          <app-estado-vacio
+            icono="prestamos"
+            titulo="Sin préstamos"
+            mensaje="Este equipo todavía no ha salido en préstamo a otra coordinación." />
+        } @else {
+          <!-- tabla-tarjetas: en el teléfono cada fila se lee como tarjeta. -->
           <div class="tabla-contenedor tabla-tarjetas">
-            <table class="tabla tabla-equilibrada">
+            <table class="tabla tabla-equilibrada tabla-ficha">
               <thead>
                 <tr>
                   <th class="col-principal">Persona</th>
-                  <th class="col-fecha-hora">Salida</th>
-                  <th class="col-fecha-hora">Devolución</th>
                   <th class="col-estado">Situación</th>
                   <th class="celda-acciones col-acciones">Acciones</th>
                 </tr>
@@ -166,13 +215,7 @@
                   <tr [class.fila-vencida]="prestamo.vencido">
                     <td>
                       <div class="truncar" [title]="prestamo.nombrePersona">{{ prestamo.nombrePersona }}</div>
-                      <div class="texto-secundario texto-pequeno texto-mono">{{ prestamo.dniPersona }}</div>
-                    </td>
-                    <td data-etiqueta="Salida">{{ prestamo.fechaPrestamo | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td data-etiqueta="Devolución">
-                      {{ prestamo.fechaDevolucion
-                        ? (prestamo.fechaDevolucion | date: 'dd/MM/yyyy HH:mm')
-                        : 'Pendiente' }}
+                      <div class="texto-secundario texto-pequeno">{{ prestamo.dniPersona }}</div>
                     </td>
                     <td data-etiqueta="Situación">
                       <span
@@ -203,24 +246,68 @@
               </tbody>
             </table>
           </div>
-        </div>
+        }
       }
-    </div>
 
-    <!-- RF-56: linea de tiempo del bien, del alta al ultimo movimiento.
-         Sin los prestamos ni las devoluciones —que tienen su propia tabla, con
-         mas datos— y sin las ediciones de la ficha, que no son algo que le
-         pasara al equipo (v3.9). -->
-    <div class="tarjeta">
-      <div class="tarjeta-cabecera">
-        <h2>Historial del equipo</h2>
-        <span class="texto-secundario texto-pequeno">
-          {{ hitos().length }} {{ hitos().length === 1 ? 'movimiento' : 'movimientos' }}
-        </span>
-      </div>
-      <div class="tarjeta-cuerpo">
+      @case ('usos') {
+        @if (usosExternos().length === 0) {
+          <app-estado-vacio
+            icono="prestamos"
+            titulo="Sin usos externos"
+            mensaje="Este equipo no se ha prestado a otra institución." />
+        } @else {
+          <!-- RF-78: cada uso externo guardado, con su detalle, su PDF para
+               firmar y, si sigue en curso, su cierre. -->
+          <div class="tabla-contenedor tabla-tarjetas">
+            <table class="tabla tabla-equilibrada tabla-ficha">
+              <thead>
+                <tr>
+                  <th class="col-principal">Encargado / usuario</th>
+                  <th class="col-estado">Situación</th>
+                  <th class="celda-acciones col-acciones">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (uso of usosExternos(); track uso.id) {
+                  <tr>
+                    <td>
+                      <div class="truncar" [title]="uso.encargadoNombre">{{ uso.encargadoNombre }}</div>
+                      <div class="texto-secundario texto-pequeno truncar" [title]="uso.usuarioNombre">
+                        Usa: {{ uso.usuarioNombre }}
+                      </div>
+                    </td>
+                    <td data-etiqueta="Situación">
+                      <span
+                        class="insignia"
+                        [class.insignia-prestado]="uso.estado === 'ABIERTO'"
+                        [class.insignia-disponible]="uso.estado === 'CERRADO'">
+                        {{ uso.estadoEtiqueta }}
+                      </span>
+                      @if (uso.devueltoOperativo === false) {
+                        <span class="insignia insignia-revision">Con observaciones</span>
+                      }
+                    </td>
+                    <td class="celda-acciones">
+                      <button type="button" class="btn btn-secundario btn-sm" (click)="verUsoExterno(uso)">
+                        <app-icono nombre="ver" tamano="sm" />
+                        <span>Ver detalle</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @case ('historial') {
+        <!-- RF-56: línea de tiempo del bien, del alta al último movimiento. -->
         @if (hitos().length === 0) {
-          <p class="texto-secundario mb-0">Aun no hay movimientos registrados.</p>
+          <app-estado-vacio
+            icono="reloj"
+            titulo="Sin movimientos"
+            mensaje="Aún no hay movimientos registrados para este equipo." />
         } @else {
           <ol class="linea-tiempo">
             @for (movimiento of hitos(); track movimiento.id) {
@@ -251,14 +338,21 @@
             }
           </ol>
         }
-      </div>
-    </div>
+      }
+    }
   </div>
 }
 
 @if (formatoAbierto()) {
   @if (equipo(); as bien) {
-    <app-formato-uso [equipo]="bien" (cerrado)="cerrarFormatoDeUso()" />
+    <app-formato-uso
+      [equipo]="bien"
+      [uso]="usoElegido()"
+      [modoInicial]="modoUso()"
+      [puedeGestionar]="puedeGestionarUso"
+      (cambiado)="alCambiarUso()"
+      (anulado)="alAnularUso()"
+      (cerrado)="cerrarFormatoDeUso()" />
   }
 }
 
@@ -313,7 +407,7 @@
             <div class="clave">Prestado a</div>
             <div class="valor">
               {{ prestamo.nombrePersona }}
-              <span class="texto-secundario texto-pequeno texto-mono">({{ prestamo.dniPersona }})</span>
+              <span class="texto-secundario texto-pequeno">({{ prestamo.dniPersona }})</span>
             </div>
           </div>
           <div class="dato">
@@ -329,7 +423,7 @@
             </div>
           </div>
           <div class="dato">
-            <div class="clave">Destino</div>
+            <div class="clave">Coordinación de destino</div>
             <div class="valor">{{ prestamo.destino || 'Sin destino registrado' }}</div>
           </div>
           <div class="dato col-completa">
@@ -374,16 +468,134 @@
   </div>
 }
 
-@if (accionPendiente()) {
+@if (accionPendiente() === 'baja') {
+  @if (equipo(); as bien) {
+    <!-- RF-42: la baja es definitiva y se sustenta con un PDF; no se escribe
+         ningún motivo. -->
+    <div class="modal-fondo">
+      <!-- Con el PDF elegido la ventana se ensancha para enseñarlo. -->
+      <div class="modal modal-baja" [class.modal-angosto]="!previaBaja()" [class.modal-ancho]="previaBaja()">
+        <div class="modal-cabecera">
+          <h3>Dar de baja el equipo</h3>
+          <button type="button" class="btn-icono" (click)="cancelarBaja()" aria-label="Cerrar">
+            <app-icono nombre="cerrar" tamano="sm" />
+          </button>
+        </div>
+        <div class="modal-cuerpo">
+          <p class="baja-resumen">
+            Se dará de baja <strong>{{ bien.nombre }}</strong>
+            <span class="texto-mono">({{ bien.codigoInventario }})</span>.
+            La baja es definitiva: el equipo no podrá reincorporarse, aunque se
+            conservará en el historial.
+          </p>
+
+          <div class="campo mb-0" [class.invalido]="errorDocumento()">
+            <span class="etiqueta-campo" id="bi-documento-etiqueta">
+              Documento de baja (PDF)<span class="obligatorio">*</span>
+            </span>
+            <input
+              id="bi-documento-baja"
+              class="campo-oculto"
+              type="file"
+              accept="application/pdf,.pdf"
+              aria-labelledby="bi-documento-etiqueta"
+              [disabled]="procesando()"
+              (change)="alElegirDocumento($event)" />
+
+            @if (documentoBaja(); as documento) {
+              <!-- Elegido: el archivo como una ficha, con sus dos salidas. -->
+              <div class="archivo-elegido">
+                <span class="archivo-elegido-icono"><app-icono nombre="baja" tamano="sm" /></span>
+                <div class="archivo-elegido-datos">
+                  <span class="archivo-elegido-nombre" [title]="documento.name">{{ documento.name }}</span>
+                  <span class="archivo-elegido-tamano">PDF · {{ tamanoLegible(documento.size) }}</span>
+                </div>
+                <label for="bi-documento-baja" class="btn btn-secundario btn-sm"
+                       [class.deshabilitado]="procesando()">Cambiar</label>
+                <button type="button" class="btn-icono" aria-label="Quitar el documento"
+                        title="Quitar el documento" [disabled]="procesando()" (click)="quitarDocumento()">
+                  <app-icono nombre="cerrar" tamano="sm" />
+                </button>
+              </div>
+            } @else {
+              <!-- Sin elegir: una zona que se pulsa o sobre la que se suelta el PDF. -->
+              <label
+                for="bi-documento-baja"
+                class="zona-archivo"
+                [class.activa]="arrastrandoDocumento()"
+                [class.deshabilitado]="procesando()"
+                (dragover)="alArrastrarDocumento($event, true)"
+                (dragleave)="alArrastrarDocumento($event, false)"
+                (drop)="alSoltarDocumento($event)">
+                <span class="zona-archivo-icono"><app-icono nombre="subir" /></span>
+                <span class="zona-archivo-texto">
+                  <strong>Elegir documento PDF</strong>
+                  <span>o arrástrelo aquí · hasta 10 MB</span>
+                </span>
+              </label>
+            }
+
+            @if (errorDocumento()) {
+              <span class="error-campo">{{ errorDocumento() }}</span>
+            }
+          </div>
+
+          @if (previaBaja(); as fuente) {
+            <!-- Vista previa del documento elegido: se revisa antes de confirmar. -->
+            <p class="previa-baja-aviso">
+              Revise que este sea el documento correcto. Se guardará al confirmar la baja.
+            </p>
+            <iframe class="previa-documento previa-baja" [src]="fuente" title="Vista previa del documento de baja"></iframe>
+          }
+        </div>
+        <div class="modal-pie">
+          <button type="button" class="btn btn-secundario" [disabled]="procesando()" (click)="cancelarBaja()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-peligro"
+            [disabled]="!documentoBaja() || procesando()"
+            (click)="confirmarBaja()">
+            {{ procesando() ? 'Dando de baja...' : (previaBaja() ? 'Confirmar y dar de baja' : 'Dar de baja') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+} @else if (accionPendiente()) {
   <app-confirmacion
     [titulo]="tituloAccion"
     [mensaje]="mensajeAccion"
     detalle="Esta acción queda registrada a su nombre en el historial del equipo."
-    [peligrosa]="accionEsPeligrosa"
+    [peligrosa]="false"
     [procesando]="procesando()"
     [requiereMotivo]="true"
     etiquetaMotivo="Motivo"
     textoConfirmar="Confirmar"
     (confirmar)="confirmarAccion($event)"
     (cancelar)="accionPendiente.set(null)" />
+}
+
+@if (previaDocumento(); as fuente) {
+  <div class="modal-fondo" (click)="cerrarDocumentoBaja()">
+    <div class="modal modal-ancho" (click)="$event.stopPropagation()">
+      <div class="modal-cabecera">
+        <h3>Documento de baja</h3>
+        <button type="button" class="btn-icono" (click)="cerrarDocumentoBaja()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" tamano="sm" />
+        </button>
+      </div>
+      <div class="modal-cuerpo">
+        <iframe class="previa-documento" [src]="fuente" title="Documento de baja del equipo"></iframe>
+      </div>
+      <div class="modal-pie">
+        <button type="button" class="btn btn-secundario" (click)="cerrarDocumentoBaja()">Cerrar</button>
+        <button type="button" class="btn btn-primario" (click)="descargarDocumentoBaja()">
+          <app-icono nombre="descargar" tamano="sm" />
+          <span>Descargar PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
 }
