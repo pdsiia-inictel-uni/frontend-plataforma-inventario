@@ -33,7 +33,9 @@ RUN rm -f /etc/nginx/conf.d/default.conf
 USER nginx
 
 COPY nginx.conf                    /etc/nginx/conf.d/inventario.conf
+COPY seguridad-comunes.conf        /etc/nginx/seguridad-comunes.conf
 COPY seguridad-cabeceras.conf      /etc/nginx/seguridad-cabeceras.conf
+COPY seguridad-cabeceras-api.conf  /etc/nginx/seguridad-cabeceras-api.conf
 
 # El build de Angular deja la aplicacion en dist/frontend/browser.
 COPY --from=construccion /origen/dist/frontend/browser /usr/share/nginx/html
