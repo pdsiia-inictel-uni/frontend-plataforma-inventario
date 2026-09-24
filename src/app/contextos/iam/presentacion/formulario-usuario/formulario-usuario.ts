@@ -66,6 +66,28 @@ export class FormularioUsuario implements OnInit {
     this.errores.set(errores ?? {});
   }
 
+  /**
+   * Con {@link soloDatos}, la pantalla de fuera avisa aqui de que esta
+   * enviando los datos.
+   *
+   * <p>Mientras dure, la confirmacion sigue abierta con "Guardando...": antes
+   * se cerraba al entregar los datos y el formulario volvia a verse un
+   * instante, hasta que llegaba la respuesta y la pantalla lo cerraba. Si el
+   * envio sale bien, la pantalla cierra el formulario entero sin pasar por
+   * el; si falla, al terminar el envio la confirmacion se retira y el
+   * formulario queda a la vista con el error junto a su campo (RNF-25).</p>
+   */
+  @Input() set enviandoFuera(enviando: boolean) {
+    if (enviando) {
+      this.esperandoFuera = true;
+    } else if (this.esperandoFuera) {
+      this.esperandoFuera = false;
+      this.guardando.set(false);
+      this.confirmando.set(null);
+    }
+  }
+  private esperandoFuera = false;
+
   @Output() guardado = new EventEmitter<Usuario>();
   @Output() datosListos = new EventEmitter<UsuarioPeticion>();
   @Output() cancelado = new EventEmitter<void>();
@@ -160,8 +182,8 @@ export class FormularioUsuario implements OnInit {
     this.guardando.set(true);
 
     if (this.soloDatos) {
-      this.guardando.set(false);
-      this.confirmando.set(null);
+      // La confirmacion sigue abierta y en "Guardando..." hasta que la
+      // pantalla termine de enviarlos (enviandoFuera).
       this.datosListos.emit(peticion);
       return;
     }

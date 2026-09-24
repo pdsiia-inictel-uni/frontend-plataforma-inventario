@@ -1,5 +1,3 @@
-import { OpcionSelect } from '../../../compartido/dominio/opcion-select.model';
-
 /** Situacion de un prestamo (RF-67). */
 export type EstadoPrestamo = 'ACTIVO' | 'DEVUELTO';
 
@@ -105,23 +103,3 @@ export interface FiltroPrestamos {
   vencidos?: boolean | null;
 }
 
-export const ESTADOS_PRESTAMO: OpcionSelect<EstadoPrestamo>[] = [
-  { valor: 'ACTIVO', etiqueta: 'Activo' },
-  { valor: 'DEVUELTO', etiqueta: 'Devuelto' },
-];
-
-/** Distintivo del prestamo: color y texto, nunca solo color (RNF-30). */
-export function clasePrestamo(prestamo: Prestamo): string {
-  if (prestamo.vencido) {
-    return 'insignia insignia-vencido';
-  }
-  return prestamo.estado === 'ACTIVO' ? 'insignia insignia-prestado' : 'insignia insignia-disponible';
-}
-
-/** Texto del atraso en lenguaje natural (RNF-29). */
-export function describirAtraso(prestamo: Prestamo): string {
-  if (!prestamo.vencido) {
-    return '';
-  }
-  return prestamo.diasAtraso === 1 ? '1 día de atraso' : `${prestamo.diasAtraso} días de atraso`;
-}

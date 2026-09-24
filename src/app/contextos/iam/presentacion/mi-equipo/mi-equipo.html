@@ -141,6 +141,7 @@
     [soloDatos]="enEdicion() === null"
     tituloAlta="Nuevo operador"
     [erroresServidor]="erroresAlta()"
+    [enviandoFuera]="registrando()"
     nota="Al aceptar, la persona quedará registrada como operador de esta coordinación y el sistema generará su contraseña."
     (datosListos)="registrarOperador($event)"
     (guardado)="alGuardar()"
@@ -184,6 +185,7 @@
     [detalle]="detalleConfirmacion"
     [textoConfirmar]="textoConfirmacion"
     [peligrosa]="confirmacionEsPeligrosa"
+    [procesando]="procesando()"
     (confirmar)="confirmarCambioEstado()"
     (cancelar)="confirmacion.set(null)" />
 }

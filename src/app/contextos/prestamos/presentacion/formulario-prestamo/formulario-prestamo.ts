@@ -139,10 +139,6 @@ export class FormularioPrestamo {
     this.equipoId = this.equipoId === equipo.id ? null : equipo.id;
   }
 
-  protected get equipoElegido(): EquipoResumen | null {
-    return this.disponibles().find((e) => e.id === this.equipoId) ?? null;
-  }
-
   /** Texto de la opción vacía del selector de persona, según lo que falte. */
   protected get textoSinPersona(): string {
     if (this.coordinacionDestinoId === null) {

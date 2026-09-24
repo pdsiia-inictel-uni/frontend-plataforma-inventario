@@ -3,7 +3,16 @@
 node_modules/
 dist/
 .angular/
+.claude/
+certificados/
+.env
+.env.*
 *.log
 .idea/
 .vscode/
 .git/
+.gitignore
+*.md
+LICENSE
+Dockerfile
+.dockerignore

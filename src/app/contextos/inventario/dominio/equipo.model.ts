@@ -1,5 +1,3 @@
-import { OpcionSelect } from '../../../compartido/dominio/opcion-select.model';
-
 /** Condicion actual de un bien (RF-34, C-06 de la ERS). */
 export type CondicionEquipo = 'OPERATIVO' | 'PRESTADO' | 'MANTENIMIENTO' | 'BAJA';
 
@@ -173,13 +171,6 @@ export const PESTANAS_INVENTARIO: PestanaCondicion[] = [
   { clave: 'mantenimiento', etiqueta: 'En mantenimiento', condicion: 'MANTENIMIENTO', todas: false },
   { clave: 'baja', etiqueta: 'Dados de baja', condicion: 'BAJA', todas: false },
   { clave: 'prestados', etiqueta: 'Prestados', condicion: 'PRESTADO', todas: false },
-];
-
-export const CONDICIONES: OpcionSelect<CondicionEquipo>[] = [
-  { valor: 'OPERATIVO', etiqueta: 'Operativo' },
-  { valor: 'PRESTADO', etiqueta: 'Prestado' },
-  { valor: 'MANTENIMIENTO', etiqueta: 'En mantenimiento' },
-  { valor: 'BAJA', etiqueta: 'Dado de baja' },
 ];
 
 /**

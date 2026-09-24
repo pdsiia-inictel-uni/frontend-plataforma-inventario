@@ -228,11 +228,6 @@ export function claseEstadoCuenta(estado: EstadoCuenta): string {
   return estado === 'ACTIVA' ? 'insignia insignia-activo' : 'insignia insignia-inactivo';
 }
 
-/** RF-07: la cuenta activa es la unica que entra al sistema. */
-export function puedeEntrar(usuario: Usuario): boolean {
-  return usuario.estado === 'ACTIVA';
-}
-
 /**
  * Nombre de la coordinacion de una persona, lista para mostrar (RN-05).
  *

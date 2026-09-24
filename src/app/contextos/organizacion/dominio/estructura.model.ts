@@ -98,19 +98,6 @@ export interface Estructura {
   coordinacionesSinResponsable: number;
 }
 
-/**
- * Ambito de trabajo que se muestra en el encabezado de cada vista.
- *
- * ERS 8.1: el usuario nunca debe dudar de donde esta parado, asi que la
- * coordinacion se nombra siempre junto a su direccion.
- */
-export function describirAmbito(coordinacion?: Coordinacion | null): string {
-  if (!coordinacion) {
-    return '';
-  }
-  return `${coordinacion.nombre} - ${coordinacion.direccionNombre}`;
-}
-
 /** Una coordinacion sin responsable vigente no admite operacion (RN-07). */
 export function sinResponsable(coordinacion: Coordinacion): boolean {
   return coordinacion.responsableId == null;

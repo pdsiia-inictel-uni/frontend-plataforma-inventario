@@ -63,6 +63,8 @@ export class MiEquipo {
   protected readonly enEdicion = signal<Usuario | null>(null);
   /** RNF-25: lo que el servidor rechazo del alta, campo por campo. */
   protected readonly erroresAlta = signal<Record<string, string>>({});
+  /** El alta de un operador esta en camino al servidor. */
+  protected readonly registrando = signal(false);
   protected readonly credencial = signal<PasswordTemporal | null>(null);
   /** RF-28d: contrasena que nace con el puesto del operador recien dado de alta. */
   protected readonly recienAsignado = signal<AsignacionRealizada | null>(null);
@@ -256,16 +258,21 @@ export class MiEquipo {
       return;
     }
     this.erroresAlta.set({});
+    this.registrando.set(true);
     this.usuarios.registrarYAsignar(datos, { rol: 'OPERADOR', coordinacionId }).subscribe({
       next: (realizada) => {
+        // Se cierra el formulario entero, confirmacion incluida: no vuelve a
+        // verse el formulario entre una ventana y la siguiente.
+        this.registrando.set(false);
         this.formularioAbierto.set(false);
         this.enEdicion.set(null);
         this.recienAsignado.set(realizada);
-        this.cargar();
+        this.cargar(true);
       },
       error: (error) => {
         // El formulario sigue abierto con los datos escritos: lo que hay que
         // corregir es un campo, y el error se senala junto a el (RNF-25).
+        this.registrando.set(false);
         this.erroresAlta.set(erroresDeCampo(error));
         this.notificaciones.error(mensajeError(error, 'No se pudo registrar al operador.'));
       },
@@ -277,7 +284,7 @@ export class MiEquipo {
     this.formularioAbierto.set(false);
     this.enEdicion.set(null);
     this.erroresAlta.set({});
-    this.cargar();
+    this.cargar(true);
   }
 
   protected cerrarFormulario(): void {
@@ -300,20 +307,25 @@ export class MiEquipo {
 
   protected confirmarCambioEstado(): void {
     const peticion = this.confirmacion();
-    if (!peticion) {
+    if (!peticion || this.procesando()) {
       return;
     }
+    // La ventana queda en "procesando" hasta la respuesta: un segundo clic no
+    // envía la baja dos veces.
+    this.procesando.set(true);
     this.usuarios.cambiarEstado(peticion.usuario.id, peticion.destino).subscribe({
       next: (actualizado) => {
+        this.procesando.set(false);
         this.notificaciones.exito(
           peticion.destino === 'BAJA'
             ? `${actualizado.nombreCompleto} queda dado de baja de la institución.`
             : `${actualizado.nombreCompleto} vuelve a poder ingresar.`,
         );
         this.confirmacion.set(null);
-        this.cargar();
+        this.cargar(true);
       },
       error: (error) => {
+        this.procesando.set(false);
         this.notificaciones.error(mensajeError(error));
         this.confirmacion.set(null);
       },
@@ -418,7 +430,7 @@ export class MiEquipo {
         this.procesando.set(false);
         this.confirmandoDesbloqueo.set(null);
         this.notificaciones.exito('Cuenta desbloqueada.');
-        this.cargar();
+        this.cargar(true);
       },
       error: (error) => {
         this.procesando.set(false);

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { NotificacionStore } from '../../../../compartido/aplicacion/notificacion.store';
@@ -122,12 +122,6 @@ export class Personas {
   private aplicados: FiltrosPersonas = { ...SIN_FILTROS };
   protected numeroPagina = 0;
   protected tamano = 10;
-
-  /** Coordinacion del encargo en curso, resuelta a su ficha. */
-  protected readonly coordinacionDelEncargo = computed(() => {
-    const encargo = this.encargo();
-    return encargo ? (this.coordinaciones().find((c) => c.id === encargo.coordinacionId) ?? null) : null;
-  });
 
   constructor() {
     this.cargarCoordinaciones();
@@ -462,10 +456,6 @@ export class Personas {
 
   protected get coordinacionSugerida(): number | null {
     return this.encargo()?.coordinacionId ?? null;
-  }
-
-  protected cancelarEncargo(): void {
-    this.terminarEncargo();
   }
 
   private terminarEncargo(): void {

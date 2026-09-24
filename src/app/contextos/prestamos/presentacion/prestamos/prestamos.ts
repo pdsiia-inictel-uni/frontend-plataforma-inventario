@@ -279,7 +279,9 @@ export class Prestamos {
         );
         this.procesando.set(false);
         this.devolviendo.set(null);
-        this.buscar();
+        // Recarga silenciosa: la tabla se actualiza sin desaparecer tras el
+        // indicador de carga al cerrarse la ventana.
+        this.buscar(true);
       },
       error: (error) => {
         this.notificaciones.error(mensajeError(error, 'No se pudo registrar la devolución.'));

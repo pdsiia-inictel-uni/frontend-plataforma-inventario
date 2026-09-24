@@ -126,8 +126,10 @@ describe('Content-Security-Policy estricta (RNF-07)', () => {
     // La politica lleva comillas simples dentro ('self', 'none'), asi que se
     // delimita solo por las dobles del atributo.
     const politica = /content="([^"]*default-src[^"]*)"/i.exec(html)?.[1] ?? '';
+    // Se parte de negarlo todo: cada tipo de recurso que la aplicacion usa se
+    // autoriza por su nombre, y lo que no se nombra queda prohibido.
     expect(politica, 'index.html debe declarar la politica para el servidor de desarrollo').toContain(
-      "default-src 'self'",
+      "default-src 'none'",
     );
 
     expect(politica).not.toContain('unsafe-inline');
@@ -138,9 +140,11 @@ describe('Content-Security-Policy estricta (RNF-07)', () => {
       "script-src-attr 'none'",
       "style-src 'self'",
       "style-src-attr 'none'",
-      "img-src 'self' data: blob:",
-      // RF-78: el marco de la vista previa del formato de uso, y nada mas.
-      "frame-src 'self' blob:",
+      // Las fotografias llegan con JWT y se muestran como blob.
+      "img-src 'self' blob:",
+      "font-src 'self'",
+      // RF-42, RF-78: el marco de la vista previa de los PDF, y nada mas.
+      "frame-src blob:",
       "connect-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
@@ -148,6 +152,21 @@ describe('Content-Security-Policy estricta (RNF-07)', () => {
     ]) {
       expect(politica, `falta la directiva ${directiva}`).toContain(directiva);
     }
+  });
+
+  it('la politica no autoriza lo que la aplicacion no usa', () => {
+    const politica = /content="([^"]*default-src[^"]*)"/i.exec(indice['/src/index.html'])?.[1] ?? '';
+
+    // Ninguna plantilla ni estilo usa URIs data:, no hay Workers ni manifest, y
+    // la camara va por srcObject, que no pasa por media-src. Autorizarlos seria
+    // abrir una puerta que nadie usa.
+    expect(politica).not.toContain('data:');
+    expect(politica).not.toContain('worker-src');
+    expect(politica).not.toContain('manifest-src');
+    expect(politica).not.toContain('media-src');
+    expect(politica, 'los PDF se muestran como blob, no desde el propio origen').not.toContain(
+      "frame-src 'self'",
+    );
   });
 
   it('la etiqueta meta no declara directivas que el navegador ignora ahi', () => {

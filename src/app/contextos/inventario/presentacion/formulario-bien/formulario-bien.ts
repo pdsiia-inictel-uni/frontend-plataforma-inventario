@@ -172,10 +172,6 @@ export class FormularioBien {
     this.paso.update((p) => Math.max(p - 1, 0));
   }
 
-  protected irAPaso(indice: number): void {
-    this.paso.set(indice);
-  }
-
   /** Cada paso se valida al salir de el, no al final (RNF-25). */
   protected pasoValido(indice: number): boolean {
     switch (indice) {

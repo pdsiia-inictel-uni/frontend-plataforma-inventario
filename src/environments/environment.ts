@@ -24,5 +24,5 @@ export const environment = {
   institucion: 'INICTEL-UNI',
   /** Credito del pie de las pantallas de acceso y de error. */
   credito: 'Desarrollado por INICTEL-UNI',
-  version: '3.8',
+  version: '1.0',
 };

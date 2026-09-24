@@ -10,27 +10,26 @@
   <!--
     Content-Security-Policy estricta (RNF-07).
 
-    En produccion la cabecera equivalente la emite el backend (SeguridadConfig);
-    esta etiqueta protege ademas el servidor de desarrollo de Angular, que no
-    pasa por Spring. La politica no relaja ninguna directiva: la aplicacion no
-    usa manejadores en atributos, scripts embebidos ni estilos en linea, y una
-    prueba automatica falla si reaparecen (csp.spec.ts).
+    En produccion la cabecera equivalente la emite el nginx del frontend
+    (seguridad-cabeceras.conf, donde cada directiva esta explicada); esta
+    etiqueta protege ademas el servidor de desarrollo de Angular. Parte de
+    negarlo todo (default-src 'none') y autoriza solo lo que la aplicacion usa,
+    sin 'unsafe-inline' ni 'unsafe-eval'. Una prueba automatica falla si
+    reaparecen manejadores, scripts embebidos o estilos en linea (csp.spec.ts).
 
-    - img-src blob:  las fotografias se descargan con JWT y se muestran como blob.
-    - frame-src blob: la vista previa del formato de registro de uso enseña en un
-                     marco el PDF que el servidor acaba de devolver (RF-70).
-    - connect-src    solo el propio origen, y basta: la API nunca es un origen
-                     distinto. En desarrollo /api va por el proxy del servidor
-                     de Angular (proxy.conf.json) y en produccion lo reenvia el
-                     nginx del frontend (nginx.conf), de modo que el navegador
-                     no llega a hacer una peticion cruzada (RNF-44b).
+    - img-src blob:   las fotografias se descargan con JWT y se muestran como blob.
+    - frame-src blob: la vista previa de los PDF (baja y formato de uso).
+    - connect-src     solo el propio origen, y basta: en desarrollo /api va por el
+                      proxy de Angular (proxy.conf.json) y en produccion lo
+                      reenvia nginx, de modo que no hay peticion cruzada (RNF-44b).
+    - La camara no necesita media-src: su flujo va por srcObject, que no pasa
+      por la CSP.
 
-    Dos directivas de la politica completa no aparecen aqui a proposito, porque
-    el navegador las ignora cuando llegan por <meta> y solo generarian ruido:
-    frame-ancestors y upgrade-insecure-requests. Ambas viajan en la cabecera
-    que emite el backend, junto con X-Frame-Options DENY (RNF-09).
+    frame-ancestors no aparece aqui a proposito: el navegador lo ignora cuando
+    llega por <meta>. Viaja en la cabecera de nginx, junto con X-Frame-Options
+    DENY (RNF-09).
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self'; worker-src 'self' blob:; frame-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="same-origin">
 
   <!--

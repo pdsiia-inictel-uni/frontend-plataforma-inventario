@@ -426,7 +426,7 @@ export class DetalleBien {
         this.procesando.set(false);
         this.accionPendiente.set(null);
         this.limpiarDocumentoBaja();
-        this.cargar();
+        this.cargar(true);
       },
       error: (error) => {
         this.procesando.set(false);
@@ -536,7 +536,7 @@ export class DetalleBien {
         );
         this.procesando.set(false);
         this.accionPendiente.set(null);
-        this.cargar();
+        this.cargar(true);
       },
       error: (error) => {
         this.notificaciones.error(mensajeError(error));
