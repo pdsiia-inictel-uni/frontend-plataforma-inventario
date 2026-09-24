@@ -5,8 +5,10 @@
 # resultado. La imagen final no lleva Node, node_modules ni el codigo fuente:
 # solo los archivos estaticos y la configuracion de nginx.
 #
-# nginx corre como usuario sin privilegios (imagen nginx-unprivileged, uid 101):
-# escucha en 8080 y 8443, y docker-compose publica esos puertos como 80 y 443.
+# nginx corre como usuario sin privilegios (imagen nginx-unprivileged, uid 101)
+# y escucha en 80 y 443, que docker-compose publica tal cual. Docker permite a
+# un usuario sin privilegios abrir puertos bajos dentro del contenedor
+# (net.ipv4.ip_unprivileged_port_start=0 por defecto).
 # =============================================================================
 
 # ----------------------------------------------------------------- Compilacion
@@ -40,10 +42,11 @@ COPY seguridad-cabeceras-api.conf  /etc/nginx/seguridad-cabeceras-api.conf
 # El build de Angular deja la aplicacion en dist/frontend/browser.
 COPY --from=construccion /origen/dist/frontend/browser /usr/share/nginx/html
 
-EXPOSE 8080 8443
+EXPOSE 80 443
 
-# Por HTTP y a /salud, que no redirige a HTTPS (ver nginx.conf).
+# Por HTTPS y a la raiz: el puerto 80 solo redirige. El certificado no se
+# valida porque se consulta por 127.0.0.1, no por el nombre del sitio.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO- http://127.0.0.1:8080/salud >/dev/null 2>&1 || exit 1
+    CMD wget -q --no-check-certificate -O /dev/null https://127.0.0.1/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
