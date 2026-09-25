@@ -163,9 +163,7 @@
           <p class="mb-1">
             <strong>{{ hecho.usuario.username }}</strong> ya puede ingresar con esta contraseña:
           </p>
-          <div class="texto-centrado">
-            <span class="credencial">{{ hecho.passwordTemporal }}</span>
-          </div>
+          <app-credencial [password]="hecho.passwordTemporal" />
           <p class="texto-secundario texto-pequeno mt-1 mb-0">
             Anotela ahora: por seguridad no vuelve a mostrarse. Deberá cambiarla en su primer ingreso.
           </p>
@@ -198,9 +196,7 @@
       </div>
       <div class="modal-cuerpo">
         <p class="mb-1">{{ cred.mensaje }}</p>
-        <div class="texto-centrado">
-          <span class="credencial">{{ cred.passwordTemporal }}</span>
-        </div>
+        <app-credencial [password]="cred.passwordTemporal" />
         <p class="texto-secundario texto-pequeno mt-1 mb-0">
           Anotela ahora: por seguridad no vuelve a mostrarse.
         </p>

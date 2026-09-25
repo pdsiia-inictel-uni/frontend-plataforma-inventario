@@ -13,6 +13,7 @@ import { CondicionBien, RevisionPendiente } from './compartido/presentacion/cond
 import { Confirmacion } from './compartido/presentacion/confirmacion/confirmacion';
 import { BarraFiltros } from './compartido/presentacion/barra-filtros/barra-filtros';
 import { EstadoVacio } from './compartido/presentacion/estado-vacio/estado-vacio';
+import { Credencial } from './compartido/presentacion/credencial/credencial';
 import { Icono } from './compartido/presentacion/icono/icono';
 import { Importe } from './compartido/presentacion/importe/importe';
 import { Notificaciones } from './compartido/presentacion/notificaciones/notificaciones';
@@ -93,6 +94,7 @@ import { Panel } from './contextos/reportes/presentacion/panel/panel';
     BarraFiltros,
     CondicionBien,
     Confirmacion,
+    Credencial,
     EstadoVacio,
     Icono,
     Notificaciones,

@@ -258,9 +258,7 @@
       </div>
       <div class="modal-cuerpo">
         <p class="mb-1">{{ cred.mensaje }}</p>
-        <div class="texto-centrado">
-          <span class="credencial">{{ cred.passwordTemporal }}</span>
-        </div>
+        <app-credencial [password]="cred.passwordTemporal" />
         <p class="texto-secundario texto-pequeno mt-1 mb-0">
           Anotela ahora: por seguridad no vuelve a mostrarse.
         </p>

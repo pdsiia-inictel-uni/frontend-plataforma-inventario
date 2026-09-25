@@ -12,9 +12,7 @@
             <strong>{{ hecho.usuario.username }}</strong> ya puede ingresar al sistema con esta
             contraseña:
           </p>
-          <div class="texto-centrado">
-            <span class="credencial">{{ hecho.passwordTemporal }}</span>
-          </div>
+          <app-credencial [password]="hecho.passwordTemporal" />
           <p class="texto-secundario texto-pequeno mt-1 mb-0">
             Anotela ahora: por seguridad no vuelve a mostrarse. La persona deberá cambiarla en su
             primer ingreso. Si se pierde, use <strong>Restablecer contraseña</strong> desde la lista.

@@ -1645,6 +1645,14 @@ span.clave + strong { margin-left: .4rem; }
   display: inline-block;
   user-select: all;
 }
+/* RF-06: la contrasena temporal y su boton Copiar, centrados en la ventana. */
+.credencial-caja {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
 
 /* ---------------------------------------------------------------- Responsivo
 

@@ -339,7 +339,7 @@ export class DetalleBien {
   // ------------------------------------------- RF-42: baja con documento PDF
 
   /**
-   * Solo un PDF de hasta 10 MB; el servidor lo vuelve a comprobar. Si es
+   * Solo un PDF de hasta 5 MB; el servidor lo vuelve a comprobar. Si es
    * válido, se muestra en la ventana para confirmar que es el documento
    * correcto antes de dar de baja el equipo. Nada se envía hasta confirmar.
    */
@@ -381,8 +381,8 @@ export class DetalleBien {
       this.errorDocumento.set('Solo se admite un archivo PDF.');
       return;
     }
-    if (archivo.size > 10 * 1024 * 1024) {
-      this.errorDocumento.set('El PDF no puede superar los 10 MB.');
+    if (archivo.size > 5 * 1024 * 1024) {
+      this.errorDocumento.set('El PDF no puede superar los 5 MB.');
       return;
     }
     // Un archivo renombrado a .pdf no es un PDF: se miran sus primeros bytes.
