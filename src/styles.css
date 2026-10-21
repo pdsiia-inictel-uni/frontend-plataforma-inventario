@@ -2465,50 +2465,94 @@ label.btn { cursor: pointer; }
   border-radius: var(--radio);
 }
 
+/* <dialog> modal: vive en la capa superior del navegador, asi que ocupa toda
+   la ventana aunque un contenedor de la ficha tenga transform u overflow. */
 .visor-foto {
   position: fixed;
   inset: 0;
-  z-index: 1100;   /* por encima del modal de confirmacion, que ocupa el 1000 */
-  background: var(--velo-oscuro);
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4.5rem 1rem 1.5rem;
+  cursor: zoom-out;
+  animation: visor-aparecer .18s ease-out;
+}
+/* Velo translucido y difuminado: tapa por completo el texto de la ficha
+   para que nada compita con la fotografia, sin perder el contexto. */
+.visor-foto::backdrop {
+  background: rgba(28, 25, 23, .72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.visor-foto-cerrar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem .95rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--blanco);
+  color: var(--gris-900);
+  font: inherit;
+  font-weight: var(--peso-seminegrita);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.visor-foto-cerrar:hover { transform: scale(1.05); box-shadow: 0 6px 18px rgba(0, 0, 0, .4); }
+.visor-foto-cerrar:focus-visible { outline: 3px solid var(--blanco); outline-offset: 3px; }
+.visor-foto-marco {
+  margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: .9rem;
-  padding: 1rem;
-}
-.visor-foto-barra {
-  width: 100%;
-  max-width: 1080px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: .75rem;
+  max-width: min(100%, 1080px);
+  cursor: default;
+  animation: visor-acercar .2s ease-out;
 }
 .visor-foto-titulo {
+  max-width: 100%;
   color: var(--blanco);
   font-weight: var(--peso-seminegrita);
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .visor-foto-imagen {
-  max-width: min(100%, 1080px);
-  max-height: 76vh;
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 9rem);
   object-fit: contain;
   border-radius: var(--radio);
   background: var(--blanco);
-  cursor: default;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
 }
-.visor-foto-ayuda {
-  color: var(--gris-300);
-  font-size: var(--texto-sm);
-  text-align: center;
+
+@keyframes visor-aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes visor-acercar { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .visor-foto, .visor-foto-marco { animation: none; }
 }
 
 @media (max-width: 560px) {
+  .visor-foto { padding-top: 4rem; }
   .visor-foto-titulo { font-size: var(--texto-base); }
-  .visor-foto-imagen { max-height: 68vh; }
+  .visor-foto-cerrar { top: .75rem; right: .75rem; }
 }
 
 /*

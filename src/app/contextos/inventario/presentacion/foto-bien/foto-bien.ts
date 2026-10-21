@@ -86,30 +86,31 @@ import { Equipo } from '../../dominio/equipo.model';
 
     @if (ampliada()) {
       @if (url(); as imagen) {
-        <div
+        <!-- <dialog> nativo abierto con showModal(): el navegador lo pinta en
+             su capa superior, por encima de todo y a pantalla completa, sin
+             que ningun contenedor de la ficha pueda recortarlo. -->
+        <dialog
+          #visor
           class="visor-foto"
-          role="dialog"
-          aria-modal="true"
           [attr.aria-label]="'Fotografía de ' + equipo.nombre"
+          (cancel)="$event.preventDefault(); cerrarAmpliada()"
           (click)="cerrarAmpliada()">
-          <div class="visor-foto-barra">
-            <span class="visor-foto-titulo">{{ equipo.nombre }}</span>
-            <button
-              #botonCerrar
-              type="button"
-              class="btn btn-secundario"
-              (click)="cerrarAmpliada()">
-              <app-icono nombre="cerrar" tamano="sm" />
-              <span>Cerrar</span>
-            </button>
-          </div>
-          <img
-            [src]="imagen"
-            [alt]="'Fotografía de ' + equipo.nombre"
-            class="visor-foto-imagen"
-            (click)="$event.stopPropagation()" />
-          <p class="visor-foto-ayuda mb-0">Pulse fuera de la imagen o la tecla Escape para cerrar.</p>
-        </div>
+          <button
+            type="button"
+            autofocus
+            class="visor-foto-cerrar"
+            (click)="cerrarAmpliada()">
+            <app-icono nombre="cerrar" tamano="sm" />
+            <span>Cerrar</span>
+          </button>
+          <figure class="visor-foto-marco" (click)="$event.stopPropagation()">
+            <img
+              [src]="imagen"
+              [alt]="'Fotografía de ' + equipo.nombre"
+              class="visor-foto-imagen" />
+            <figcaption class="visor-foto-titulo">{{ equipo.nombre }}</figcaption>
+          </figure>
+        </dialog>
       }
     }
   `,
@@ -139,10 +140,16 @@ export class FotoBien implements OnChanges, OnDestroy {
   /** Miniatura desde la que se abrio el visor, para devolverle el foco. */
   private origenDelFoco: HTMLElement | null = null;
 
-  /** Al abrirse el visor, el foco pasa a su boton de cierre (RNF-32). */
-  @ViewChild('botonCerrar')
-  protected set enfocarCierre(boton: ElementRef<HTMLButtonElement> | undefined) {
-    boton?.nativeElement.focus();
+  /**
+   * Al aparecer el visor se abre como modal; el foco pasa a su boton de
+   * cierre, marcado con autofocus (RNF-32).
+   */
+  @ViewChild('visor')
+  protected set abrirVisor(visor: ElementRef<HTMLDialogElement> | undefined) {
+    const dialogo = visor?.nativeElement;
+    if (dialogo && !dialogo.open) {
+      dialogo.showModal();
+    }
   }
 
   ngOnChanges(): void {
